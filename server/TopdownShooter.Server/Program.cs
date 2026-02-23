@@ -4,6 +4,10 @@ using TopdownShooter.Server.Runtime;
 var config = ServerConfig.Load(AppContext.BaseDirectory, args);
 using var cts = new CancellationTokenSource();
 var server = new GameServer(config);
+var isHeadless = string.Equals(
+    Environment.GetEnvironmentVariable("TOPDOWN_HEADLESS"),
+    "1",
+    StringComparison.Ordinal);
 
 Console.CancelKeyPress += (_, eventArgs) =>
 {
@@ -17,6 +21,19 @@ Console.WriteLine(
 Console.WriteLine("Commands: status | kick <playerId> | quit");
 
 var runTask = server.RunAsync(cts.Token);
+
+if (isHeadless)
+{
+    try
+    {
+        await runTask.ConfigureAwait(false);
+    }
+    catch (OperationCanceledException)
+    {
+    }
+
+    return;
+}
 
 while (!cts.IsCancellationRequested)
 {

@@ -263,7 +263,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             AddBoundaryWall(environmentRoot.transform, "Wall_East", new Vector3(20.5f, 1f, 0f), new Vector3(1f, 2f, 42f));
             AddBoundaryWall(environmentRoot.transform, "Wall_West", new Vector3(-20.5f, 1f, 0f), new Vector3(1f, 2f, 42f));
 
-            AddObstacle(environmentRoot.transform, "Obstacle_Center", new Vector3(0f, 0.75f, 0f), new Vector3(4f, 1.5f, 4f));
+            BuildCenterStructure(environmentRoot.transform);
             AddObstacle(environmentRoot.transform, "Obstacle_East", new Vector3(10f, 0.75f, 0f), new Vector3(3f, 1.5f, 2f));
             AddObstacle(environmentRoot.transform, "Obstacle_West", new Vector3(-10f, 0.75f, 0f), new Vector3(3f, 1.5f, 2f));
             AddObstacle(environmentRoot.transform, "Obstacle_North", new Vector3(0f, 0.75f, 10f), new Vector3(2f, 1.5f, 3f));
@@ -639,6 +639,18 @@ namespace CodexSix.TopdownShooter.EditorTools
             wall.transform.position = position;
             wall.transform.localScale = scale;
             ApplyMaterialColor(wall.GetComponent<Renderer>(), new Color(0.27f, 0.27f, 0.29f));
+        }
+
+        private static void BuildCenterStructure(Transform parent)
+        {
+            // Keep the dispenser at (0,0) but open cross-shaped lanes to the center.
+            const float centerBlockY = 0.75f;
+            var centerCornerScale = new Vector3(1.4f, 1.5f, 1.4f);
+
+            AddObstacle(parent, "Obstacle_Center_SW", new Vector3(-1.3f, centerBlockY, -1.3f), centerCornerScale);
+            AddObstacle(parent, "Obstacle_Center_SE", new Vector3(1.3f, centerBlockY, -1.3f), centerCornerScale);
+            AddObstacle(parent, "Obstacle_Center_NW", new Vector3(-1.3f, centerBlockY, 1.3f), centerCornerScale);
+            AddObstacle(parent, "Obstacle_Center_NE", new Vector3(1.3f, centerBlockY, 1.3f), centerCornerScale);
         }
 
         private static void AddObstacle(Transform parent, string name, Vector3 position, Vector3 scale)

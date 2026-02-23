@@ -72,7 +72,10 @@ public sealed class GameWorld
 
         _obstacles =
         [
-            new Aabb2(-2f, -2f, 2f, 2f),
+            new Aabb2(-2f, -2f, -0.6f, -0.6f),
+            new Aabb2(0.6f, -2f, 2f, -0.6f),
+            new Aabb2(-2f, 0.6f, -0.6f, 2f),
+            new Aabb2(0.6f, 0.6f, 2f, 2f),
             new Aabb2(8.5f, -1f, 11.5f, 1f),
             new Aabb2(-11.5f, -1f, -8.5f, 1f),
             new Aabb2(-1f, 8.5f, 1f, 11.5f),

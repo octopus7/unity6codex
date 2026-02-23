@@ -42,6 +42,11 @@ namespace CodexSix.TopdownShooter.Game
         [Min(1)] public int RespawnBurstPoolMaxSize = 48;
         [Min(0.25f)] public float RespawnBurstLifetimeSeconds = 1.1f;
 
+        [Header("Item Drop View")]
+        public bool UseStandingItemDropBillboard = true;
+        [Min(0.1f)] public float ItemDropIconScale = 1.1f;
+        [Min(0f)] public float ItemDropIconLift = 0.55f;
+
         [Header("Item Drop Labels")]
         public bool ShowItemDropLabels = true;
         public Vector3 ItemDropLabelWorldOffset = new Vector3(0f, 0.42f, 0f);
@@ -211,6 +216,7 @@ namespace CodexSix.TopdownShooter.Game
             SmoothPlayers(deltaTime);
             SmoothProjectiles(deltaTime);
             AnimateCoins(deltaTime);
+            UpdateItemDropBillboards();
         }
 
         private void OnGUI()
@@ -835,8 +841,11 @@ namespace CodexSix.TopdownShooter.Game
             var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
             quad.name = "Icon";
             quad.transform.SetParent(root.transform, worldPositionStays: false);
-            quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            quad.transform.localScale = Vector3.one * 1.1f;
+            var iconScale = Mathf.Max(0.1f, ItemDropIconScale);
+            var iconLift = ItemDropIconLift > 0f ? ItemDropIconLift : iconScale * 0.5f;
+            quad.transform.localPosition = new Vector3(0f, iconLift, 0f);
+            quad.transform.localRotation = Quaternion.identity;
+            quad.transform.localScale = Vector3.one * iconScale;
 
             var collider = quad.GetComponent<Collider>();
             if (collider != null)
@@ -846,6 +855,51 @@ namespace CodexSix.TopdownShooter.Game
 
             ApplyItemDropTexture(quad, itemId);
             return root;
+        }
+
+        private void UpdateItemDropBillboards()
+        {
+            if (!UseStandingItemDropBillboard || _itemDropViews.Count == 0)
+            {
+                return;
+            }
+
+            var worldCamera = Camera.main;
+            if (worldCamera == null)
+            {
+                return;
+            }
+
+            var cameraPosition = worldCamera.transform.position;
+            var fallbackFacing = -worldCamera.transform.forward;
+            fallbackFacing.y = 0f;
+
+            foreach (var itemDropView in _itemDropViews.Values)
+            {
+                if (itemDropView == null || !itemDropView.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                var iconTransform = itemDropView.transform.childCount > 0
+                    ? itemDropView.transform.GetChild(0)
+                    : itemDropView.transform;
+
+                var toCamera = cameraPosition - iconTransform.position;
+                toCamera.y = 0f;
+
+                if (toCamera.sqrMagnitude <= 0.0001f)
+                {
+                    if (fallbackFacing.sqrMagnitude <= 0.0001f)
+                    {
+                        continue;
+                    }
+
+                    toCamera = fallbackFacing;
+                }
+
+                iconTransform.rotation = Quaternion.LookRotation(toCamera.normalized, Vector3.up);
+            }
         }
 
         private void ApplyItemDropTexture(GameObject itemDropRoot, int itemId)

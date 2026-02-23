@@ -18,6 +18,12 @@ namespace CodexSix.TopdownShooter.EditorTools
         private const string BotWindowTitlePrefix = "TopdownShooter.BotClient";
         private const int DefaultPort = 7777;
 
+        [MenuItem("Tools/Server/Open Headless Console Monitor", false, 4999)]
+        public static void OpenHeadlessConsoleMonitor()
+        {
+            TopDownShooterHeadlessConsoleWindow.OpenWindow();
+        }
+
         [MenuItem("Tools/Server/Start Local Server", false, 5000)]
         public static void StartLocalServer()
         {

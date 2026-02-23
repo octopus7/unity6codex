@@ -21,8 +21,14 @@ Server console commands:
 - `quit`
 
 Or from Unity Editor (Windows):
-- `Tools > Start Local Server`
+- `Tools > Server > Start Local Server`
 - It checks if the listen port is already in use and starts only when no server is running.
+
+Headless monitor from Unity Editor (Windows):
+- `Tools > Server > Open Headless Console Monitor`
+- Set `Bot Count` (1~512), then click `Start All`.
+- Server/Bot logs are shown side-by-side inside the Editor window.
+- In this headless mode, separate external console windows are not opened.
 
 ## 2) Bootstrap Unity scene
 
