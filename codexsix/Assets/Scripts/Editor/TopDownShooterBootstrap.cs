@@ -248,7 +248,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             ground.transform.SetParent(environmentRoot.transform, false);
             ground.transform.localScale = new Vector3(4f, 1f, 4f);
             ground.transform.position = Vector3.zero;
-            ground.GetComponent<Renderer>().sharedMaterial.color = new Color(0.23f, 0.26f, 0.24f);
+            ApplyMaterialColor(ground.GetComponent<Renderer>(), new Color(0.23f, 0.26f, 0.24f));
 
             AddBoundaryWall(environmentRoot.transform, "Wall_North", new Vector3(0f, 1f, 20.5f), new Vector3(42f, 2f, 1f));
             AddBoundaryWall(environmentRoot.transform, "Wall_South", new Vector3(0f, 1f, -20.5f), new Vector3(42f, 2f, 1f));
@@ -272,7 +272,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             zone.transform.SetParent(parent, false);
             zone.transform.position = new Vector3(0f, 0.1f, 28f);
             zone.transform.localScale = new Vector3(12f, 0.2f, 12f);
-            zone.GetComponent<Renderer>().sharedMaterial.color = new Color(0.16f, 0.35f, 0.19f);
+            ApplyMaterialColor(zone.GetComponent<Renderer>(), new Color(0.16f, 0.35f, 0.19f));
             var box = zone.GetComponent<BoxCollider>();
             box.isTrigger = true;
             zone.AddComponent<ShopZoneMarker>().Size = new Vector2(12f, 12f);
@@ -282,7 +282,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             healPad.transform.SetParent(parent, false);
             healPad.transform.position = new Vector3(-2f, 0.5f, 28f);
             healPad.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
-            healPad.GetComponent<Renderer>().sharedMaterial.color = new Color(0.8f, 0.25f, 0.25f);
+            ApplyMaterialColor(healPad.GetComponent<Renderer>(), new Color(0.8f, 0.25f, 0.25f));
             var healMarker = healPad.AddComponent<ShopItemMarker>();
             healMarker.ItemId = 1;
             healMarker.Cost = 5;
@@ -293,7 +293,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             speedPad.transform.SetParent(parent, false);
             speedPad.transform.position = new Vector3(2f, 0.5f, 28f);
             speedPad.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
-            speedPad.GetComponent<Renderer>().sharedMaterial.color = new Color(0.25f, 0.45f, 0.9f);
+            ApplyMaterialColor(speedPad.GetComponent<Renderer>(), new Color(0.25f, 0.45f, 0.9f));
             var speedMarker = speedPad.AddComponent<ShopItemMarker>();
             speedMarker.ItemId = 2;
             speedMarker.Cost = 8;
@@ -314,7 +314,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             portal.transform.SetParent(parent, false);
             portal.transform.position = position;
             portal.transform.localScale = new Vector3(1.2f, 0.1f, 1.2f);
-            portal.GetComponent<Renderer>().sharedMaterial.color = color;
+            ApplyMaterialColor(portal.GetComponent<Renderer>(), color);
             UnityEngine.Object.DestroyImmediate(portal.GetComponent<CapsuleCollider>());
             var collider = portal.AddComponent<SphereCollider>();
             collider.radius = 1.2f;
@@ -323,6 +323,304 @@ namespace CodexSix.TopdownShooter.EditorTools
             var marker = portal.AddComponent<PortalMarker>();
             marker.PortalId = portalId;
             marker.PortalType = portalType;
+
+            BuildPortalGroundIndicator(parent, name, position, portalType);
+        }
+
+        private static void BuildPortalGroundIndicator(Transform parent, string portalName, Vector3 position, PortalType portalType)
+        {
+            switch (portalType)
+            {
+                case PortalType.Entry:
+                    BuildEntryPortalIndicator(parent, portalName, position);
+                    break;
+                case PortalType.Exit:
+                    BuildExitPortalIndicator(parent, portalName, position);
+                    break;
+            }
+        }
+
+        private static void BuildEntryPortalIndicator(Transform parent, string portalName, Vector3 position)
+        {
+            var root = new GameObject($"{portalName}_Indicator");
+            root.transform.SetParent(parent, false);
+            root.transform.position = new Vector3(position.x, 0.02f, position.z);
+
+            var ringOuterColor = new Color(0.08f, 0.75f, 1f);
+            var ringInnerColor = new Color(0.23f, 0.26f, 0.24f);
+
+            CreateIndicatorPrimitive(
+                PrimitiveType.Cylinder,
+                root.transform,
+                "RingOuter",
+                Vector3.zero,
+                Quaternion.identity,
+                new Vector3(2.35f, 0.018f, 2.35f),
+                ringOuterColor,
+                emissionStrength: 1.4f);
+
+            CreateIndicatorPrimitive(
+                PrimitiveType.Cylinder,
+                root.transform,
+                "RingInner",
+                new Vector3(0f, 0.002f, 0f),
+                Quaternion.identity,
+                new Vector3(1.75f, 0.019f, 1.75f),
+                ringInnerColor);
+
+            AddIndicatorParticles(root.transform, "RingParticles", ringOuterColor, radius: 1.3f);
+        }
+
+        private static void BuildExitPortalIndicator(Transform parent, string portalName, Vector3 position)
+        {
+            var toMapCenter = new Vector3(-position.x, 0f, -position.z);
+            if (toMapCenter.sqrMagnitude < 0.0001f)
+            {
+                toMapCenter = Vector3.forward;
+            }
+
+            var root = new GameObject($"{portalName}_Indicator");
+            root.transform.SetParent(parent, false);
+            // Exit portal sits inside the shop floor slab (y 0~0.2), so lift the marker above it.
+            root.transform.position = new Vector3(position.x, 0.215f, position.z);
+            root.transform.rotation = Quaternion.LookRotation(toMapCenter.normalized, Vector3.up);
+
+            CreateIndicatorPrimitive(
+                PrimitiveType.Cylinder,
+                root.transform,
+                "BaseDisc",
+                Vector3.zero,
+                Quaternion.identity,
+                new Vector3(2.2f, 0.018f, 2.2f),
+                new Color(0.62f, 0.25f, 0.07f),
+                emissionStrength: 0.55f);
+
+            var arrowColor = new Color(1f, 0.56f, 0.1f);
+            CreateIndicatorPrimitive(
+                PrimitiveType.Cube,
+                root.transform,
+                "ArrowShaft",
+                new Vector3(0f, 0.02f, -0.35f),
+                Quaternion.identity,
+                new Vector3(0.34f, 0.03f, 1.0f),
+                arrowColor,
+                emissionStrength: 1.25f);
+
+            CreateIndicatorPrimitive(
+                PrimitiveType.Cube,
+                root.transform,
+                "ArrowHeadLeft",
+                new Vector3(-0.22f, 0.02f, 0.28f),
+                Quaternion.Euler(0f, 35f, 0f),
+                new Vector3(0.27f, 0.03f, 0.62f),
+                arrowColor,
+                emissionStrength: 1.25f);
+
+            CreateIndicatorPrimitive(
+                PrimitiveType.Cube,
+                root.transform,
+                "ArrowHeadRight",
+                new Vector3(0.22f, 0.02f, 0.28f),
+                Quaternion.Euler(0f, -35f, 0f),
+                new Vector3(0.27f, 0.03f, 0.62f),
+                arrowColor,
+                emissionStrength: 1.25f);
+
+            AddIndicatorParticles(root.transform, "ArrowParticles", arrowColor, radius: 1.2f);
+        }
+
+        private static void CreateIndicatorPrimitive(
+            PrimitiveType type,
+            Transform parent,
+            string name,
+            Vector3 localPosition,
+            Quaternion localRotation,
+            Vector3 localScale,
+            Color color,
+            float emissionStrength = 0f)
+        {
+            var indicator = GameObject.CreatePrimitive(type);
+            indicator.name = name;
+            indicator.transform.SetParent(parent, worldPositionStays: false);
+            indicator.transform.localPosition = localPosition;
+            indicator.transform.localRotation = localRotation;
+            indicator.transform.localScale = localScale;
+
+            var renderer = indicator.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                ApplyMaterialColor(renderer, color, emissionStrength);
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+
+            var collider = indicator.GetComponent<Collider>();
+            if (collider != null)
+            {
+                UnityEngine.Object.DestroyImmediate(collider);
+            }
+        }
+
+        private static void AddIndicatorParticles(Transform parent, string name, Color color, float radius)
+        {
+            var particlesObject = new GameObject(name);
+            particlesObject.transform.SetParent(parent, worldPositionStays: false);
+            particlesObject.transform.localPosition = new Vector3(0f, 0.03f, 0f);
+            // Circle emitter defaults to XY plane; rotate so particles spawn on ground (XZ plane).
+            particlesObject.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+
+            var particleSystem = particlesObject.AddComponent<ParticleSystem>();
+            var main = particleSystem.main;
+            main.loop = true;
+            main.playOnAwake = true;
+            main.prewarm = true;
+            main.duration = 1.35f;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.95f, 1.55f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.01f, 0.05f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.14f, 0.3f);
+            main.startColor = new Color(color.r, color.g, color.b, 0.82f);
+            main.maxParticles = 220;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.scalingMode = ParticleSystemScalingMode.Shape;
+
+            var emission = particleSystem.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 34f;
+
+            var shape = particleSystem.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = radius;
+            shape.radiusThickness = 0.22f;
+
+            var velocityOverLifetime = particleSystem.velocityOverLifetime;
+            velocityOverLifetime.enabled = true;
+            // Keep emitter laid on the ground, but force drift direction upward in world space.
+            velocityOverLifetime.space = ParticleSystemSimulationSpace.World;
+            velocityOverLifetime.x = new ParticleSystem.MinMaxCurve(-0.02f, 0.02f);
+            velocityOverLifetime.y = new ParticleSystem.MinMaxCurve(0.45f, 0.75f);
+            velocityOverLifetime.z = new ParticleSystem.MinMaxCurve(-0.02f, 0.02f);
+
+            var colorOverLifetime = particleSystem.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(new Color(color.r, color.g, color.b), 0f),
+                    new GradientColorKey(new Color(color.r, color.g, color.b), 1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(0f, 0f),
+                    new GradientAlphaKey(0.78f, 0.1f),
+                    new GradientAlphaKey(0.54f, 0.74f),
+                    new GradientAlphaKey(0f, 1f)
+                });
+            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
+
+            var renderer = particleSystem.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.material = CreateAdditiveParticleMaterial(color);
+        }
+
+        private static Material CreateAdditiveParticleMaterial(Color color)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                         ?? Shader.Find("Particles/Additive")
+                         ?? Shader.Find("Legacy Shaders/Particles/Additive")
+                         ?? Shader.Find("Unlit/Color")
+                         ?? Shader.Find("Standard");
+
+            var material = new Material(shader);
+            if (shader != null && shader.name == "Universal Render Pipeline/Particles/Unlit")
+            {
+                if (material.HasProperty("_Surface"))
+                {
+                    material.SetFloat("_Surface", 1f);
+                }
+
+                if (material.HasProperty("_Blend"))
+                {
+                    material.SetFloat("_Blend", 2f);
+                }
+
+                if (material.HasProperty("_SrcBlend"))
+                {
+                    material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+                }
+
+                if (material.HasProperty("_DstBlend"))
+                {
+                    material.SetFloat("_DstBlend", (float)BlendMode.One);
+                }
+
+                if (material.HasProperty("_ZWrite"))
+                {
+                    material.SetFloat("_ZWrite", 0f);
+                }
+
+                if (material.HasProperty("_Cull"))
+                {
+                    material.SetFloat("_Cull", (float)CullMode.Off);
+                }
+
+                material.renderQueue = (int)RenderQueue.Transparent;
+            }
+
+            if (material.HasProperty("_Color"))
+            {
+                material.color = new Color(color.r, color.g, color.b, 0.88f);
+            }
+
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", new Color(color.r, color.g, color.b, 0.88f));
+            }
+
+            if (material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", color * 2.2f);
+            }
+
+            return material;
+        }
+
+        private static void ApplyMaterialColor(Renderer renderer, Color color, float emissionStrength = 0f)
+        {
+            if (renderer == null)
+            {
+                return;
+            }
+
+            var sourceMaterial = renderer.sharedMaterial;
+            var shader = sourceMaterial != null && sourceMaterial.shader != null
+                ? sourceMaterial.shader
+                : Shader.Find("Universal Render Pipeline/Lit")
+                  ?? Shader.Find("Standard")
+                  ?? Shader.Find("Unlit/Color");
+
+            var material = new Material(shader);
+            if (material.HasProperty("_Color"))
+            {
+                material.color = color;
+            }
+
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", color);
+            }
+
+            if (emissionStrength > 0f && material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", color * emissionStrength);
+            }
+
+            renderer.sharedMaterial = material;
         }
 
         private static void AddBoundaryWall(Transform parent, string name, Vector3 position, Vector3 scale)
@@ -332,7 +630,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             wall.transform.SetParent(parent, false);
             wall.transform.position = position;
             wall.transform.localScale = scale;
-            wall.GetComponent<Renderer>().sharedMaterial.color = new Color(0.27f, 0.27f, 0.29f);
+            ApplyMaterialColor(wall.GetComponent<Renderer>(), new Color(0.27f, 0.27f, 0.29f));
         }
 
         private static void AddObstacle(Transform parent, string name, Vector3 position, Vector3 scale)
@@ -342,7 +640,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             obstacle.transform.SetParent(parent, false);
             obstacle.transform.position = position;
             obstacle.transform.localScale = scale;
-            obstacle.GetComponent<Renderer>().sharedMaterial.color = new Color(0.36f, 0.37f, 0.4f);
+            ApplyMaterialColor(obstacle.GetComponent<Renderer>(), new Color(0.36f, 0.37f, 0.4f));
         }
 
         private static Camera BuildCamera(Transform parent, bool preferExternalCamera)
