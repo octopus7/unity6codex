@@ -19,6 +19,12 @@ namespace CodexSix.TopdownShooter.Game
         public Color RemotePlayerColor = new Color(0.2f, 0.8f, 1f);
         public Color ShopPlayerColor = new Color(1f, 0.9f, 0.2f);
 
+        [Header("View Smoothing")]
+        public float LocalPlayerPositionSmoothing = 22f;
+        public float RemotePlayerPositionSmoothing = 16f;
+        public float PlayerRotationSmoothing = 18f;
+        public float ProjectilePositionSmoothing = 28f;
+
         public int LocalPlayerId { get; private set; } = -1;
         public int LocalHp { get; private set; } = 100;
         public int LocalCoins { get; private set; }
@@ -32,6 +38,9 @@ namespace CodexSix.TopdownShooter.Game
         private readonly Dictionary<int, short> _playerHpById = new();
         private readonly Dictionary<int, GameObject> _projectileViews = new();
         private readonly Dictionary<int, GameObject> _coinViews = new();
+        private readonly Dictionary<int, Vector3> _playerTargetPositions = new();
+        private readonly Dictionary<int, Quaternion> _playerTargetRotations = new();
+        private readonly Dictionary<int, Vector3> _projectileTargetPositions = new();
 
         private readonly HashSet<int> _scratchIds = new();
         private uint _nextInputSeq;
@@ -83,6 +92,23 @@ namespace CodexSix.TopdownShooter.Game
             Transport.PongReceived -= OnPongReceived;
             Transport.ErrorReceived -= OnErrorReceived;
             Transport.ConnectionStateChanged -= OnConnectionStateChanged;
+        }
+
+        private void LateUpdate()
+        {
+            if (CurrentConnectionState != ConnectionState.Connected)
+            {
+                return;
+            }
+
+            var deltaTime = Time.deltaTime;
+            if (deltaTime <= 0f)
+            {
+                return;
+            }
+
+            SmoothPlayers(deltaTime);
+            SmoothProjectiles(deltaTime);
         }
 
         public async void Connect(string host, int port, string nickname)
@@ -152,6 +178,12 @@ namespace CodexSix.TopdownShooter.Game
             if (LocalPlayerId <= 0 || !_playerViews.TryGetValue(LocalPlayerId, out var localPlayerView))
             {
                 return false;
+            }
+
+            if (_playerTargetPositions.TryGetValue(LocalPlayerId, out var targetPosition))
+            {
+                worldPosition = targetPosition;
+                return true;
             }
 
             worldPosition = localPlayerView.transform.position;
@@ -232,6 +264,59 @@ namespace CodexSix.TopdownShooter.Game
             }
         }
 
+        private void SmoothPlayers(float deltaTime)
+        {
+            foreach (var pair in _playerViews)
+            {
+                var playerView = pair.Value;
+                if (playerView == null || !playerView.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                if (_playerTargetPositions.TryGetValue(pair.Key, out var targetPosition))
+                {
+                    var speed = pair.Key == LocalPlayerId
+                        ? LocalPlayerPositionSmoothing
+                        : RemotePlayerPositionSmoothing;
+                    var lerpFactor = SmoothingToLerp(speed, deltaTime);
+                    playerView.transform.position = Vector3.Lerp(playerView.transform.position, targetPosition, lerpFactor);
+                }
+
+                if (_playerTargetRotations.TryGetValue(pair.Key, out var targetRotation))
+                {
+                    var rotationLerpFactor = SmoothingToLerp(PlayerRotationSmoothing, deltaTime);
+                    playerView.transform.rotation =
+                        Quaternion.Slerp(playerView.transform.rotation, targetRotation, rotationLerpFactor);
+                }
+            }
+        }
+
+        private void SmoothProjectiles(float deltaTime)
+        {
+            var lerpFactor = SmoothingToLerp(ProjectilePositionSmoothing, deltaTime);
+            foreach (var pair in _projectileViews)
+            {
+                var projectileView = pair.Value;
+                if (projectileView == null)
+                {
+                    continue;
+                }
+
+                if (!_projectileTargetPositions.TryGetValue(pair.Key, out var targetPosition))
+                {
+                    continue;
+                }
+
+                projectileView.transform.position = Vector3.Lerp(projectileView.transform.position, targetPosition, lerpFactor);
+            }
+        }
+
+        private static float SmoothingToLerp(float smoothing, float deltaTime)
+        {
+            return 1f - Mathf.Exp(-Mathf.Max(0f, smoothing) * deltaTime);
+        }
+
         private void ApplyPlayers(PlayerSnapshot[] players)
         {
             _scratchIds.Clear();
@@ -240,17 +325,30 @@ namespace CodexSix.TopdownShooter.Game
             {
                 _scratchIds.Add(player.PlayerId);
 
+                var snapshotPosition = new Vector3(player.PositionX, 0.55f, player.PositionY);
+                var wasCreated = false;
                 if (!_playerViews.TryGetValue(player.PlayerId, out var playerView))
                 {
                     playerView = CreatePlayerView(player.PlayerId);
                     _playerViews.Add(player.PlayerId, playerView);
+                    wasCreated = true;
                 }
 
-                playerView.transform.position = new Vector3(player.PositionX, 0.55f, player.PositionY);
+                _playerTargetPositions[player.PlayerId] = snapshotPosition;
+                if (wasCreated)
+                {
+                    playerView.transform.position = snapshotPosition;
+                }
+
                 _playerHpById[player.PlayerId] = player.Hp;
                 if (Mathf.Abs(player.AimX) > 0.001f || Mathf.Abs(player.AimY) > 0.001f)
                 {
-                    playerView.transform.rotation = Quaternion.LookRotation(new Vector3(player.AimX, 0f, player.AimY));
+                    var snapshotRotation = Quaternion.LookRotation(new Vector3(player.AimX, 0f, player.AimY));
+                    _playerTargetRotations[player.PlayerId] = snapshotRotation;
+                    if (wasCreated)
+                    {
+                        playerView.transform.rotation = snapshotRotation;
+                    }
                 }
 
                 playerView.SetActive(player.IsAlive);
@@ -258,6 +356,8 @@ namespace CodexSix.TopdownShooter.Game
             }
 
             RemoveMissingViews(_playerViews, _scratchIds);
+            RemoveMissingTargets(_playerTargetPositions, _scratchIds);
+            RemoveMissingTargets(_playerTargetRotations, _scratchIds);
             RemoveMissingPlayerHp(_scratchIds);
         }
 
@@ -269,16 +369,24 @@ namespace CodexSix.TopdownShooter.Game
             {
                 _scratchIds.Add(projectile.ProjectileId);
 
+                var snapshotPosition = new Vector3(projectile.PositionX, 0.25f, projectile.PositionY);
+                var wasCreated = false;
                 if (!_projectileViews.TryGetValue(projectile.ProjectileId, out var projectileView))
                 {
                     projectileView = CreateProjectileView(projectile.ProjectileId);
                     _projectileViews.Add(projectile.ProjectileId, projectileView);
+                    wasCreated = true;
                 }
 
-                projectileView.transform.position = new Vector3(projectile.PositionX, 0.25f, projectile.PositionY);
+                _projectileTargetPositions[projectile.ProjectileId] = snapshotPosition;
+                if (wasCreated)
+                {
+                    projectileView.transform.position = snapshotPosition;
+                }
             }
 
             RemoveMissingViews(_projectileViews, _scratchIds);
+            RemoveMissingTargets(_projectileTargetPositions, _scratchIds);
         }
 
         private void ApplyCoins(CoinStackSnapshot[] coinStacks)
@@ -452,6 +560,37 @@ namespace CodexSix.TopdownShooter.Game
             }
         }
 
+        private static void RemoveMissingTargets<T>(Dictionary<int, T> valuesById, HashSet<int> aliveIds)
+        {
+            if (valuesById.Count == 0)
+            {
+                return;
+            }
+
+            var toRemove = ListPool<int>.Get();
+            try
+            {
+                foreach (var pair in valuesById)
+                {
+                    if (aliveIds.Contains(pair.Key))
+                    {
+                        continue;
+                    }
+
+                    toRemove.Add(pair.Key);
+                }
+
+                for (var i = 0; i < toRemove.Count; i++)
+                {
+                    valuesById.Remove(toRemove[i]);
+                }
+            }
+            finally
+            {
+                ListPool<int>.Release(toRemove);
+            }
+        }
+
         private void RemoveMissingPlayerHp(HashSet<int> aliveIds)
         {
             if (_playerHpById.Count == 0)
@@ -494,8 +633,11 @@ namespace CodexSix.TopdownShooter.Game
             LastPingMs = 0;
 
             DestroyAllViews(_playerViews);
+            _playerTargetPositions.Clear();
+            _playerTargetRotations.Clear();
             _playerHpById.Clear();
             DestroyAllViews(_projectileViews);
+            _projectileTargetPositions.Clear();
             DestroyAllViews(_coinViews);
         }
 
