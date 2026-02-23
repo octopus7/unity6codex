@@ -14,6 +14,8 @@ namespace CodexSix.TopdownShooter.EditorTools
         private const string ServerBatchRelativePath = "server/run-local-server.bat";
         private const string BotBatchRelativePath = "server/run-local-bot-client.bat";
         private const string AppSettingsRelativePath = "server/TopdownShooter.Server/appsettings.json";
+        private const string ServerWindowTitlePrefix = "TopdownShooter.Server";
+        private const string BotWindowTitlePrefix = "TopdownShooter.BotClient";
         private const int DefaultPort = 7777;
 
         [MenuItem("Tools/Start Local Server", false, 5000)]
@@ -75,6 +77,43 @@ namespace CodexSix.TopdownShooter.EditorTools
 #endif
         }
 
+        [MenuItem("Tools/Start Local Server + Bot Client", false, 5002)]
+        public static void StartLocalServerAndBotClient()
+        {
+#if !UNITY_EDITOR_WIN
+            EditorUtility.DisplayDialog("Unsupported Platform", "This menu currently supports Windows only (BAT launch).", "OK");
+            return;
+#else
+            var repoRoot = FindRepoRoot();
+            if (string.IsNullOrEmpty(repoRoot))
+            {
+                EditorUtility.DisplayDialog("Path Error", "Could not locate repository root containing /server.", "OK");
+                return;
+            }
+
+            var serverBatchPath = Path.Combine(repoRoot, ServerBatchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(serverBatchPath))
+            {
+                EditorUtility.DisplayDialog("Missing File", $"Batch file not found:\n{serverBatchPath}", "OK");
+                return;
+            }
+
+            var botBatchPath = Path.Combine(repoRoot, BotBatchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(botBatchPath))
+            {
+                EditorUtility.DisplayDialog("Missing File", $"Batch file not found:\n{botBatchPath}", "OK");
+                return;
+            }
+
+            var appSettingsPath = Path.Combine(repoRoot, AppSettingsRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            var port = ReadServerPort(appSettingsPath, DefaultPort);
+
+            StopExistingLocalProcesses(port);
+            StartBatch(serverBatchPath, "server");
+            StartBatch(botBatchPath, "bot client");
+#endif
+        }
+
         private static string FindRepoRoot()
         {
             var unityProjectRoot = Directory.GetParent(Application.dataPath)?.FullName;
@@ -133,6 +172,65 @@ namespace CodexSix.TopdownShooter.EditorTools
             catch
             {
                 return false;
+            }
+        }
+
+        private static void StopExistingLocalProcesses(int serverPort)
+        {
+            TryKillByWindowTitle(BotWindowTitlePrefix);
+            TryKillByWindowTitle(ServerWindowTitlePrefix);
+
+            for (var attempt = 0; attempt < 5 && IsPortListening("127.0.0.1", serverPort); attempt++)
+            {
+                TryKillByPort(serverPort);
+                System.Threading.Thread.Sleep(100);
+            }
+        }
+
+        private static void TryKillByWindowTitle(string titlePrefix)
+        {
+            try
+            {
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c taskkill /FI \"WINDOWTITLE eq {titlePrefix}*\" /T /F",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+
+                using var process = Process.Start(processStartInfo);
+                process?.WaitForExit(1000);
+            }
+            catch (Exception exception)
+            {
+                UnityEngine.Debug.LogWarning($"Failed to stop process with window title '{titlePrefix}': {exception.Message}");
+            }
+        }
+
+        private static void TryKillByPort(int port)
+        {
+            try
+            {
+                var script = "$ownerPids = Get-NetTCPConnection -LocalPort " + port +
+                             " -State Listen -ErrorAction SilentlyContinue | " +
+                             "Select-Object -ExpandProperty OwningProcess -Unique; " +
+                             "foreach($ownerPid in $ownerPids) { Stop-Process -Id $ownerPid -Force -ErrorAction SilentlyContinue }";
+
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"{script}\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+
+                using var process = Process.Start(processStartInfo);
+                process?.WaitForExit(1000);
+            }
+            catch (Exception exception)
+            {
+                UnityEngine.Debug.LogWarning($"Failed to stop process on port {port}: {exception.Message}");
             }
         }
 
