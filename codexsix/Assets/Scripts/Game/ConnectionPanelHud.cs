@@ -14,10 +14,15 @@ namespace CodexSix.TopdownShooter.Game
         private const int MaxKnownServers = 8;
         private const int ProbeTimeoutMs = 1500;
         private const float AutoProbeIntervalSeconds = 1f;
+        private const float MinimumLoadingDurationSeconds = 0.5f;
 
         public NetworkGameClient Client;
         public float UiScale = 2f;
         public bool HideWhenConnected = true;
+
+        [Header("Startup Loading")]
+        public float StartupLoadingSeconds = 1.6f;
+        public float StartupCompletedHoldSeconds = 0.7f;
 
         private readonly List<string> _knownServers = new();
         private string _host = "127.0.0.1";
@@ -30,6 +35,7 @@ namespace CodexSix.TopdownShooter.Game
         private bool _connectButtonPressed;
         private bool _windowPlaced;
         private float _autoProbeElapsed;
+        private float _startupSequenceStartRealtime;
         private string _autoProbeEndpoint = string.Empty;
         private ConnectionState _previousConnectionState = ConnectionState.Disconnected;
         private Rect _windowRect = new(0f, 0f, 360f, 220f);
@@ -37,6 +43,15 @@ namespace CodexSix.TopdownShooter.Game
         private void Awake()
         {
             LoadKnownServers();
+            BeginStartupSequence();
+        }
+
+        private void OnEnable()
+        {
+            if (_startupSequenceStartRealtime <= 0f)
+            {
+                BeginStartupSequence();
+            }
         }
 
         private void Update()
@@ -60,6 +75,12 @@ namespace CodexSix.TopdownShooter.Game
                 }
 
                 _previousConnectionState = state;
+            }
+
+            if (!IsConnectionPanelReady())
+            {
+                _autoProbeElapsed = 0f;
+                return;
             }
 
             UpdateAutoProbe(state);
@@ -88,10 +109,127 @@ namespace CodexSix.TopdownShooter.Game
 
             var viewWidth = Screen.width / scale;
             var viewHeight = Screen.height / scale;
+
+            if (IsShowingStartupProgress())
+            {
+                DrawStartupProgress(viewWidth, viewHeight);
+                GUI.matrix = previousMatrix;
+                return;
+            }
+
+            if (IsShowingStartupCompleted())
+            {
+                DrawStartupCompleted(viewWidth, viewHeight);
+                GUI.matrix = previousMatrix;
+                return;
+            }
+
             EnsureWindowPlaced(viewWidth, viewHeight);
 
             _windowRect = GUILayout.Window(GetInstanceID(), _windowRect, DrawWindow, "Connection");
             GUI.matrix = previousMatrix;
+        }
+
+        private bool IsConnectionPanelReady()
+        {
+            var totalDuration = GetStartupLoadingDuration() + GetStartupCompletedHoldDuration();
+            return GetStartupSequenceElapsed() >= totalDuration;
+        }
+
+        private bool IsShowingStartupProgress()
+        {
+            return GetStartupSequenceElapsed() < GetStartupLoadingDuration();
+        }
+
+        private bool IsShowingStartupCompleted()
+        {
+            var loadingDuration = GetStartupLoadingDuration();
+            var completionHoldDuration = GetStartupCompletedHoldDuration();
+            var elapsed = GetStartupSequenceElapsed();
+            return completionHoldDuration > 0f &&
+                   elapsed >= loadingDuration &&
+                   elapsed < loadingDuration + completionHoldDuration;
+        }
+
+        private float GetStartupLoadingDuration()
+        {
+            return Mathf.Max(MinimumLoadingDurationSeconds, StartupLoadingSeconds);
+        }
+
+        private float GetStartupCompletedHoldDuration()
+        {
+            return Mathf.Max(0f, StartupCompletedHoldSeconds);
+        }
+
+        private void DrawStartupProgress(float viewWidth, float viewHeight)
+        {
+            var panelWidth = 360f;
+            var panelHeight = 110f;
+            var panelRect = new Rect(
+                (viewWidth - panelWidth) * 0.5f,
+                (viewHeight - panelHeight) * 0.5f,
+                panelWidth,
+                panelHeight);
+
+            GUILayout.BeginArea(panelRect, "Loading", GUI.skin.window);
+            var progress = Mathf.Clamp01(GetStartupSequenceElapsed() / GetStartupLoadingDuration());
+            GUILayout.Label($"Loading... {Mathf.RoundToInt(progress * 100f)}%");
+            var progressRect = GUILayoutUtility.GetRect(326f, 18f);
+            DrawProgressBar(progressRect, progress);
+            GUILayout.EndArea();
+        }
+
+        private void DrawStartupCompleted(float viewWidth, float viewHeight)
+        {
+            var panelWidth = 320f;
+            var panelHeight = 80f;
+            var panelRect = new Rect(
+                (viewWidth - panelWidth) * 0.5f,
+                (viewHeight - panelHeight) * 0.5f,
+                panelWidth,
+                panelHeight);
+
+            GUILayout.BeginArea(panelRect, "Loading", GUI.skin.window);
+            GUILayout.Space(20f);
+            GUILayout.Label("Loading complete");
+            GUILayout.EndArea();
+        }
+
+        private static void DrawProgressBar(Rect rect, float progress01)
+        {
+            var clampedProgress = Mathf.Clamp01(progress01);
+            GUI.Box(rect, GUIContent.none);
+
+            const float border = 2f;
+            var innerWidth = Mathf.Max(0f, rect.width - (border * 2f));
+            var fillWidth = innerWidth * clampedProgress;
+            var fillRect = new Rect(rect.x + border, rect.y + border, fillWidth, Mathf.Max(0f, rect.height - (border * 2f)));
+
+            var previousColor = GUI.color;
+            GUI.color = new Color(0.2f, 0.75f, 1f, 0.95f);
+            GUI.DrawTexture(fillRect, Texture2D.whiteTexture);
+            GUI.color = previousColor;
+        }
+
+        private void BeginStartupSequence()
+        {
+            _startupSequenceStartRealtime = Time.realtimeSinceStartup;
+        }
+
+        private float GetStartupSequenceElapsed()
+        {
+            if (_startupSequenceStartRealtime <= 0f)
+            {
+                BeginStartupSequence();
+            }
+
+            var elapsed = Time.realtimeSinceStartup - _startupSequenceStartRealtime;
+            if (elapsed < 0f)
+            {
+                return 0f;
+            }
+
+            return elapsed;
         }
 
         private void EnsureWindowPlaced(float viewWidth, float viewHeight)

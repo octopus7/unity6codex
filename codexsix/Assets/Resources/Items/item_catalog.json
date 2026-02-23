@@ -1,0 +1,204 @@
+{
+  "items": [
+    {
+      "id": 10001,
+      "band": 10000,
+      "name": "Dish Soap",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Liquid soap for dish cleaning."
+    },
+    {
+      "id": 10002,
+      "band": 10000,
+      "name": "Laundry Detergent",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Detergent refill for laundry."
+    },
+    {
+      "id": 10003,
+      "band": 10000,
+      "name": "Paper Towels",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 30,
+      "description": "Disposable kitchen towels."
+    },
+    {
+      "id": 10004,
+      "band": 10000,
+      "name": "Trash Bags",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 30,
+      "description": "General-purpose trash bags."
+    },
+    {
+      "id": 10005,
+      "band": 10000,
+      "name": "Hand Sanitizer",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Portable hand sanitizer bottle."
+    },
+    {
+      "id": 10006,
+      "band": 10000,
+      "name": "Toothpaste",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Daily-use toothpaste tube."
+    },
+    {
+      "id": 10007,
+      "band": 10000,
+      "name": "Wet Wipes",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 30,
+      "description": "Pocket-size wet tissue pack."
+    },
+    {
+      "id": 10008,
+      "band": 10000,
+      "name": "AA Batteries",
+      "category": "Household",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 40,
+      "description": "AA battery pair pack."
+    },
+    {
+      "id": 10009,
+      "band": 10000,
+      "name": "Instant Rice Bowl",
+      "category": "Food",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Microwavable rice bowl."
+    },
+    {
+      "id": 10010,
+      "band": 10000,
+      "name": "Canned Soup",
+      "category": "Food",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Ready-to-heat canned soup."
+    },
+    {
+      "id": 20001,
+      "band": 20000,
+      "name": "Instant Noodles",
+      "category": "Food",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Cup noodles for quick meals."
+    },
+    {
+      "id": 20002,
+      "band": 20000,
+      "name": "Triangle Kimbap",
+      "category": "Food",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 10,
+      "description": "Convenience store rice snack."
+    },
+    {
+      "id": 20003,
+      "band": 20000,
+      "name": "Chocolate Bar",
+      "category": "Snack",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 30,
+      "description": "Sweet chocolate snack bar."
+    },
+    {
+      "id": 20004,
+      "band": 20000,
+      "name": "Potato Chips",
+      "category": "Snack",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Crunchy potato chip bag."
+    },
+    {
+      "id": 20005,
+      "band": 20000,
+      "name": "Granola Bar",
+      "category": "Snack",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 30,
+      "description": "Oat and nut snack bar."
+    },
+    {
+      "id": 20006,
+      "band": 20000,
+      "name": "Apple",
+      "category": "Fruit",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Fresh red apple."
+    },
+    {
+      "id": 20007,
+      "band": 20000,
+      "name": "Banana",
+      "category": "Fruit",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Fresh ripe banana."
+    },
+    {
+      "id": 20008,
+      "band": 20000,
+      "name": "Orange Juice",
+      "category": "Drink",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 20,
+      "description": "Bottled orange juice."
+    },
+    {
+      "id": 20009,
+      "band": 20000,
+      "name": "Sparkling Water",
+      "category": "Drink",
+      "kind": "Consumable",
+      "stackable": true,
+      "maxStack": 24,
+      "description": "Canned sparkling water."
+    },
+    {
+      "id": 20010,
+      "band": 20000,
+      "name": "Utility Apron",
+      "category": "Household",
+      "kind": "Equipment",
+      "stackable": false,
+      "maxStack": 1,
+      "description": "Wearable apron with pockets."
+    }
+  ]
+}

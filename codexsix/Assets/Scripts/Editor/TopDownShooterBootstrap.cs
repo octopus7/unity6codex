@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using CodexSix.TopdownShooter.Game;
 using CodexSix.TopdownShooter.Net;
 using UnityEditor;
@@ -696,6 +697,8 @@ namespace CodexSix.TopdownShooter.EditorTools
             var transport = runtimeRoot.AddComponent<TcpGameTransport>();
             var client = runtimeRoot.AddComponent<NetworkGameClient>();
             var inputSender = runtimeRoot.AddComponent<LocalInputSender>();
+            var itemDataManager = AddComponentByName(runtimeRoot, "CodexSix.TopdownShooter.Game.ItemDataManager");
+            var inventoryManager = AddComponentByName(runtimeRoot, "CodexSix.TopdownShooter.Game.PlayerInventoryManager");
 
             var playerContainer = new GameObject("Players").transform;
             playerContainer.SetParent(runtimeRoot.transform, false);
@@ -713,6 +716,11 @@ namespace CodexSix.TopdownShooter.EditorTools
             inputSender.WorldCamera = camera;
             inputSender.SendRateHz = 30f;
 
+            SetComponentMember(itemDataManager, "ResourcesCatalogPath", "Items/item_catalog");
+            SetComponentMember(itemDataManager, "LoadOnAwake", true);
+            SetComponentMember(inventoryManager, "ItemDataManager", itemDataManager);
+            SetComponentMember(inventoryManager, "DefaultSlotCount", 24);
+
             var follow = camera.GetComponent<TopDownCameraFollow>();
             if (follow == null)
             {
@@ -724,6 +732,47 @@ namespace CodexSix.TopdownShooter.EditorTools
             follow.FixedEuler = new Vector3(60f, 0f, 0f);
 
             return client;
+        }
+
+        private static Component AddComponentByName(GameObject host, string typeName)
+        {
+            if (host == null || string.IsNullOrWhiteSpace(typeName))
+            {
+                return null;
+            }
+
+            var type = Type.GetType($"{typeName}, Assembly-CSharp");
+            if (type == null || !typeof(Component).IsAssignableFrom(type))
+            {
+                Debug.LogWarning($"TopDownShooterBootstrap could not find component type: {typeName}");
+                return null;
+            }
+
+            return host.AddComponent(type);
+        }
+
+        private static void SetComponentMember(Component component, string memberName, object value)
+        {
+            if (component == null || string.IsNullOrWhiteSpace(memberName))
+            {
+                return;
+            }
+
+            var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+            var type = component.GetType();
+
+            var field = type.GetField(memberName, flags);
+            if (field != null)
+            {
+                field.SetValue(component, value);
+                return;
+            }
+
+            var property = type.GetProperty(memberName, flags);
+            if (property != null && property.CanWrite)
+            {
+                property.SetValue(component, value);
+            }
         }
 
         private static void BuildDebugHud(Transform parent, NetworkGameClient client, Camera camera)
