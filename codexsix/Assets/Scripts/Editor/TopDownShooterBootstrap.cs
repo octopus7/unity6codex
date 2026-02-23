@@ -714,6 +714,11 @@ namespace CodexSix.TopdownShooter.EditorTools
             client.ProjectileContainer = projectileContainer;
             client.CoinContainer = coinContainer;
             client.ItemDropContainer = itemDropContainer;
+            client.RespawnBurstEffectPrefab = RespawnBurstEffectPrefabUtility.EnsurePrefabAsset();
+            client.RespawnBurstResourcesPath = "Effects/RespawnBurstEffect";
+            client.RespawnBurstPoolInitialSize = 16;
+            client.RespawnBurstPoolMaxSize = 48;
+            client.RespawnBurstLifetimeSeconds = 1.1f;
 
             inputSender.Client = client;
             inputSender.WorldCamera = camera;

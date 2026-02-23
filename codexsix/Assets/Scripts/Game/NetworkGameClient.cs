@@ -28,6 +28,20 @@ namespace CodexSix.TopdownShooter.Game
         public float PlayerRotationSmoothing = 18f;
         public float ProjectilePositionSmoothing = 28f;
 
+        [Header("Coin View")]
+        [Min(0f)] public float CoinSpinDegreesPerSecond = 220f;
+        [Range(0f, 1f)] public float CoinMetallic = 0.97f;
+        [Range(0f, 1f)] public float CoinSmoothness = 0.88f;
+        [Range(0f, 2f)] public float CoinEmissionStrength = 0.08f;
+        public Color CoinBaseColor = new Color(1f, 0.8f, 0.18f);
+
+        [Header("Respawn Burst VFX")]
+        public GameObject RespawnBurstEffectPrefab;
+        public string RespawnBurstResourcesPath = "Effects/RespawnBurstEffect";
+        [Min(1)] public int RespawnBurstPoolInitialSize = 16;
+        [Min(1)] public int RespawnBurstPoolMaxSize = 48;
+        [Min(0.25f)] public float RespawnBurstLifetimeSeconds = 1.1f;
+
         public int LocalPlayerId { get; private set; } = -1;
         public int LocalHp { get; private set; } = 100;
         public int LocalCoins { get; private set; }
@@ -45,6 +59,8 @@ namespace CodexSix.TopdownShooter.Game
         private readonly Dictionary<int, GameObject> _playerViews = new();
         private readonly Dictionary<int, short> _playerHpById = new();
         private readonly Dictionary<int, PlayerKind> _playerKindById = new();
+        private readonly Dictionary<int, bool> _playerAliveById = new();
+        private readonly Dictionary<int, bool> _playerInShopById = new();
         private readonly Dictionary<int, GameObject> _projectileViews = new();
         private readonly Dictionary<int, GameObject> _coinViews = new();
         private readonly Dictionary<int, GameObject> _itemDropViews = new();
@@ -55,8 +71,14 @@ namespace CodexSix.TopdownShooter.Game
 
         private readonly HashSet<int> _scratchIds = new();
         private readonly Dictionary<int, Material> _itemDropMaterials = new();
+        private readonly Queue<RespawnBurstEffectInstance> _respawnBurstAvailable = new();
+        private readonly List<ActiveRespawnBurst> _activeRespawnBursts = new();
+        private Material _coinMaterial;
         private uint _nextInputSeq;
         private uint _nextShopRequestSeq;
+        private int _respawnBurstCreatedCount;
+        private Transform _respawnBurstPoolRoot;
+        private bool _respawnBurstMissingLogged;
 
         private const uint CoinDispenserIntervalTicks = 150u;
         private const float ServerTickDeltaSeconds = 1f / 30f;
@@ -92,6 +114,8 @@ namespace CodexSix.TopdownShooter.Game
             {
                 InventoryManager = GetComponent<PlayerInventoryManager>();
             }
+
+            EnsureRespawnBurstPool();
         }
 
         private void OnEnable()
@@ -127,6 +151,7 @@ namespace CodexSix.TopdownShooter.Game
         private void OnDestroy()
         {
             DestroyItemDropMaterials();
+            DestroyCoinMaterial();
         }
 
         private void LateUpdate()
@@ -136,6 +161,8 @@ namespace CodexSix.TopdownShooter.Game
                 return;
             }
 
+            UpdateRespawnBursts(Time.unscaledTime);
+
             var deltaTime = Time.deltaTime;
             if (deltaTime <= 0f)
             {
@@ -144,6 +171,7 @@ namespace CodexSix.TopdownShooter.Game
 
             SmoothPlayers(deltaTime);
             SmoothProjectiles(deltaTime);
+            AnimateCoins(deltaTime);
         }
 
         public async void Connect(string host, int port, string nickname)
@@ -378,6 +406,143 @@ namespace CodexSix.TopdownShooter.Game
             return 1f - Mathf.Exp(-Mathf.Max(0f, smoothing) * deltaTime);
         }
 
+        private void EnsureRespawnBurstPool()
+        {
+            var initialSize = Mathf.Max(1, RespawnBurstPoolInitialSize);
+            var maxSize = Mathf.Max(initialSize, RespawnBurstPoolMaxSize);
+            RespawnBurstPoolInitialSize = initialSize;
+            RespawnBurstPoolMaxSize = maxSize;
+
+            if (RespawnBurstEffectPrefab == null && !string.IsNullOrWhiteSpace(RespawnBurstResourcesPath))
+            {
+                RespawnBurstEffectPrefab = Resources.Load<GameObject>(RespawnBurstResourcesPath);
+            }
+
+            if (RespawnBurstEffectPrefab == null)
+            {
+                if (!_respawnBurstMissingLogged)
+                {
+                    _respawnBurstMissingLogged = true;
+                    Debug.LogWarning("Respawn burst prefab is not assigned. Respawn VFX pooling is disabled.");
+                }
+
+                return;
+            }
+
+            if (_respawnBurstPoolRoot == null)
+            {
+                _respawnBurstPoolRoot = CreateContainer("RespawnBurstPool");
+            }
+
+            while (_respawnBurstCreatedCount < initialSize)
+            {
+                var instance = CreateRespawnBurstInstance();
+                if (instance == null)
+                {
+                    break;
+                }
+
+                _respawnBurstAvailable.Enqueue(instance);
+            }
+        }
+
+        private RespawnBurstEffectInstance CreateRespawnBurstInstance()
+        {
+            if (RespawnBurstEffectPrefab == null || _respawnBurstCreatedCount >= RespawnBurstPoolMaxSize)
+            {
+                return null;
+            }
+
+            if (_respawnBurstPoolRoot == null)
+            {
+                _respawnBurstPoolRoot = CreateContainer("RespawnBurstPool");
+            }
+
+            var instanceObject = Instantiate(RespawnBurstEffectPrefab, _respawnBurstPoolRoot);
+            instanceObject.name = $"RespawnBurst_{_respawnBurstCreatedCount + 1}";
+            instanceObject.SetActive(false);
+
+            var instance = instanceObject.GetComponent<RespawnBurstEffectInstance>();
+            if (instance == null)
+            {
+                instance = instanceObject.AddComponent<RespawnBurstEffectInstance>();
+            }
+
+            instance.CacheIfNeeded();
+            _respawnBurstCreatedCount++;
+            return instance;
+        }
+
+        private void PlayRespawnBurst(Vector3 worldPosition)
+        {
+            EnsureRespawnBurstPool();
+            if (RespawnBurstEffectPrefab == null)
+            {
+                return;
+            }
+
+            RespawnBurstEffectInstance instance = null;
+            if (_respawnBurstAvailable.Count > 0)
+            {
+                instance = _respawnBurstAvailable.Dequeue();
+            }
+            else
+            {
+                instance = CreateRespawnBurstInstance();
+            }
+
+            if (instance == null)
+            {
+                return;
+            }
+
+            instance.PlayAt(worldPosition);
+            var releaseAt = Time.unscaledTime + Mathf.Max(RespawnBurstLifetimeSeconds, instance.SuggestedDurationSeconds);
+            _activeRespawnBursts.Add(new ActiveRespawnBurst(instance, releaseAt));
+        }
+
+        private void UpdateRespawnBursts(float nowUnscaledTime)
+        {
+            if (_activeRespawnBursts.Count == 0)
+            {
+                return;
+            }
+
+            for (var i = _activeRespawnBursts.Count - 1; i >= 0; i--)
+            {
+                var active = _activeRespawnBursts[i];
+                if (active.ReleaseAtUnscaledTime > nowUnscaledTime)
+                {
+                    continue;
+                }
+
+                if (active.Instance != null)
+                {
+                    active.Instance.StopAndHide();
+                    _respawnBurstAvailable.Enqueue(active.Instance);
+                }
+
+                _activeRespawnBursts.RemoveAt(i);
+            }
+        }
+
+        private void ResetRespawnBursts()
+        {
+            for (var i = _activeRespawnBursts.Count - 1; i >= 0; i--)
+            {
+                var active = _activeRespawnBursts[i];
+                if (active.Instance == null)
+                {
+                    continue;
+                }
+
+                active.Instance.StopAndHide();
+                _respawnBurstAvailable.Enqueue(active.Instance);
+            }
+
+            _activeRespawnBursts.Clear();
+        }
+
         private void ApplyPlayers(PlayerSnapshot[] players)
         {
             _scratchIds.Clear();
@@ -395,14 +560,19 @@ namespace CodexSix.TopdownShooter.Game
                     wasCreated = true;
                 }
 
+                var respawned = _playerAliveById.TryGetValue(player.PlayerId, out var wasAlive) && !wasAlive && player.IsAlive;
+                var shopTransitioned = _playerInShopById.TryGetValue(player.PlayerId, out var wasInShop) && wasInShop != player.InShopZone;
+
                 _playerTargetPositions[player.PlayerId] = snapshotPosition;
-                if (wasCreated)
+                if (wasCreated || respawned || shopTransitioned)
                 {
                     playerView.transform.position = snapshotPosition;
                 }
 
                 _playerHpById[player.PlayerId] = player.Hp;
                 _playerKindById[player.PlayerId] = player.Kind;
+                _playerAliveById[player.PlayerId] = player.IsAlive;
+                _playerInShopById[player.PlayerId] = player.InShopZone;
                 if (Mathf.Abs(player.AimX) > 0.001f || Mathf.Abs(player.AimY) > 0.001f)
                 {
                     var snapshotRotation = Quaternion.LookRotation(new Vector3(player.AimX, 0f, player.AimY));
@@ -415,6 +585,11 @@ namespace CodexSix.TopdownShooter.Game
 
                 playerView.SetActive(player.IsAlive);
                 ApplyPlayerColor(playerView, player);
+
+                if ((wasCreated || respawned) && player.IsAlive)
+                {
+                    PlayRespawnBurst(snapshotPosition);
+                }
             }
 
             RemoveMissingViews(_playerViews, _scratchIds);
@@ -422,6 +597,8 @@ namespace CodexSix.TopdownShooter.Game
             RemoveMissingTargets(_playerTargetRotations, _scratchIds);
             RemoveMissingPlayerHp(_scratchIds);
             RemoveMissingTargets(_playerKindById, _scratchIds);
+            RemoveMissingTargets(_playerAliveById, _scratchIds);
+            RemoveMissingTargets(_playerInShopById, _scratchIds);
         }
 
         private void ApplyProjectiles(ProjectileSnapshot[] projectiles)
@@ -468,9 +645,10 @@ namespace CodexSix.TopdownShooter.Game
                     _coinViews.Add(coin.CoinStackId, coinView);
                 }
 
-                coinView.transform.position = new Vector3(coin.PositionX, 0.1f, coin.PositionY);
-                var scale = Mathf.Clamp(0.25f + (coin.Amount * 0.03f), 0.25f, 0.8f);
-                coinView.transform.localScale = new Vector3(scale, 0.08f, scale);
+                var scale = Mathf.Clamp((0.25f + (coin.Amount * 0.03f)) * 2f, 0.5f, 1.6f);
+                var thickness = Mathf.Clamp(scale * 0.08f, 0.04f, 0.12f);
+                coinView.transform.localScale = new Vector3(scale, thickness, scale);
+                coinView.transform.position = new Vector3(coin.PositionX, (scale * 0.5f) + 0.03f, coin.PositionY);
 
                 if (coin.IsDispenser)
                 {
@@ -783,14 +961,117 @@ namespace CodexSix.TopdownShooter.Game
             var view = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             view.name = $"Coin_{coinStackId}";
             view.transform.SetParent(CoinContainer, worldPositionStays: false);
-            view.transform.localScale = new Vector3(0.25f, 0.08f, 0.25f);
+            view.transform.localScale = new Vector3(0.5f, 0.04f, 0.5f);
+
+            var initialYaw = (coinStackId * 37) % 360;
+            var uprightRotation = Quaternion.AngleAxis(90f, Vector3.right);
+            var yawRotation = Quaternion.AngleAxis(initialYaw, Vector3.up);
+            view.transform.localRotation = yawRotation * uprightRotation;
+
+            var collider = view.GetComponent<Collider>();
+            if (collider != null)
+            {
+                Destroy(collider);
+            }
+
             var renderer = view.GetComponent<Renderer>();
             if (renderer != null)
             {
-                renderer.material.color = new Color(1f, 0.84f, 0.2f);
+                renderer.sharedMaterial = GetOrCreateCoinMaterial();
             }
 
             return view;
+        }
+
+        private void AnimateCoins(float deltaTime)
+        {
+            if (_coinViews.Count == 0)
+            {
+                return;
+            }
+
+            var spinStep = CoinSpinDegreesPerSecond * deltaTime;
+            if (Mathf.Abs(spinStep) <= Mathf.Epsilon)
+            {
+                return;
+            }
+
+            foreach (var pair in _coinViews)
+            {
+                var coinView = pair.Value;
+                if (coinView == null || !coinView.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                coinView.transform.Rotate(Vector3.up, spinStep, Space.World);
+            }
+        }
+
+        private Material GetOrCreateCoinMaterial()
+        {
+            if (_coinMaterial == null)
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Lit")
+                             ?? Shader.Find("Standard")
+                             ?? Shader.Find("Universal Render Pipeline/Simple Lit")
+                             ?? Shader.Find("Legacy Shaders/Diffuse");
+
+                _coinMaterial = new Material(shader)
+                {
+                    name = "Runtime_CoinMetal"
+                };
+            }
+
+            ApplyCoinMaterialProperties(_coinMaterial);
+            return _coinMaterial;
+        }
+
+        private void ApplyCoinMaterialProperties(Material material)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", CoinBaseColor);
+            }
+
+            if (material.HasProperty("_Color"))
+            {
+                material.SetColor("_Color", CoinBaseColor);
+            }
+
+            if (material.HasProperty("_Metallic"))
+            {
+                material.SetFloat("_Metallic", CoinMetallic);
+            }
+
+            if (material.HasProperty("_Smoothness"))
+            {
+                material.SetFloat("_Smoothness", CoinSmoothness);
+            }
+
+            if (material.HasProperty("_Glossiness"))
+            {
+                material.SetFloat("_Glossiness", CoinSmoothness);
+            }
+
+            if (material.HasProperty("_EmissionColor"))
+            {
+                if (CoinEmissionStrength > 0.0001f)
+                {
+                    material.EnableKeyword("_EMISSION");
+                    material.SetColor("_EmissionColor", CoinBaseColor * CoinEmissionStrength);
+                }
+                else
+                {
+                    material.DisableKeyword("_EMISSION");
+                    material.SetColor("_EmissionColor", Color.black);
+                }
+            }
         }
 
         private Transform CreateContainer(string name)
@@ -921,12 +1202,25 @@ namespace CodexSix.TopdownShooter.Game
             _playerTargetRotations.Clear();
             _playerHpById.Clear();
             _playerKindById.Clear();
+            _playerAliveById.Clear();
+            _playerInShopById.Clear();
             DestroyAllViews(_projectileViews);
             _projectileTargetPositions.Clear();
             DestroyAllViews(_coinViews);
+            DestroyCoinMaterial();
             DestroyAllViews(_itemDropViews);
             _itemDropItemIds.Clear();
             DestroyItemDropMaterials();
+            ResetRespawnBursts();
+        }
+
+        private void DestroyCoinMaterial()
+        {
+            if (_coinMaterial != null)
+            {
+                Destroy(_coinMaterial);
+                _coinMaterial = null;
+            }
         }
 
         private void DestroyItemDropMaterials()
@@ -953,6 +1247,18 @@ namespace CodexSix.TopdownShooter.Game
             }
 
             views.Clear();
+        }
+
+        private readonly struct ActiveRespawnBurst
+        {
+            public readonly RespawnBurstEffectInstance Instance;
+            public readonly float ReleaseAtUnscaledTime;
+
+            public ActiveRespawnBurst(RespawnBurstEffectInstance instance, float releaseAtUnscaledTime)
+            {
+                Instance = instance;
+                ReleaseAtUnscaledTime = releaseAtUnscaledTime;
+            }
         }
 
         private static class ListPool<T>
