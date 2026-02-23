@@ -20,6 +20,10 @@ Server console commands:
 - `kick <playerId>`
 - `quit`
 
+Or from Unity Editor (Windows):
+- `Tools > Start Local Server`
+- It checks if the listen port is already in use and starts only when no server is running.
+
 ## 2) Bootstrap Unity scene
 
 In Unity Editor:
