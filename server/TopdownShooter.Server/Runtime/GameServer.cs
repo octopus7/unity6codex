@@ -203,7 +203,8 @@ public sealed class GameServer
 
         var hello = ProtocolCodec.DecodeHello(payload);
         var nickname = NormalizeNickname(hello.Nickname);
-        var playerId = _world.AddPlayer(nickname);
+        var kind = SanitizePlayerKind(hello.Kind);
+        var playerId = _world.AddPlayer(nickname, kind);
         if (playerId <= 0)
         {
             _ = TrySendErrorAsync(connection, 1010, "Server full", token);
@@ -218,7 +219,7 @@ public sealed class GameServer
             writer => ProtocolCodec.WriteWelcomePayload(writer, playerId, _config),
             token);
 
-        Console.WriteLine($"[join] player={playerId} nickname={nickname} connection={connection.ConnectionId}");
+        Console.WriteLine($"[join] player={playerId} kind={kind} nickname={nickname} connection={connection.ConnectionId}");
     }
 
     private void HandleInputFrame(ClientConnection connection, byte[] payload)
@@ -344,6 +345,13 @@ public sealed class GameServer
         }
 
         return value;
+    }
+
+    private static PlayerKind SanitizePlayerKind(PlayerKind kind)
+    {
+        return kind == PlayerKind.Bot
+            ? PlayerKind.Bot
+            : PlayerKind.Human;
     }
 
     private uint NextServerSequence()

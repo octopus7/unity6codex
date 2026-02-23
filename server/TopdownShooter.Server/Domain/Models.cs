@@ -1,5 +1,11 @@
 namespace TopdownShooter.Server.Domain;
 
+public enum PlayerKind : byte
+{
+    Human = 0,
+    Bot = 1
+}
+
 public enum PortalType : byte
 {
     Entry = 1,
@@ -10,6 +16,7 @@ public sealed class PlayerState
 {
     public int PlayerId { get; init; }
     public string Nickname { get; init; } = string.Empty;
+    public PlayerKind Kind { get; init; } = PlayerKind.Human;
 
     public Vector2f Position { get; set; }
     public Vector2f AimDirection { get; set; } = new Vector2f(1f, 0f);
@@ -79,6 +86,7 @@ public readonly record struct PlayerSnapshotState(
     short Hp,
     int CarriedCoins,
     byte SpeedBuffStacks,
+    PlayerKind Kind,
     bool IsAlive,
     bool InShopZone,
     uint LastInputSeq);

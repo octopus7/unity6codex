@@ -44,6 +44,7 @@ namespace CodexSix.TopdownShooter.Game
 
         private readonly Dictionary<int, GameObject> _playerViews = new();
         private readonly Dictionary<int, short> _playerHpById = new();
+        private readonly Dictionary<int, PlayerKind> _playerKindById = new();
         private readonly Dictionary<int, GameObject> _projectileViews = new();
         private readonly Dictionary<int, GameObject> _coinViews = new();
         private readonly Dictionary<int, GameObject> _itemDropViews = new();
@@ -253,12 +254,14 @@ namespace CodexSix.TopdownShooter.Game
                 }
 
                 var hp = _playerHpById.TryGetValue(pair.Key, out var currentHp) ? currentHp : (short)0;
+                var isBot = _playerKindById.TryGetValue(pair.Key, out var kind) && kind == PlayerKind.Bot;
                 output.Add(new PlayerHudEntry(
                     pair.Key,
                     playerView.transform.position,
                     hp,
                     playerView.activeInHierarchy,
-                    pair.Key == LocalPlayerId));
+                    pair.Key == LocalPlayerId,
+                    isBot));
             }
         }
 
@@ -399,6 +402,7 @@ namespace CodexSix.TopdownShooter.Game
                 }
 
                 _playerHpById[player.PlayerId] = player.Hp;
+                _playerKindById[player.PlayerId] = player.Kind;
                 if (Mathf.Abs(player.AimX) > 0.001f || Mathf.Abs(player.AimY) > 0.001f)
                 {
                     var snapshotRotation = Quaternion.LookRotation(new Vector3(player.AimX, 0f, player.AimY));
@@ -417,6 +421,7 @@ namespace CodexSix.TopdownShooter.Game
             RemoveMissingTargets(_playerTargetPositions, _scratchIds);
             RemoveMissingTargets(_playerTargetRotations, _scratchIds);
             RemoveMissingPlayerHp(_scratchIds);
+            RemoveMissingTargets(_playerKindById, _scratchIds);
         }
 
         private void ApplyProjectiles(ProjectileSnapshot[] projectiles)
@@ -915,6 +920,7 @@ namespace CodexSix.TopdownShooter.Game
             _playerTargetPositions.Clear();
             _playerTargetRotations.Clear();
             _playerHpById.Clear();
+            _playerKindById.Clear();
             DestroyAllViews(_projectileViews);
             _projectileTargetPositions.Clear();
             DestroyAllViews(_coinViews);
@@ -972,14 +978,16 @@ namespace CodexSix.TopdownShooter.Game
             public readonly short Hp;
             public readonly bool IsAlive;
             public readonly bool IsLocalPlayer;
+            public readonly bool IsBot;
 
-            public PlayerHudEntry(int playerId, Vector3 worldPosition, short hp, bool isAlive, bool isLocalPlayer)
+            public PlayerHudEntry(int playerId, Vector3 worldPosition, short hp, bool isAlive, bool isLocalPlayer, bool isBot)
             {
                 PlayerId = playerId;
                 WorldPosition = worldPosition;
                 Hp = hp;
                 IsAlive = isAlive;
                 IsLocalPlayer = isLocalPlayer;
+                IsBot = isBot;
             }
         }
     }

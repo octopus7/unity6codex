@@ -1,6 +1,8 @@
+using TopdownShooter.Server.Domain;
+
 namespace TopdownShooter.Server.Networking;
 
-public readonly record struct HelloMessage(string Nickname);
+public readonly record struct HelloMessage(string Nickname, PlayerKind Kind);
 
 public readonly record struct InputFrameMessage(
     uint InputSeq,

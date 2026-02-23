@@ -9,6 +9,9 @@ namespace CodexSix.TopdownShooter.Game
         private static readonly Color BackColor = new(0f, 0f, 0f, 0.75f);
         private static readonly Color LocalBarColor = new(0.2f, 0.9f, 0.2f, 0.95f);
         private static readonly Color RemoteBarColor = new(0.2f, 0.8f, 1f, 0.95f);
+        private static readonly Color BotBadgeColor = new(1f, 0.78f, 0.12f, 0.95f);
+        private static readonly Color BotTextColor = new(0.08f, 0.08f, 0.08f, 1f);
+        private static GUIStyle _botBadgeLabelStyle;
 
         public NetworkGameClient Client;
         public Camera WorldCamera;
@@ -67,6 +70,11 @@ namespace CodexSix.TopdownShooter.Game
                 var y = ((Screen.height - screen.y) * invScale) - height - 2f;
                 var backRect = new Rect(x, y, width, height);
 
+                if (entry.IsBot)
+                {
+                    DrawBotBadge(new Rect(x + ((width - 22f) * 0.5f), y - 13f, 22f, 10f));
+                }
+
                 DrawRect(backRect, BackColor);
                 var fill = Mathf.Clamp01(entry.Hp / MaxHp);
                 if (fill <= 0f)
@@ -86,6 +94,22 @@ namespace CodexSix.TopdownShooter.Game
             var previous = GUI.color;
             GUI.color = color;
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
+            GUI.color = previous;
+        }
+
+        private static void DrawBotBadge(Rect rect)
+        {
+            DrawRect(rect, BotBadgeColor);
+            _botBadgeLabelStyle ??= new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 8,
+                fontStyle = FontStyle.Bold
+            };
+
+            var previous = GUI.color;
+            GUI.color = BotTextColor;
+            GUI.Label(rect, "BOT", _botBadgeLabelStyle);
             GUI.color = previous;
         }
     }

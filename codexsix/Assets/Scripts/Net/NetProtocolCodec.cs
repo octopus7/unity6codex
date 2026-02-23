@@ -7,14 +7,15 @@ namespace CodexSix.TopdownShooter.Net
 {
     public static class NetProtocolCodec
     {
-        public const ushort ProtocolVersion = 1;
+        public const ushort ProtocolVersion = 2;
         public const int HeaderSize = 12;
 
-        public static byte[] EncodeHello(uint sequence, string nickname)
+        public static byte[] EncodeHello(uint sequence, string nickname, PlayerKind kind = PlayerKind.Human)
         {
             return EncodeFrame(MessageType.Hello, sequence, writer =>
             {
                 WriteString8(writer, nickname ?? "Guest", 16);
+                writer.Write((byte)kind);
             });
         }
 
@@ -114,7 +115,8 @@ namespace CodexSix.TopdownShooter.Net
                     AimY = reader.ReadSingle(),
                     Hp = reader.ReadInt16(),
                     CarriedCoins = reader.ReadInt32(),
-                    SpeedBuffStacks = reader.ReadByte()
+                    SpeedBuffStacks = reader.ReadByte(),
+                    Kind = DecodePlayerKind(reader.ReadByte())
                 };
 
                 flags = reader.ReadByte();
@@ -291,6 +293,13 @@ namespace CodexSix.TopdownShooter.Net
             }
 
             return Encoding.UTF8.GetString(bytes);
+        }
+
+        private static PlayerKind DecodePlayerKind(byte rawKind)
+        {
+            return rawKind == (byte)PlayerKind.Bot
+                ? PlayerKind.Bot
+                : PlayerKind.Human;
         }
     }
 }

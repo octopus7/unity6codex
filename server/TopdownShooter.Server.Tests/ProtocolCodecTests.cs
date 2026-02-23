@@ -1,4 +1,5 @@
 using TopdownShooter.Server.Networking;
+using TopdownShooter.Server.Domain;
 
 namespace TopdownShooter.Server.Tests;
 
@@ -50,5 +51,44 @@ public sealed class ProtocolCodecTests
         Assert.Equal(0.5f, decoded.AimX, 3);
         Assert.Equal(-0.25f, decoded.AimY, 3);
         Assert.Equal((byte)0x1, decoded.Buttons);
+    }
+
+    [Fact]
+    public void DecodeHello_DefaultsToHumanWhenKindIsMissing()
+    {
+        byte[] payload;
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write((byte)4);
+            writer.Write(new byte[] { (byte)'T', (byte)'e', (byte)'s', (byte)'t' });
+            writer.Flush();
+            payload = stream.ToArray();
+        }
+
+        var decoded = ProtocolCodec.DecodeHello(payload);
+
+        Assert.Equal("Test", decoded.Nickname);
+        Assert.Equal(PlayerKind.Human, decoded.Kind);
+    }
+
+    [Fact]
+    public void DecodeHello_ReadsBotKind()
+    {
+        byte[] payload;
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write((byte)3);
+            writer.Write(new byte[] { (byte)'A', (byte)'I', (byte)'1' });
+            writer.Write((byte)PlayerKind.Bot);
+            writer.Flush();
+            payload = stream.ToArray();
+        }
+
+        var decoded = ProtocolCodec.DecodeHello(payload);
+
+        Assert.Equal("AI1", decoded.Nickname);
+        Assert.Equal(PlayerKind.Bot, decoded.Kind);
     }
 }
