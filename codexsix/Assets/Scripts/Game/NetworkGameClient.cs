@@ -13,6 +13,9 @@ namespace CodexSix.TopdownShooter.Game
         public Transform PlayerContainer;
         public Transform ProjectileContainer;
         public Transform CoinContainer;
+        public Transform ItemDropContainer;
+        public ItemDataManager ItemDataManager;
+        public PlayerInventoryManager InventoryManager;
 
         [Header("View Colors")]
         public Color LocalPlayerColor = new Color(0.2f, 0.9f, 0.2f);
@@ -32,19 +35,30 @@ namespace CodexSix.TopdownShooter.Game
         public int CurrentPlayerCount { get; private set; }
         public long LastPingMs { get; private set; }
         public string LeaderboardText { get; private set; } = "-";
+        public uint LastServerTick { get; private set; }
+        public int CoinDispenserStackId { get; private set; } = -1;
+        public int CoinDispenserStackAmount { get; private set; }
+        public float SecondsUntilCoinDispenserSpawn =>
+            (CoinDispenserIntervalTicks - (LastServerTick % CoinDispenserIntervalTicks)) * ServerTickDeltaSeconds;
         public ConnectionState CurrentConnectionState => Transport != null ? Transport.CurrentState : ConnectionState.Disconnected;
 
         private readonly Dictionary<int, GameObject> _playerViews = new();
         private readonly Dictionary<int, short> _playerHpById = new();
         private readonly Dictionary<int, GameObject> _projectileViews = new();
         private readonly Dictionary<int, GameObject> _coinViews = new();
+        private readonly Dictionary<int, GameObject> _itemDropViews = new();
+        private readonly Dictionary<int, int> _itemDropItemIds = new();
         private readonly Dictionary<int, Vector3> _playerTargetPositions = new();
         private readonly Dictionary<int, Quaternion> _playerTargetRotations = new();
         private readonly Dictionary<int, Vector3> _projectileTargetPositions = new();
 
         private readonly HashSet<int> _scratchIds = new();
+        private readonly Dictionary<int, Material> _itemDropMaterials = new();
         private uint _nextInputSeq;
         private uint _nextShopRequestSeq;
+
+        private const uint CoinDispenserIntervalTicks = 150u;
+        private const float ServerTickDeltaSeconds = 1f / 30f;
 
         private void Awake()
         {
@@ -61,6 +75,21 @@ namespace CodexSix.TopdownShooter.Game
             if (CoinContainer == null)
             {
                 CoinContainer = CreateContainer("CoinStacks");
+            }
+
+            if (ItemDropContainer == null)
+            {
+                ItemDropContainer = CreateContainer("ItemDrops");
+            }
+
+            if (ItemDataManager == null)
+            {
+                ItemDataManager = GetComponent<ItemDataManager>();
+            }
+
+            if (InventoryManager == null)
+            {
+                InventoryManager = GetComponent<PlayerInventoryManager>();
             }
         }
 
@@ -92,6 +121,11 @@ namespace CodexSix.TopdownShooter.Game
             Transport.PongReceived -= OnPongReceived;
             Transport.ErrorReceived -= OnErrorReceived;
             Transport.ConnectionStateChanged -= OnConnectionStateChanged;
+        }
+
+        private void OnDestroy()
+        {
+            DestroyItemDropMaterials();
         }
 
         private void LateUpdate()
@@ -190,6 +224,18 @@ namespace CodexSix.TopdownShooter.Game
             return true;
         }
 
+        public bool TryGetCoinStackWorldPosition(int coinStackId, out Vector3 worldPosition)
+        {
+            worldPosition = default;
+            if (coinStackId <= 0 || !_coinViews.TryGetValue(coinStackId, out var coinView) || coinView == null)
+            {
+                return false;
+            }
+
+            worldPosition = coinView.transform.position;
+            return true;
+        }
+
         public void FillPlayerHudEntries(List<PlayerHudEntry> output)
         {
             if (output == null)
@@ -221,15 +267,22 @@ namespace CodexSix.TopdownShooter.Game
             LocalPlayerId = welcome.PlayerId;
             _nextInputSeq = 0;
             _nextShopRequestSeq = 0;
+            if (LocalPlayerId > 0 && InventoryManager != null)
+            {
+                InventoryManager.GetOrCreateInventory(LocalPlayerId);
+            }
+
             Debug.Log($"Connected. LocalPlayerId={LocalPlayerId}, tick={welcome.TickRateHz}, snapshot={welcome.SnapshotRateHz}");
         }
 
         private void OnSnapshotReceived(ServerSnapshot snapshot)
         {
+            LastServerTick = snapshot.ServerTick;
             CurrentPlayerCount = snapshot.Players.Length;
             ApplyPlayers(snapshot.Players);
             ApplyProjectiles(snapshot.Projectiles);
             ApplyCoins(snapshot.CoinStacks);
+            ApplyItemDrops(snapshot.ItemDrops);
             UpdateLocalHud(snapshot.Players);
             UpdateLeaderboard(snapshot.Players);
         }
@@ -242,6 +295,11 @@ namespace CodexSix.TopdownShooter.Game
                 if (gameEvent.EventType == GameEventType.PurchaseRejected && gameEvent.ActorId == LocalPlayerId)
                 {
                     Debug.Log($"Purchase rejected. item={gameEvent.Value} reason={gameEvent.ExtraId}");
+                }
+
+                if (gameEvent.EventType == GameEventType.ItemPicked && gameEvent.ActorId == LocalPlayerId)
+                {
+                    TryApplyLocalInventoryPickup(gameEvent.Value, Mathf.Max(1, gameEvent.ExtraId));
                 }
             }
         }
@@ -392,6 +450,8 @@ namespace CodexSix.TopdownShooter.Game
         private void ApplyCoins(CoinStackSnapshot[] coinStacks)
         {
             _scratchIds.Clear();
+            var dispenserStackId = -1;
+            var dispenserStackAmount = 0;
 
             foreach (var coin in coinStacks)
             {
@@ -406,9 +466,220 @@ namespace CodexSix.TopdownShooter.Game
                 coinView.transform.position = new Vector3(coin.PositionX, 0.1f, coin.PositionY);
                 var scale = Mathf.Clamp(0.25f + (coin.Amount * 0.03f), 0.25f, 0.8f);
                 coinView.transform.localScale = new Vector3(scale, 0.08f, scale);
+
+                if (coin.IsDispenser)
+                {
+                    dispenserStackId = coin.CoinStackId;
+                    dispenserStackAmount = coin.Amount;
+                }
             }
 
             RemoveMissingViews(_coinViews, _scratchIds);
+            CoinDispenserStackId = dispenserStackId;
+            CoinDispenserStackAmount = dispenserStackAmount;
+        }
+
+        private void ApplyItemDrops(ItemDropSnapshot[] itemDrops)
+        {
+            _scratchIds.Clear();
+
+            foreach (var itemDrop in itemDrops)
+            {
+                _scratchIds.Add(itemDrop.ItemDropId);
+
+                if (!_itemDropViews.TryGetValue(itemDrop.ItemDropId, out var itemDropView))
+                {
+                    itemDropView = CreateItemDropView(itemDrop.ItemDropId, itemDrop.ItemId);
+                    _itemDropViews.Add(itemDrop.ItemDropId, itemDropView);
+                    _itemDropItemIds[itemDrop.ItemDropId] = itemDrop.ItemId;
+                }
+
+                if (_itemDropItemIds.TryGetValue(itemDrop.ItemDropId, out var previousItemId) && previousItemId != itemDrop.ItemId)
+                {
+                    if (itemDropView != null)
+                    {
+                        ApplyItemDropTexture(itemDropView, itemDrop.ItemId);
+                    }
+
+                    _itemDropItemIds[itemDrop.ItemDropId] = itemDrop.ItemId;
+                }
+
+                if (itemDropView != null)
+                {
+                    itemDropView.transform.position = new Vector3(itemDrop.PositionX, 0.04f, itemDrop.PositionY);
+                }
+            }
+
+            RemoveMissingViews(_itemDropViews, _scratchIds);
+            RemoveMissingTargets(_itemDropItemIds, _scratchIds);
+        }
+
+        private GameObject CreateItemDropView(int itemDropId, int itemId)
+        {
+            var root = new GameObject($"ItemDrop_{itemDropId}");
+            root.transform.SetParent(ItemDropContainer, worldPositionStays: false);
+
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = "Icon";
+            quad.transform.SetParent(root.transform, worldPositionStays: false);
+            quad.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            quad.transform.localScale = Vector3.one * 1.1f;
+
+            var collider = quad.GetComponent<Collider>();
+            if (collider != null)
+            {
+                Destroy(collider);
+            }
+
+            ApplyItemDropTexture(quad, itemId);
+            return root;
+        }
+
+        private void ApplyItemDropTexture(GameObject itemDropRoot, int itemId)
+        {
+            if (itemDropRoot == null)
+            {
+                return;
+            }
+
+            var renderer = itemDropRoot.GetComponentInChildren<Renderer>();
+            if (renderer == null)
+            {
+                return;
+            }
+
+            var iconTexture = ItemDataManager != null
+                ? ItemDataManager.GetItemIconOrNull(itemId)
+                : null;
+
+            if (iconTexture == null)
+            {
+                iconTexture = GetFallbackItemIcon();
+            }
+
+            if (!_itemDropMaterials.TryGetValue(itemId, out var material) || material == null)
+            {
+                material = CreateItemDropMaterial(iconTexture);
+                _itemDropMaterials[itemId] = material;
+            }
+
+            renderer.sharedMaterial = material;
+        }
+
+        private static Material CreateItemDropMaterial(Texture2D texture)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Unlit/Transparent")
+                         ?? Shader.Find("Sprites/Default")
+                         ?? Shader.Find("Standard");
+
+            var material = new Material(shader)
+            {
+                renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent
+            };
+
+            if (material.HasProperty("_BaseMap"))
+            {
+                material.SetTexture("_BaseMap", texture);
+            }
+
+            if (material.HasProperty("_MainTex"))
+            {
+                material.SetTexture("_MainTex", texture);
+            }
+
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", Color.white);
+            }
+
+            if (material.HasProperty("_Color"))
+            {
+                material.SetColor("_Color", Color.white);
+            }
+
+            if (material.HasProperty("_Surface"))
+            {
+                material.SetFloat("_Surface", 1f);
+            }
+
+            if (material.HasProperty("_Blend"))
+            {
+                material.SetFloat("_Blend", 0f);
+            }
+
+            if (material.HasProperty("_ZWrite"))
+            {
+                material.SetFloat("_ZWrite", 0f);
+            }
+
+            if (material.HasProperty("_Cull"))
+            {
+                material.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+            }
+
+            return material;
+        }
+
+        private static Texture2D _fallbackItemIcon;
+
+        private static Texture2D GetFallbackItemIcon()
+        {
+            if (_fallbackItemIcon != null)
+            {
+                return _fallbackItemIcon;
+            }
+
+            var texture = new Texture2D(64, 64, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            var clear = new Color32(0, 0, 0, 0);
+            var pixels = new Color32[64 * 64];
+            for (var i = 0; i < pixels.Length; i++)
+            {
+                pixels[i] = clear;
+            }
+
+            for (var y = 0; y < 64; y++)
+            {
+                for (var x = 0; x < 64; x++)
+                {
+                    var dx = x - 31.5f;
+                    var dy = y - 31.5f;
+                    var radius = Mathf.Sqrt((dx * dx) + (dy * dy));
+                    if (radius < 27f && radius > 13f)
+                    {
+                        pixels[(y * 64) + x] = new Color32(100, 220, 255, 220);
+                    }
+                }
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply(updateMipmaps: false, makeNoLongerReadable: true);
+            _fallbackItemIcon = texture;
+            return _fallbackItemIcon;
+        }
+
+        private void TryApplyLocalInventoryPickup(int itemId, int quantity)
+        {
+            if (InventoryManager == null || LocalPlayerId <= 0 || quantity <= 0)
+            {
+                return;
+            }
+
+            if (!InventoryManager.TryAddItem(LocalPlayerId, itemId, quantity, out var remainingQuantity))
+            {
+                Debug.LogWarning($"Inventory add failed. item={itemId}, qty={quantity}");
+                return;
+            }
+
+            if (remainingQuantity > 0)
+            {
+                Debug.LogWarning($"Inventory full. item={itemId}, accepted={quantity - remainingQuantity}, dropped={remainingQuantity}");
+            }
         }
 
         private void UpdateLocalHud(PlayerSnapshot[] players)
@@ -624,6 +895,11 @@ namespace CodexSix.TopdownShooter.Game
 
         private void ResetWorld()
         {
+            if (LocalPlayerId > 0 && InventoryManager != null)
+            {
+                InventoryManager.RemoveInventory(LocalPlayerId);
+            }
+
             LocalPlayerId = -1;
             LocalHp = 100;
             LocalCoins = 0;
@@ -631,6 +907,9 @@ namespace CodexSix.TopdownShooter.Game
             CurrentPlayerCount = 0;
             LeaderboardText = "-";
             LastPingMs = 0;
+            LastServerTick = 0;
+            CoinDispenserStackId = -1;
+            CoinDispenserStackAmount = 0;
 
             DestroyAllViews(_playerViews);
             _playerTargetPositions.Clear();
@@ -639,6 +918,22 @@ namespace CodexSix.TopdownShooter.Game
             DestroyAllViews(_projectileViews);
             _projectileTargetPositions.Clear();
             DestroyAllViews(_coinViews);
+            DestroyAllViews(_itemDropViews);
+            _itemDropItemIds.Clear();
+            DestroyItemDropMaterials();
+        }
+
+        private void DestroyItemDropMaterials()
+        {
+            foreach (var pair in _itemDropMaterials)
+            {
+                if (pair.Value != null)
+                {
+                    Destroy(pair.Value);
+                }
+            }
+
+            _itemDropMaterials.Clear();
         }
 
         private static void DestroyAllViews(Dictionary<int, GameObject> views)

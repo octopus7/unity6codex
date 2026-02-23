@@ -9,7 +9,8 @@ public enum GameEventType : byte
     CoinDropped = 5,
     CoinPicked = 6,
     ShopPurchased = 7,
-    PurchaseRejected = 8
+    PurchaseRejected = 8,
+    ItemPicked = 9
 }
 
 public enum PurchaseRejectReason : int

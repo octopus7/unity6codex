@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 namespace CodexSix.TopdownShooter.Game
@@ -21,6 +22,8 @@ namespace CodexSix.TopdownShooter.Game
         public bool Stackable { get; }
         public int MaxStack { get; }
         public string Description { get; }
+        public string IconName { get; }
+        public string IconResourcePath { get; }
 
         public bool IsEquipment => Kind == InventoryItemKind.Equipment;
 
@@ -32,7 +35,8 @@ namespace CodexSix.TopdownShooter.Game
             InventoryItemKind kind,
             bool stackable,
             int maxStack,
-            string description)
+            string description,
+            string iconName)
         {
             Id = id;
             CategoryBand = categoryBand;
@@ -42,6 +46,8 @@ namespace CodexSix.TopdownShooter.Game
             Stackable = stackable;
             MaxStack = maxStack;
             Description = description;
+            IconName = iconName;
+            IconResourcePath = $"UI/Icons/{IconName}";
         }
     }
 
@@ -52,6 +58,8 @@ namespace CodexSix.TopdownShooter.Game
         public bool LoadOnAwake = true;
 
         private readonly Dictionary<int, ItemDefinition> _itemsById = new();
+        private readonly Dictionary<int, Texture2D> _iconsByItemId = new();
+        private readonly HashSet<int> _missingIconWarnedIds = new();
         private bool _loadAttempted;
 
         public bool IsLoaded { get; private set; }
@@ -69,6 +77,8 @@ namespace CodexSix.TopdownShooter.Game
         {
             _loadAttempted = true;
             _itemsById.Clear();
+            _iconsByItemId.Clear();
+            _missingIconWarnedIds.Clear();
             IsLoaded = false;
 
             var catalogText = ResolveCatalogText();
@@ -150,6 +160,40 @@ namespace CodexSix.TopdownShooter.Game
             return TryGetItem(itemId, out var definition) ? definition : null;
         }
 
+        public Texture2D GetItemIconOrNull(int itemId)
+        {
+            if (_iconsByItemId.TryGetValue(itemId, out var cached))
+            {
+                return cached;
+            }
+
+            if (!TryGetItem(itemId, out var definition))
+            {
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(definition.IconResourcePath))
+            {
+                return null;
+            }
+
+            var icon = Resources.Load<Texture2D>(definition.IconResourcePath);
+            if (icon == null)
+            {
+                if (!_missingIconWarnedIds.Contains(itemId))
+                {
+                    _missingIconWarnedIds.Add(itemId);
+                    Debug.LogWarning(
+                        $"ItemDataManager missing icon for item {itemId} at Resources/{definition.IconResourcePath}");
+                }
+
+                return null;
+            }
+
+            _iconsByItemId[itemId] = icon;
+            return icon;
+        }
+
         private string ResolveCatalogText()
         {
             if (ItemCatalogJson != null && !string.IsNullOrWhiteSpace(ItemCatalogJson.text))
@@ -182,6 +226,7 @@ namespace CodexSix.TopdownShooter.Game
             var itemName = string.IsNullOrWhiteSpace(record.name) ? $"Item_{record.id}" : record.name.Trim();
             var category = string.IsNullOrWhiteSpace(record.category) ? "General" : record.category.Trim();
             var description = string.IsNullOrWhiteSpace(record.description) ? string.Empty : record.description.Trim();
+            var iconName = NormalizeIconName(record.icon, itemName, record.id);
 
             return new ItemDefinition(
                 record.id,
@@ -191,7 +236,8 @@ namespace CodexSix.TopdownShooter.Game
                 kind,
                 stackable,
                 maxStack,
-                description);
+                description,
+                iconName);
         }
 
         private static InventoryItemKind ParseKind(string rawKind)
@@ -216,6 +262,27 @@ namespace CodexSix.TopdownShooter.Game
             return value > max ? max : value;
         }
 
+        private static string NormalizeIconName(string rawIconName, string fallbackItemName, int itemId)
+        {
+            var source = !string.IsNullOrWhiteSpace(rawIconName) ? rawIconName.Trim() : fallbackItemName;
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return $"item{itemId}";
+            }
+
+            var builder = new StringBuilder(source.Length);
+            for (var i = 0; i < source.Length; i++)
+            {
+                var character = source[i];
+                if (char.IsLetterOrDigit(character))
+                {
+                    builder.Append(char.ToLowerInvariant(character));
+                }
+            }
+
+            return builder.Length > 0 ? builder.ToString() : $"item{itemId}";
+        }
+
         [Serializable]
         private sealed class ItemCatalogRoot
         {
@@ -233,6 +300,7 @@ namespace CodexSix.TopdownShooter.Game
             public bool stackable = true;
             public int maxStack = 20;
             public string description;
+            public string icon;
         }
     }
 }

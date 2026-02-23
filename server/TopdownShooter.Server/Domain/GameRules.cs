@@ -19,6 +19,9 @@ public static class GameRules
     public const int FireCooldownTicks = 6; // 0.2s at 30Hz
     public const int RespawnDelayTicks = 150; // 5s at 30Hz
     public const float CoinPickupRadius = 1.2f;
+    public const float ItemPickupRadius = 1.1f;
+    public const int CoinDispenserIntervalTicks = 150; // 5s at 30Hz
+    public const int CoinDispenserSpawnAmount = 1;
 
     public const int HealItemId = 1;
     public const int SpeedItemId = 2;

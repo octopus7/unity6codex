@@ -7,6 +7,7 @@ public sealed class GameWorld
     private readonly Dictionary<int, PlayerState> _players = new();
     private readonly List<ProjectileState> _projectiles = new();
     private readonly List<CoinStackState> _coinStacks = new();
+    private readonly List<ItemDropState> _itemDrops = new();
     private readonly List<GameEvent> _pendingEvents = new();
     private readonly Queue<PendingShopPurchase> _pendingShopPurchases = new();
     private readonly Random _random;
@@ -18,6 +19,8 @@ public sealed class GameWorld
 
     private readonly Vector2f _shopSpawnPoint = new(0f, 28f);
     private readonly Vector2f _shopExitPoint = new(0f, 16f);
+    private readonly Vector2f _coinDispenserPosition = new(0f, 0f);
+    private int _coinDispenserStackId = -1;
 
     private readonly int _maxPlayers;
     private readonly int _maxWorldCoins;
@@ -25,8 +28,26 @@ public sealed class GameWorld
     private int _nextPlayerId = 1;
     private int _nextProjectileId = 1;
     private int _nextCoinStackId = 1;
+    private int _nextItemDropId = 1;
     private int _nextSpawnIndex;
     private uint _serverTick;
+
+    private static readonly int[] ItemSpawnItemIds =
+    [
+        10001, 10002, 10003, 10004, 10005,
+        10006, 10007, 10008, 10009, 10010,
+        20001, 20002, 20003, 20004, 20005,
+        20006, 20007, 20008, 20009, 20010
+    ];
+
+    private static readonly Vector2f[] ItemSpawnPositions =
+    [
+        new Vector2f(-14f, -14f), new Vector2f(-10f, -14f), new Vector2f(-6f, -14f), new Vector2f(-2f, -14f),
+        new Vector2f(2f, -14f), new Vector2f(6f, -14f), new Vector2f(10f, -14f), new Vector2f(14f, -14f),
+        new Vector2f(-14f, -10f), new Vector2f(-10f, -10f), new Vector2f(-6f, -10f), new Vector2f(-2f, -10f),
+        new Vector2f(2f, -10f), new Vector2f(6f, -10f), new Vector2f(10f, -10f), new Vector2f(14f, -10f),
+        new Vector2f(-14f, -6f), new Vector2f(-10f, -6f), new Vector2f(-6f, -6f), new Vector2f(-2f, -6f)
+    ];
 
     public GameWorld(int maxPlayers, int maxWorldCoins, int? randomSeed = null)
     {
@@ -69,6 +90,8 @@ public sealed class GameWorld
             new Vector2f(-16f, 0f),
             new Vector2f(16f, 0f)
         ];
+
+        InitializeItemDrops();
     }
 
     public uint ServerTick => _serverTick;
@@ -145,7 +168,9 @@ public sealed class GameWorld
         ProcessFiring();
         UpdateProjectiles();
         ProcessRespawns();
+        ProcessCoinDispenser();
         ProcessCoinPickups();
+        ProcessItemPickups();
         ProcessShopPurchases();
     }
 
@@ -177,7 +202,17 @@ public sealed class GameWorld
                 stack.CoinStackId,
                 stack.Position,
                 stack.Amount,
-                stack.CreatedTick))
+                stack.CreatedTick,
+                stack.CoinStackId == _coinDispenserStackId))
+            .ToList();
+
+        var itemDrops = _itemDrops
+            .Select(drop => new ItemDropSnapshotState(
+                drop.ItemDropId,
+                drop.ItemId,
+                drop.Position,
+                drop.Quantity,
+                drop.CreatedTick))
             .ToList();
 
         var portals = _portals
@@ -193,6 +228,7 @@ public sealed class GameWorld
             Players = players,
             Projectiles = projectiles,
             CoinStacks = coins,
+            ItemDrops = itemDrops,
             Portals = portals,
             ShopZone = _shopZone
         };
@@ -427,6 +463,32 @@ public sealed class GameWorld
         EnforceWorldCoinCap();
     }
 
+    private void ProcessCoinDispenser()
+    {
+        if (_serverTick == 0 || (_serverTick % GameRules.CoinDispenserIntervalTicks) != 0)
+        {
+            return;
+        }
+
+        var dispenserStack = _coinStacks.FirstOrDefault(stack => stack.CoinStackId == _coinDispenserStackId);
+        if (dispenserStack != null)
+        {
+            dispenserStack.Amount += GameRules.CoinDispenserSpawnAmount;
+            return;
+        }
+
+        var newStack = new CoinStackState
+        {
+            CoinStackId = _nextCoinStackId++,
+            Position = _coinDispenserPosition,
+            Amount = GameRules.CoinDispenserSpawnAmount,
+            CreatedTick = _serverTick
+        };
+
+        _coinStacks.Add(newStack);
+        _coinDispenserStackId = newStack.CoinStackId;
+    }
+
     private void EnforceWorldCoinCap()
     {
         var total = _coinStacks.Sum(stack => stack.Amount);
@@ -444,6 +506,10 @@ public sealed class GameWorld
 
             total -= oldest.Amount;
             _coinStacks.Remove(oldest);
+            if (oldest.CoinStackId == _coinDispenserStackId)
+            {
+                _coinDispenserStackId = -1;
+            }
         }
     }
 
@@ -495,6 +561,10 @@ public sealed class GameWorld
 
                 player.CarriedCoins += coin.Amount;
                 _coinStacks.RemoveAt(index);
+                if (coin.CoinStackId == _coinDispenserStackId)
+                {
+                    _coinDispenserStackId = -1;
+                }
 
                 _pendingEvents.Add(new GameEvent(
                     GameEventType.CoinPicked,
@@ -503,6 +573,37 @@ public sealed class GameWorld
                     coin.Amount,
                     coin.CoinStackId,
                     coin.Position));
+            }
+        }
+    }
+
+    private void ProcessItemPickups()
+    {
+        var pickupRadiusSquared = GameRules.ItemPickupRadius * GameRules.ItemPickupRadius;
+
+        foreach (var player in _players.Values)
+        {
+            if (!player.IsAlive)
+            {
+                continue;
+            }
+
+            for (var index = _itemDrops.Count - 1; index >= 0; index--)
+            {
+                var itemDrop = _itemDrops[index];
+                if (Vector2f.DistanceSquared(player.Position, itemDrop.Position) > pickupRadiusSquared)
+                {
+                    continue;
+                }
+
+                _itemDrops.RemoveAt(index);
+                _pendingEvents.Add(new GameEvent(
+                    GameEventType.ItemPicked,
+                    player.PlayerId,
+                    0,
+                    itemDrop.ItemId,
+                    itemDrop.Quantity,
+                    itemDrop.Position));
             }
         }
     }
@@ -598,6 +699,31 @@ public sealed class GameWorld
             itemId,
             (int)reason,
             default));
+    }
+
+    private void InitializeItemDrops()
+    {
+        _itemDrops.Clear();
+
+        var spawnCount = Math.Min(ItemSpawnItemIds.Length, ItemSpawnPositions.Length);
+        for (var i = 0; i < spawnCount; i++)
+        {
+            var itemId = ItemSpawnItemIds[i];
+            var position = ClampToBattleBounds(ItemSpawnPositions[i]);
+            if (IsInsideObstacle(position) || IsInsideShopZone(position))
+            {
+                continue;
+            }
+
+            _itemDrops.Add(new ItemDropState
+            {
+                ItemDropId = _nextItemDropId++,
+                ItemId = itemId,
+                Position = position,
+                Quantity = 1,
+                CreatedTick = 0
+            });
+        }
     }
 
     private Vector2f NextSpawnPoint()

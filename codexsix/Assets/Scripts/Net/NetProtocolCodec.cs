@@ -147,7 +147,22 @@ namespace CodexSix.TopdownShooter.Net
                     CoinStackId = reader.ReadInt32(),
                     PositionX = reader.ReadSingle(),
                     PositionY = reader.ReadSingle(),
-                    Amount = reader.ReadInt32()
+                    Amount = reader.ReadInt32(),
+                    IsDispenser = (reader.ReadByte() & 0x1) != 0
+                };
+            }
+
+            var itemDropCount = reader.ReadUInt16();
+            snapshot.ItemDrops = new ItemDropSnapshot[itemDropCount];
+            for (var i = 0; i < itemDropCount; i++)
+            {
+                snapshot.ItemDrops[i] = new ItemDropSnapshot
+                {
+                    ItemDropId = reader.ReadInt32(),
+                    ItemId = reader.ReadInt32(),
+                    PositionX = reader.ReadSingle(),
+                    PositionY = reader.ReadSingle(),
+                    Quantity = reader.ReadInt32()
                 };
             }
 

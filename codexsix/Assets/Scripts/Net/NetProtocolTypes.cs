@@ -40,7 +40,8 @@ namespace CodexSix.TopdownShooter.Net
         CoinDropped = 5,
         CoinPicked = 6,
         ShopPurchased = 7,
-        PurchaseRejected = 8
+        PurchaseRejected = 8,
+        ItemPicked = 9
     }
 
     public struct ClientInputFrame
@@ -98,6 +99,16 @@ namespace CodexSix.TopdownShooter.Net
         public float PositionX;
         public float PositionY;
         public int Amount;
+        public bool IsDispenser;
+    }
+
+    public struct ItemDropSnapshot
+    {
+        public int ItemDropId;
+        public int ItemId;
+        public float PositionX;
+        public float PositionY;
+        public int Quantity;
     }
 
     public struct PortalSnapshot
@@ -123,6 +134,7 @@ namespace CodexSix.TopdownShooter.Net
         public PlayerSnapshot[] Players;
         public ProjectileSnapshot[] Projectiles;
         public CoinStackSnapshot[] CoinStacks;
+        public ItemDropSnapshot[] ItemDrops;
         public PortalSnapshot[] Portals;
         public ShopZoneSnapshot ShopZone;
     }

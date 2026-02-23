@@ -43,7 +43,16 @@ public sealed class CoinStackState
 {
     public int CoinStackId { get; init; }
     public Vector2f Position { get; init; }
-    public int Amount { get; init; }
+    public int Amount { get; set; }
+    public uint CreatedTick { get; init; }
+}
+
+public sealed class ItemDropState
+{
+    public int ItemDropId { get; init; }
+    public int ItemId { get; init; }
+    public Vector2f Position { get; init; }
+    public int Quantity { get; init; }
     public uint CreatedTick { get; init; }
 }
 
@@ -84,6 +93,14 @@ public readonly record struct CoinSnapshotState(
     int CoinStackId,
     Vector2f Position,
     int Amount,
+    uint CreatedTick,
+    bool IsDispenser);
+
+public readonly record struct ItemDropSnapshotState(
+    int ItemDropId,
+    int ItemId,
+    Vector2f Position,
+    int Quantity,
     uint CreatedTick);
 
 public readonly record struct PortalSnapshotState(
@@ -97,6 +114,7 @@ public sealed class WorldSnapshot
     public IReadOnlyList<PlayerSnapshotState> Players { get; init; } = Array.Empty<PlayerSnapshotState>();
     public IReadOnlyList<ProjectileSnapshotState> Projectiles { get; init; } = Array.Empty<ProjectileSnapshotState>();
     public IReadOnlyList<CoinSnapshotState> CoinStacks { get; init; } = Array.Empty<CoinSnapshotState>();
+    public IReadOnlyList<ItemDropSnapshotState> ItemDrops { get; init; } = Array.Empty<ItemDropSnapshotState>();
     public IReadOnlyList<PortalSnapshotState> Portals { get; init; } = Array.Empty<PortalSnapshotState>();
     public required ShopZoneState ShopZone { get; init; }
 }

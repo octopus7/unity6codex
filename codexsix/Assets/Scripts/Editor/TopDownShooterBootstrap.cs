@@ -706,11 +706,14 @@ namespace CodexSix.TopdownShooter.EditorTools
             projectileContainer.SetParent(runtimeRoot.transform, false);
             var coinContainer = new GameObject("CoinStacks").transform;
             coinContainer.SetParent(runtimeRoot.transform, false);
+            var itemDropContainer = new GameObject("ItemDrops").transform;
+            itemDropContainer.SetParent(runtimeRoot.transform, false);
 
             client.Transport = transport;
             client.PlayerContainer = playerContainer;
             client.ProjectileContainer = projectileContainer;
             client.CoinContainer = coinContainer;
+            client.ItemDropContainer = itemDropContainer;
 
             inputSender.Client = client;
             inputSender.WorldCamera = camera;
@@ -720,6 +723,8 @@ namespace CodexSix.TopdownShooter.EditorTools
             SetComponentMember(itemDataManager, "LoadOnAwake", true);
             SetComponentMember(inventoryManager, "ItemDataManager", itemDataManager);
             SetComponentMember(inventoryManager, "DefaultSlotCount", 24);
+            SetComponentMember(client, "ItemDataManager", itemDataManager);
+            SetComponentMember(client, "InventoryManager", inventoryManager);
 
             var follow = camera.GetComponent<TopDownCameraFollow>();
             if (follow == null)
@@ -806,6 +811,21 @@ namespace CodexSix.TopdownShooter.EditorTools
             var leaderboard = leaderboardObject.AddComponent<LeaderboardPanelHud>();
             leaderboard.Client = client;
             leaderboard.UiScale = 2f;
+
+            var inventoryObject = new GameObject("InventoryPanel");
+            inventoryObject.transform.SetParent(hudRoot.transform, false);
+            var inventory = inventoryObject.AddComponent<InventoryPanelHud>();
+            inventory.Client = client;
+            inventory.InventoryManager = client.GetComponent<PlayerInventoryManager>();
+            inventory.ItemDataManager = client.GetComponent<ItemDataManager>();
+            inventory.UiScale = 2f;
+
+            var coinDispenserObject = new GameObject("CoinDispenserPanel");
+            coinDispenserObject.transform.SetParent(hudRoot.transform, false);
+            var coinDispenser = coinDispenserObject.AddComponent<CoinDispenserHud>();
+            coinDispenser.Client = client;
+            coinDispenser.WorldCamera = camera;
+            coinDispenser.UiScale = 2f;
 
             var overheadHpObject = new GameObject("OverheadHealthBars");
             overheadHpObject.transform.SetParent(hudRoot.transform, false);

@@ -47,6 +47,17 @@ namespace CodexSix.TopdownShooter.Game
             leaderboard.Client = Client;
             leaderboard.UiScale = UiScale;
 
+            var inventory = GetOrAdd<InventoryPanelHud>();
+            inventory.Client = Client;
+            inventory.InventoryManager = GetComponent<PlayerInventoryManager>();
+            inventory.ItemDataManager = GetComponent<ItemDataManager>();
+            inventory.UiScale = UiScale;
+
+            var coinDispenser = GetOrAdd<CoinDispenserHud>();
+            coinDispenser.Client = Client;
+            coinDispenser.WorldCamera = Camera.main;
+            coinDispenser.UiScale = UiScale;
+
             var overheadHp = GetOrAdd<PlayerOverheadHealthHud>();
             overheadHp.Client = Client;
             overheadHp.UiScale = UiScale;

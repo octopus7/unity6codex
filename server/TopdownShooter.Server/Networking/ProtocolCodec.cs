@@ -160,6 +160,17 @@ public static class ProtocolCodec
             writer.Write(coin.Position.X);
             writer.Write(coin.Position.Y);
             writer.Write(coin.Amount);
+            writer.Write((byte)(coin.IsDispenser ? 0x1 : 0x0));
+        }
+
+        writer.Write((ushort)snapshot.ItemDrops.Count);
+        foreach (var itemDrop in snapshot.ItemDrops)
+        {
+            writer.Write(itemDrop.ItemDropId);
+            writer.Write(itemDrop.ItemId);
+            writer.Write(itemDrop.Position.X);
+            writer.Write(itemDrop.Position.Y);
+            writer.Write(itemDrop.Quantity);
         }
 
         writer.Write((byte)snapshot.Portals.Count);
