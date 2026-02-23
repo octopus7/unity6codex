@@ -22,11 +22,14 @@ namespace CodexSix.TopdownShooter.Game
         public int LocalPlayerId { get; private set; } = -1;
         public int LocalHp { get; private set; } = 100;
         public int LocalCoins { get; private set; }
+        public bool LocalInShopZone { get; private set; }
+        public int CurrentPlayerCount { get; private set; }
         public long LastPingMs { get; private set; }
         public string LeaderboardText { get; private set; } = "-";
         public ConnectionState CurrentConnectionState => Transport != null ? Transport.CurrentState : ConnectionState.Disconnected;
 
         private readonly Dictionary<int, GameObject> _playerViews = new();
+        private readonly Dictionary<int, short> _playerHpById = new();
         private readonly Dictionary<int, GameObject> _projectileViews = new();
         private readonly Dictionary<int, GameObject> _coinViews = new();
 
@@ -155,6 +158,32 @@ namespace CodexSix.TopdownShooter.Game
             return true;
         }
 
+        public void FillPlayerHudEntries(List<PlayerHudEntry> output)
+        {
+            if (output == null)
+            {
+                throw new ArgumentNullException(nameof(output));
+            }
+
+            output.Clear();
+            foreach (var pair in _playerViews)
+            {
+                var playerView = pair.Value;
+                if (playerView == null)
+                {
+                    continue;
+                }
+
+                var hp = _playerHpById.TryGetValue(pair.Key, out var currentHp) ? currentHp : (short)0;
+                output.Add(new PlayerHudEntry(
+                    pair.Key,
+                    playerView.transform.position,
+                    hp,
+                    playerView.activeInHierarchy,
+                    pair.Key == LocalPlayerId));
+            }
+        }
+
         private void OnWelcomeReceived(ServerWelcome welcome)
         {
             LocalPlayerId = welcome.PlayerId;
@@ -165,6 +194,7 @@ namespace CodexSix.TopdownShooter.Game
 
         private void OnSnapshotReceived(ServerSnapshot snapshot)
         {
+            CurrentPlayerCount = snapshot.Players.Length;
             ApplyPlayers(snapshot.Players);
             ApplyProjectiles(snapshot.Projectiles);
             ApplyCoins(snapshot.CoinStacks);
@@ -217,6 +247,7 @@ namespace CodexSix.TopdownShooter.Game
                 }
 
                 playerView.transform.position = new Vector3(player.PositionX, 0.55f, player.PositionY);
+                _playerHpById[player.PlayerId] = player.Hp;
                 if (Mathf.Abs(player.AimX) > 0.001f || Mathf.Abs(player.AimY) > 0.001f)
                 {
                     playerView.transform.rotation = Quaternion.LookRotation(new Vector3(player.AimX, 0f, player.AimY));
@@ -227,6 +258,7 @@ namespace CodexSix.TopdownShooter.Game
             }
 
             RemoveMissingViews(_playerViews, _scratchIds);
+            RemoveMissingPlayerHp(_scratchIds);
         }
 
         private void ApplyProjectiles(ProjectileSnapshot[] projectiles)
@@ -275,6 +307,7 @@ namespace CodexSix.TopdownShooter.Game
         {
             LocalHp = 0;
             LocalCoins = 0;
+            LocalInShopZone = false;
 
             if (LocalPlayerId <= 0)
             {
@@ -291,6 +324,7 @@ namespace CodexSix.TopdownShooter.Game
 
                 LocalHp = player.Hp;
                 LocalCoins = player.CarriedCoins;
+                LocalInShopZone = player.InShopZone;
                 return;
             }
         }
@@ -418,15 +452,49 @@ namespace CodexSix.TopdownShooter.Game
             }
         }
 
+        private void RemoveMissingPlayerHp(HashSet<int> aliveIds)
+        {
+            if (_playerHpById.Count == 0)
+            {
+                return;
+            }
+
+            var toRemove = ListPool<int>.Get();
+            try
+            {
+                foreach (var pair in _playerHpById)
+                {
+                    if (aliveIds.Contains(pair.Key))
+                    {
+                        continue;
+                    }
+
+                    toRemove.Add(pair.Key);
+                }
+
+                for (var i = 0; i < toRemove.Count; i++)
+                {
+                    _playerHpById.Remove(toRemove[i]);
+                }
+            }
+            finally
+            {
+                ListPool<int>.Release(toRemove);
+            }
+        }
+
         private void ResetWorld()
         {
             LocalPlayerId = -1;
             LocalHp = 100;
             LocalCoins = 0;
+            LocalInShopZone = false;
+            CurrentPlayerCount = 0;
             LeaderboardText = "-";
             LastPingMs = 0;
 
             DestroyAllViews(_playerViews);
+            _playerHpById.Clear();
             DestroyAllViews(_projectileViews);
             DestroyAllViews(_coinViews);
         }
@@ -457,6 +525,24 @@ namespace CodexSix.TopdownShooter.Game
             {
                 list.Clear();
                 Pool.Push(list);
+            }
+        }
+
+        public readonly struct PlayerHudEntry
+        {
+            public readonly int PlayerId;
+            public readonly Vector3 WorldPosition;
+            public readonly short Hp;
+            public readonly bool IsAlive;
+            public readonly bool IsLocalPlayer;
+
+            public PlayerHudEntry(int playerId, Vector3 worldPosition, short hp, bool isAlive, bool isLocalPlayer)
+            {
+                PlayerId = playerId;
+                WorldPosition = worldPosition;
+                Hp = hp;
+                IsAlive = isAlive;
+                IsLocalPlayer = isLocalPlayer;
             }
         }
     }

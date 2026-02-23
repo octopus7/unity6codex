@@ -91,7 +91,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             BuildEnvironment(generatedRoot.transform);
             var camera = BuildCamera(generatedRoot.transform, preferExternalCamera: true);
             var client = BuildRuntime(generatedRoot.transform, camera);
-            BuildDebugHud(generatedRoot.transform, client);
+            BuildDebugHud(generatedRoot.transform, client, camera);
             AddSpawnPoints(generatedRoot.transform);
 
             SaveAndRegisterScene(scene);
@@ -428,16 +428,44 @@ namespace CodexSix.TopdownShooter.EditorTools
             return client;
         }
 
-        private static void BuildDebugHud(Transform parent, NetworkGameClient client)
+        private static void BuildDebugHud(Transform parent, NetworkGameClient client, Camera camera)
         {
-            var hudObject = new GameObject("DebugHud");
-            hudObject.transform.SetParent(parent, false);
+            var hudRoot = new GameObject("Hud");
+            hudRoot.transform.SetParent(parent, false);
 
-            var hud = hudObject.AddComponent<SimpleDebugHud>();
-            hud.Client = client;
-            hud.HealItemId = 1;
-            hud.SpeedItemId = 2;
-            hud.UiScale = 2f;
+            var connectionObject = new GameObject("ConnectionPanel");
+            connectionObject.transform.SetParent(hudRoot.transform, false);
+            var connection = connectionObject.AddComponent<ConnectionPanelHud>();
+            connection.Client = client;
+            connection.UiScale = 2f;
+            connection.HideWhenConnected = true;
+
+            var shopObject = new GameObject("ShopPanel");
+            shopObject.transform.SetParent(hudRoot.transform, false);
+            var shop = shopObject.AddComponent<ShopPanelHud>();
+            shop.Client = client;
+            shop.HealItemId = 1;
+            shop.SpeedItemId = 2;
+            shop.UiScale = 2f;
+
+            var statusObject = new GameObject("StatusPanel");
+            statusObject.transform.SetParent(hudRoot.transform, false);
+            var status = statusObject.AddComponent<StatusPanelHud>();
+            status.Client = client;
+            status.UiScale = 2f;
+
+            var leaderboardObject = new GameObject("LeaderboardPanel");
+            leaderboardObject.transform.SetParent(hudRoot.transform, false);
+            var leaderboard = leaderboardObject.AddComponent<LeaderboardPanelHud>();
+            leaderboard.Client = client;
+            leaderboard.UiScale = 2f;
+
+            var overheadHpObject = new GameObject("OverheadHealthBars");
+            overheadHpObject.transform.SetParent(hudRoot.transform, false);
+            var overheadHp = overheadHpObject.AddComponent<PlayerOverheadHealthHud>();
+            overheadHp.Client = client;
+            overheadHp.WorldCamera = camera;
+            overheadHp.UiScale = 2f;
         }
 
         private static void AddSpawnPoints(Transform parent)
