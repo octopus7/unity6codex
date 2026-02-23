@@ -180,6 +180,15 @@ namespace CodexSix.TopdownShooter.Game
             var icon = Resources.Load<Texture2D>(definition.IconResourcePath);
             if (icon == null)
             {
+                var sprite = Resources.Load<Sprite>(definition.IconResourcePath);
+                if (sprite != null)
+                {
+                    icon = sprite.texture;
+                }
+            }
+
+            if (icon == null)
+            {
                 if (!_missingIconWarnedIds.Contains(itemId))
                 {
                     _missingIconWarnedIds.Add(itemId);

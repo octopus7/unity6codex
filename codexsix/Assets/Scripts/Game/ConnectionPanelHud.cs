@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using CodexSix.TopdownShooter.Net;
 using UnityEngine;
@@ -31,14 +32,20 @@ namespace CodexSix.TopdownShooter.Game
         private string _pendingEndpoint = string.Empty;
         private string _probeStatus = "-";
         private bool _probeInProgress;
+        private bool _probeCompleted;
+        private bool _probeVersionCompatible;
+        private bool _probeHasServerBuildVersion;
+        private int _probedServerBuildVersion;
         private bool _knownServersLoaded;
-        private bool _connectButtonPressed;
         private bool _windowPlaced;
         private float _autoProbeElapsed;
         private float _startupSequenceStartRealtime;
         private string _autoProbeEndpoint = string.Empty;
+        private string _connectDisabledTooltip = string.Empty;
         private ConnectionState _previousConnectionState = ConnectionState.Disconnected;
         private Rect _windowRect = new(0f, 0f, 360f, 220f);
+        private Rect _connectButtonRect;
+        private GUIStyle _connectTooltipStyle;
 
         private void Awake()
         {
@@ -72,6 +79,7 @@ namespace CodexSix.TopdownShooter.Game
                 else if (state == ConnectionState.Disconnected)
                 {
                     _pendingEndpoint = string.Empty;
+                    _autoProbeElapsed = AutoProbeIntervalSeconds;
                 }
 
                 _previousConnectionState = state;
@@ -259,23 +267,25 @@ namespace CodexSix.TopdownShooter.Game
             _nickname = GUILayout.TextField(_nickname, GUILayout.Width(190));
             GUILayout.EndHorizontal();
 
+            var hasValidPort = TryParsePort(_port, out var parsedPort);
+            var endpoint = hasValidPort
+                ? BuildEndpointKey(_host, parsedPort)
+                : string.Empty;
+            var canConnect = CanConnectToEndpoint(endpoint, hasValidPort, out var blockedReason);
+
             GUILayout.Space(8f);
             GUILayout.BeginHorizontal();
-            using (new GUIEnabledScope(Client.CurrentConnectionState != ConnectionState.Connecting))
+            var connectButtonContent = new GUIContent("Connect", canConnect ? string.Empty : blockedReason);
+            using (new GUIEnabledScope(canConnect))
             {
-                if (GUILayout.Button("Connect", GUILayout.Height(28f)))
+                if (GUILayout.Button(connectButtonContent, GUILayout.Height(28f)))
                 {
-                    var port = 7777;
-                    if (!TryParsePort(_port, out port))
-                    {
-                        port = 7777;
-                    }
-
-                    _connectButtonPressed = true;
-                    _pendingEndpoint = BuildEndpointKey(_host, port);
-                    Client.Connect(_host, port, _nickname);
+                    _pendingEndpoint = endpoint;
+                    Client.Connect(_host, parsedPort, _nickname);
                 }
             }
+            _connectButtonRect = GUILayoutUtility.GetLastRect();
+            _connectDisabledTooltip = canConnect ? string.Empty : blockedReason;
 
             using (new GUIEnabledScope(Client.CurrentConnectionState == ConnectionState.Connected))
             {
@@ -286,24 +296,24 @@ namespace CodexSix.TopdownShooter.Game
             }
 
             GUILayout.EndHorizontal();
-            DrawProbeSection();
+            DrawProbeSection(hasValidPort);
+            DrawDisabledConnectTooltip();
 
             GUI.DragWindow();
         }
 
-        private void DrawProbeSection()
+        private void DrawProbeSection(bool hasValidPort)
         {
-            if (!TryParsePort(_port, out var parsedPort))
+            GUILayout.Space(4f);
+            if (!hasValidPort)
             {
+                GUILayout.Label("Response: 포트가 올바르지 않습니다.");
                 return;
             }
 
-            var endpoint = BuildEndpointKey(_host, parsedPort);
-            var knownServer = IsKnownServer(endpoint);
-
-            GUILayout.Space(4f);
-            if (!knownServer)
+            if (_probeInProgress)
             {
+                GUILayout.Label("Response: 확인 중...");
                 return;
             }
 
@@ -323,17 +333,15 @@ namespace CodexSix.TopdownShooter.Game
             if (_autoProbeEndpoint != endpoint)
             {
                 _autoProbeEndpoint = endpoint;
-                _autoProbeElapsed = 0f;
-                if (!_probeInProgress)
-                {
-                    _probeStatus = "-";
-                }
+                _autoProbeElapsed = AutoProbeIntervalSeconds;
+                _probeStatus = "-";
+                _probeCompleted = false;
+                _probeVersionCompatible = false;
+                _probeHasServerBuildVersion = false;
+                _probedServerBuildVersion = 0;
             }
 
-            var shouldAutoProbe =
-                !_connectButtonPressed &&
-                state == ConnectionState.Disconnected &&
-                IsKnownServer(endpoint);
+            var shouldAutoProbe = state == ConnectionState.Disconnected;
 
             if (!shouldAutoProbe)
             {
@@ -359,7 +367,11 @@ namespace CodexSix.TopdownShooter.Game
             }
 
             _probeInProgress = true;
-            _probeStatus = "Checking...";
+            _probeStatus = "확인 중...";
+            _probeCompleted = false;
+            _probeVersionCompatible = false;
+            _probeHasServerBuildVersion = false;
+            _probedServerBuildVersion = 0;
 
             TcpClient probeClient = null;
             var stopwatch = Stopwatch.StartNew();
@@ -370,17 +382,92 @@ namespace CodexSix.TopdownShooter.Game
                 var completedTask = await Task.WhenAny(connectTask, Task.Delay(ProbeTimeoutMs));
                 if (completedTask != connectTask)
                 {
-                    _probeStatus = $"Timeout > {ProbeTimeoutMs} ms";
+                    _probeStatus = $"시간 초과 > {ProbeTimeoutMs} ms";
+                    _probeCompleted = true;
                     return;
                 }
 
                 await connectTask;
+                probeClient.NoDelay = true;
+
+                using var stream = probeClient.GetStream();
+                using var timeoutCts = new CancellationTokenSource(ProbeTimeoutMs);
+                var token = timeoutCts.Token;
+
+                var pingFrame = NetProtocolCodec.EncodePing(sequence: 1u, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                await stream.WriteAsync(pingFrame, 0, pingFrame.Length, token);
+
+                var header = await ReadExactlyAsync(stream, NetProtocolCodec.HeaderSize, token);
+                if (header == null ||
+                    !NetProtocolCodec.TryParseHeader(header, out var payloadLength, out var messageType, out var version, out _))
+                {
+                    _probeStatus = "프로토콜 응답이 올바르지 않습니다.";
+                    _probeCompleted = true;
+                    return;
+                }
+
+                if (version != NetProtocolCodec.ProtocolVersion)
+                {
+                    _probeStatus = $"프로토콜 불일치 (server={version}, client={NetProtocolCodec.ProtocolVersion})";
+                    _probeCompleted = true;
+                    return;
+                }
+
+                var payload = await ReadExactlyAsync(stream, payloadLength, token);
+                if (payload == null)
+                {
+                    _probeStatus = "응답 페이로드가 없습니다.";
+                    _probeCompleted = true;
+                    return;
+                }
+
+                if (messageType == MessageType.Error)
+                {
+                    var error = NetProtocolCodec.DecodeError(payload);
+                    _probeStatus = $"Error {error.ErrorCode}: {error.Message}";
+                    _probeCompleted = true;
+                    return;
+                }
+
+                if (messageType != MessageType.Pong)
+                {
+                    _probeStatus = $"예상치 못한 응답 ({messageType})";
+                    _probeCompleted = true;
+                    return;
+                }
+
                 stopwatch.Stop();
-                _probeStatus = $"{stopwatch.ElapsedMilliseconds} ms (tcp)";
+                var pongInfo = NetProtocolCodec.DecodePongInfo(payload);
+                _probeCompleted = true;
+                _probeHasServerBuildVersion = pongInfo.HasServerBuildVersion;
+                _probedServerBuildVersion = pongInfo.ServerBuildVersion;
+
+                if (!pongInfo.HasServerBuildVersion)
+                {
+                    _probeStatus = $"{stopwatch.ElapsedMilliseconds} ms / 서버 버전 정보 없음";
+                    return;
+                }
+
+                _probeVersionCompatible = pongInfo.ServerBuildVersion == NetProtocolCodec.ExpectedServerBuildVersion;
+                if (_probeVersionCompatible)
+                {
+                    _probeStatus = $"{stopwatch.ElapsedMilliseconds} ms / 서버 v{pongInfo.ServerBuildVersion}";
+                }
+                else
+                {
+                    _probeStatus =
+                        $"{stopwatch.ElapsedMilliseconds} ms / 서버 v{pongInfo.ServerBuildVersion} (필요 v{NetProtocolCodec.ExpectedServerBuildVersion})";
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _probeStatus = $"시간 초과 > {ProbeTimeoutMs} ms";
+                _probeCompleted = true;
             }
             catch (Exception exception)
             {
-                _probeStatus = $"Unavailable ({exception.GetType().Name})";
+                _probeStatus = $"서버 응답 불가 ({exception.GetType().Name})";
+                _probeCompleted = true;
             }
             finally
             {
@@ -394,6 +481,103 @@ namespace CodexSix.TopdownShooter.Game
 
                 _probeInProgress = false;
             }
+        }
+
+        private bool CanConnectToEndpoint(string endpoint, bool hasValidPort, out string blockedReason)
+        {
+            blockedReason = string.Empty;
+            if (Client.CurrentConnectionState == ConnectionState.Connected)
+            {
+                blockedReason = "이미 연결되어 있습니다.";
+                return false;
+            }
+
+            if (Client.CurrentConnectionState == ConnectionState.Connecting)
+            {
+                blockedReason = "연결 중입니다.";
+                return false;
+            }
+
+            if (!hasValidPort)
+            {
+                blockedReason = "포트가 올바르지 않습니다.";
+                return false;
+            }
+
+            if (_probeInProgress)
+            {
+                blockedReason = "서버 버전을 확인 중입니다.";
+                return false;
+            }
+
+            if (_autoProbeEndpoint != endpoint || !_probeCompleted)
+            {
+                blockedReason = "접속 전 서버 응답을 확인하는 중입니다.";
+                return false;
+            }
+
+            if (!_probeHasServerBuildVersion)
+            {
+                blockedReason = "핑 응답에 서버 버전이 없어 접속할 수 없습니다.";
+                return false;
+            }
+
+            if (!_probeVersionCompatible)
+            {
+                blockedReason =
+                    $"서버 버전이 다릅니다. 서버 v{_probedServerBuildVersion}, 필요 v{NetProtocolCodec.ExpectedServerBuildVersion}.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private void DrawDisabledConnectTooltip()
+        {
+            if (string.IsNullOrWhiteSpace(_connectDisabledTooltip))
+            {
+                return;
+            }
+
+            if (!_connectButtonRect.Contains(Event.current.mousePosition))
+            {
+                return;
+            }
+
+            EnsureConnectTooltipStyle();
+            var tooltipWidth = Mathf.Max(220f, _connectButtonRect.width + 50f);
+            var tooltipContent = new GUIContent(_connectDisabledTooltip);
+            var textHeight = _connectTooltipStyle.CalcHeight(tooltipContent, tooltipWidth - 14f);
+            var tooltipHeight = Mathf.Max(30f, textHeight + 10f);
+            var tooltipRect = new Rect(
+                _connectButtonRect.xMin,
+                _connectButtonRect.yMax + 6f,
+                tooltipWidth,
+                tooltipHeight);
+
+            var previousColor = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.82f);
+            GUI.DrawTexture(tooltipRect, Texture2D.whiteTexture);
+            GUI.color = previousColor;
+
+            var textRect = new Rect(tooltipRect.x + 7f, tooltipRect.y + 5f, tooltipRect.width - 14f, tooltipRect.height - 10f);
+            GUI.Label(textRect, tooltipContent, _connectTooltipStyle);
+        }
+
+        private void EnsureConnectTooltipStyle()
+        {
+            if (_connectTooltipStyle != null)
+            {
+                return;
+            }
+
+            _connectTooltipStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = true,
+                clipping = TextClipping.Clip
+            };
+            _connectTooltipStyle.normal.textColor = Color.white;
         }
 
         private void RememberSuccessfulEndpoint()
@@ -491,6 +675,29 @@ namespace CodexSix.TopdownShooter.Game
         private static string BuildEndpointKey(string host, int port)
         {
             return $"{host.Trim().ToLowerInvariant()}:{port}";
+        }
+
+        private static async Task<byte[]> ReadExactlyAsync(NetworkStream stream, int length, CancellationToken token)
+        {
+            if (length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            var buffer = new byte[length];
+            var offset = 0;
+            while (offset < length)
+            {
+                var read = await stream.ReadAsync(buffer, offset, length - offset, token);
+                if (read == 0)
+                {
+                    return null;
+                }
+
+                offset += read;
+            }
+
+            return buffer;
         }
 
         private readonly struct GUIEnabledScope : IDisposable

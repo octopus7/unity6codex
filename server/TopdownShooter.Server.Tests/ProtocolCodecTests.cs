@@ -143,4 +143,25 @@ public sealed class ProtocolCodecTests
             Assert.Equal(reconnectToken, ProtocolCodec.ReadString8(reader, 96));
         }
     }
+
+    [Fact]
+    public void WritePongPayload_WritesServerBuildVersion()
+    {
+        byte[] payload;
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream))
+        {
+            ProtocolCodec.WritePongPayload(writer, clientUnixMs: 1000L, serverUnixMs: 2000L, ProtocolConstants.ServerBuildVersion);
+            writer.Flush();
+            payload = stream.ToArray();
+        }
+
+        using (var stream = new MemoryStream(payload))
+        using (var reader = new BinaryReader(stream))
+        {
+            Assert.Equal(1000L, reader.ReadInt64());
+            Assert.Equal(2000L, reader.ReadInt64());
+            Assert.Equal(ProtocolConstants.ServerBuildVersion, reader.ReadInt32());
+        }
+    }
 }

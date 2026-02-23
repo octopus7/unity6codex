@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using CodexSix.TopdownShooter.Game;
 using CodexSix.TopdownShooter.Net;
 using UnityEditor;
@@ -61,9 +60,17 @@ namespace CodexSix.TopdownShooter.EditorTools
             Debug.Log("TopDownShooter lighting applied to current scene.");
         }
 
+        [MenuItem("Tools/TopDownShooter/Fix Item Icon Import Settings")]
+        public static void FixItemIconImportSettingsMenu()
+        {
+            var updatedCount = FixItemIconImportSettings();
+            Debug.Log($"Item icon import settings fixed. updated={updatedCount}");
+        }
+
         private static void BootstrapScene(bool destructiveReset)
         {
             EnsureFolders();
+            FixItemIconImportSettings();
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
                 return;
@@ -697,8 +704,8 @@ namespace CodexSix.TopdownShooter.EditorTools
             var transport = runtimeRoot.AddComponent<TcpGameTransport>();
             var client = runtimeRoot.AddComponent<NetworkGameClient>();
             var inputSender = runtimeRoot.AddComponent<LocalInputSender>();
-            var itemDataManager = AddComponentByName(runtimeRoot, "CodexSix.TopdownShooter.Game.ItemDataManager");
-            var inventoryManager = AddComponentByName(runtimeRoot, "CodexSix.TopdownShooter.Game.PlayerInventoryManager");
+            var itemDataManager = runtimeRoot.AddComponent<ItemDataManager>();
+            var inventoryManager = runtimeRoot.AddComponent<PlayerInventoryManager>();
 
             var playerContainer = new GameObject("Players").transform;
             playerContainer.SetParent(runtimeRoot.transform, false);
@@ -724,12 +731,12 @@ namespace CodexSix.TopdownShooter.EditorTools
             inputSender.WorldCamera = camera;
             inputSender.SendRateHz = 30f;
 
-            SetComponentMember(itemDataManager, "ResourcesCatalogPath", "Items/item_catalog");
-            SetComponentMember(itemDataManager, "LoadOnAwake", true);
-            SetComponentMember(inventoryManager, "ItemDataManager", itemDataManager);
-            SetComponentMember(inventoryManager, "DefaultSlotCount", 24);
-            SetComponentMember(client, "ItemDataManager", itemDataManager);
-            SetComponentMember(client, "InventoryManager", inventoryManager);
+            itemDataManager.ResourcesCatalogPath = "Items/item_catalog";
+            itemDataManager.LoadOnAwake = true;
+            inventoryManager.ItemDataManager = itemDataManager;
+            inventoryManager.DefaultSlotCount = 24;
+            client.ItemDataManager = itemDataManager;
+            client.InventoryManager = inventoryManager;
 
             var follow = camera.GetComponent<TopDownCameraFollow>();
             if (follow == null)
@@ -742,47 +749,6 @@ namespace CodexSix.TopdownShooter.EditorTools
             follow.FixedEuler = new Vector3(60f, 0f, 0f);
 
             return client;
-        }
-
-        private static Component AddComponentByName(GameObject host, string typeName)
-        {
-            if (host == null || string.IsNullOrWhiteSpace(typeName))
-            {
-                return null;
-            }
-
-            var type = Type.GetType($"{typeName}, Assembly-CSharp");
-            if (type == null || !typeof(Component).IsAssignableFrom(type))
-            {
-                Debug.LogWarning($"TopDownShooterBootstrap could not find component type: {typeName}");
-                return null;
-            }
-
-            return host.AddComponent(type);
-        }
-
-        private static void SetComponentMember(Component component, string memberName, object value)
-        {
-            if (component == null || string.IsNullOrWhiteSpace(memberName))
-            {
-                return;
-            }
-
-            var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-            var type = component.GetType();
-
-            var field = type.GetField(memberName, flags);
-            if (field != null)
-            {
-                field.SetValue(component, value);
-                return;
-            }
-
-            var property = type.GetProperty(memberName, flags);
-            if (property != null && property.CanWrite)
-            {
-                property.SetValue(component, value);
-            }
         }
 
         private static void BuildDebugHud(Transform parent, NetworkGameClient client, Camera camera)
@@ -876,6 +842,82 @@ namespace CodexSix.TopdownShooter.EditorTools
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+        }
+
+        private static int FixItemIconImportSettings()
+        {
+            const string iconsFolderPath = "Assets/Resources/UI/Icons";
+            if (!AssetDatabase.IsValidFolder(iconsFolderPath))
+            {
+                return 0;
+            }
+
+            var textureGuids = AssetDatabase.FindAssets(string.Empty, new[] { iconsFolderPath });
+            var updatedCount = 0;
+
+            foreach (var textureGuid in textureGuids)
+            {
+                var assetPath = AssetDatabase.GUIDToAssetPath(textureGuid);
+                if (string.IsNullOrWhiteSpace(assetPath) ||
+                    assetPath.EndsWith(".meta", StringComparison.OrdinalIgnoreCase) ||
+                    !assetPath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+                if (importer == null)
+                {
+                    continue;
+                }
+
+                var changed = false;
+                if (importer.textureShape != TextureImporterShape.Texture2D)
+                {
+                    importer.textureShape = TextureImporterShape.Texture2D;
+                    changed = true;
+                }
+
+                if (importer.textureType != TextureImporterType.Sprite)
+                {
+                    importer.textureType = TextureImporterType.Sprite;
+                    changed = true;
+                }
+
+                if (importer.spriteImportMode != SpriteImportMode.Single)
+                {
+                    importer.spriteImportMode = SpriteImportMode.Single;
+                    changed = true;
+                }
+
+                if (importer.mipmapEnabled)
+                {
+                    importer.mipmapEnabled = false;
+                    changed = true;
+                }
+
+                if (importer.wrapMode != TextureWrapMode.Clamp)
+                {
+                    importer.wrapMode = TextureWrapMode.Clamp;
+                    changed = true;
+                }
+
+                if (importer.alphaIsTransparency == false)
+                {
+                    importer.alphaIsTransparency = true;
+                    changed = true;
+                }
+
+                if (!changed)
+                {
+                    continue;
+                }
+
+                importer.SaveAndReimport();
+                updatedCount++;
+            }
+
+            return updatedCount;
         }
     }
 }

@@ -162,6 +162,17 @@ internal static class BotProtocol
             _ = reader.ReadSingle(); // positionX
             _ = reader.ReadSingle(); // positionY
             _ = reader.ReadInt32(); // amount
+            _ = reader.ReadByte(); // coin flags (bit0: isDispenser)
+        }
+
+        var itemDropCount = reader.ReadUInt16();
+        for (var i = 0; i < itemDropCount; i++)
+        {
+            _ = reader.ReadInt32(); // itemDropId
+            _ = reader.ReadInt32(); // itemId
+            _ = reader.ReadSingle(); // positionX
+            _ = reader.ReadSingle(); // positionY
+            _ = reader.ReadInt32(); // quantity
         }
 
         var portalCount = reader.ReadByte();

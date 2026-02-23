@@ -121,11 +121,34 @@ namespace CodexSix.TopdownShooter.Game
             if (ItemDataManager == null)
             {
                 ItemDataManager = GetComponent<ItemDataManager>();
+                if (ItemDataManager == null)
+                {
+                    ItemDataManager = gameObject.AddComponent<ItemDataManager>();
+                    ItemDataManager.ResourcesCatalogPath = "Items/item_catalog";
+                    ItemDataManager.LoadOnAwake = true;
+                    Debug.LogWarning("NetworkGameClient auto-added missing ItemDataManager.");
+                }
             }
 
             if (InventoryManager == null)
             {
                 InventoryManager = GetComponent<PlayerInventoryManager>();
+                if (InventoryManager == null)
+                {
+                    InventoryManager = gameObject.AddComponent<PlayerInventoryManager>();
+                    InventoryManager.DefaultSlotCount = 24;
+                    Debug.LogWarning("NetworkGameClient auto-added missing PlayerInventoryManager.");
+                }
+            }
+
+            if (InventoryManager != null && InventoryManager.ItemDataManager == null)
+            {
+                InventoryManager.ItemDataManager = ItemDataManager;
+            }
+
+            if (ItemDataManager != null && !ItemDataManager.IsLoaded)
+            {
+                ItemDataManager.Load();
             }
 
             EnsureRespawnBurstPool();
