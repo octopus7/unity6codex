@@ -57,7 +57,16 @@ public static class ProtocolCodec
         using var stream = new MemoryStream(payload, writable: false);
         using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
         var nickname = ReadString8(reader, GameRules.MaxNicknameBytes);
-        return new HelloMessage(nickname);
+        var kind = PlayerKind.Human;
+        if (stream.Position < stream.Length)
+        {
+            var rawKind = reader.ReadByte();
+            kind = rawKind == (byte)PlayerKind.Bot
+                ? PlayerKind.Bot
+                : PlayerKind.Human;
+        }
+
+        return new HelloMessage(nickname, kind);
     }
 
     public static InputFrameMessage DecodeInputFrame(byte[] payload)
@@ -127,6 +136,7 @@ public static class ProtocolCodec
             writer.Write(player.Hp);
             writer.Write(player.CarriedCoins);
             writer.Write(player.SpeedBuffStacks);
+            writer.Write((byte)player.Kind);
 
             byte flags = 0;
             if (player.IsAlive)

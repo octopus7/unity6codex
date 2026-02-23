@@ -16,6 +16,6 @@ public enum MessageType : ushort
 
 public static class ProtocolConstants
 {
-    public const ushort ProtocolVersion = 1;
+    public const ushort ProtocolVersion = 2;
     public const int HeaderSize = 12;
 }

@@ -31,6 +31,12 @@ namespace CodexSix.TopdownShooter.Net
         Exit = 2
     }
 
+    public enum PlayerKind : byte
+    {
+        Human = 0,
+        Bot = 1
+    }
+
     public enum GameEventType : byte
     {
         ShotFired = 1,
@@ -78,6 +84,7 @@ namespace CodexSix.TopdownShooter.Net
         public short Hp;
         public int CarriedCoins;
         public byte SpeedBuffStacks;
+        public PlayerKind Kind;
         public bool IsAlive;
         public bool InShopZone;
     }

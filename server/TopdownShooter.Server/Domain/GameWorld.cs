@@ -77,7 +77,7 @@ public sealed class GameWorld
     public int CoinStackCount => _coinStacks.Count;
     public int WorldCoinTotal => _coinStacks.Sum(stack => stack.Amount);
 
-    public int AddPlayer(string nickname)
+    public int AddPlayer(string nickname, PlayerKind kind)
     {
         if (_players.Count >= _maxPlayers)
         {
@@ -91,6 +91,7 @@ public sealed class GameWorld
         {
             PlayerId = playerId,
             Nickname = nickname,
+            Kind = kind,
             Position = spawn,
             AimDirection = new Vector2f(1f, 0f),
             Hp = GameRules.MaxHp,
@@ -159,6 +160,7 @@ public sealed class GameWorld
                 (short)player.Hp,
                 player.CarriedCoins,
                 (byte)player.SpeedBuffStacks,
+                player.Kind,
                 player.IsAlive,
                 player.InShopZone,
                 player.LastInputSeq))
