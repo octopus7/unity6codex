@@ -898,7 +898,8 @@ namespace CodexSix.TopdownShooter.Game
                     toCamera = fallbackFacing;
                 }
 
-                iconTransform.rotation = Quaternion.LookRotation(toCamera.normalized, Vector3.up);
+                // Unity Quad front face is opposite of transform.forward, so flip the facing vector.
+                iconTransform.rotation = Quaternion.LookRotation((-toCamera).normalized, Vector3.up);
             }
         }
 
