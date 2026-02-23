@@ -11,7 +11,8 @@ namespace CodexSix.TopdownShooter.EditorTools
 {
     public static class TopDownShooterServerMenu
     {
-        private const string BatchRelativePath = "server/run-local-server.bat";
+        private const string ServerBatchRelativePath = "server/run-local-server.bat";
+        private const string BotBatchRelativePath = "server/run-local-bot-client.bat";
         private const string AppSettingsRelativePath = "server/TopdownShooter.Server/appsettings.json";
         private const int DefaultPort = 7777;
 
@@ -29,7 +30,7 @@ namespace CodexSix.TopdownShooter.EditorTools
                 return;
             }
 
-            var batchPath = Path.Combine(repoRoot, BatchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            var batchPath = Path.Combine(repoRoot, ServerBatchRelativePath.Replace('/', Path.DirectorySeparatorChar));
             if (!File.Exists(batchPath))
             {
                 EditorUtility.DisplayDialog("Missing File", $"Batch file not found:\n{batchPath}", "OK");
@@ -45,22 +46,32 @@ namespace CodexSix.TopdownShooter.EditorTools
                 return;
             }
 
-            try
-            {
-                var processStartInfo = new ProcessStartInfo
-                {
-                    FileName = batchPath,
-                    WorkingDirectory = Path.GetDirectoryName(batchPath) ?? repoRoot,
-                    UseShellExecute = true
-                };
+            StartBatch(batchPath, "server");
+#endif
+        }
 
-                Process.Start(processStartInfo);
-                UnityEngine.Debug.Log($"Requested server start via BAT: {batchPath}");
-            }
-            catch (Exception exception)
+        [MenuItem("Tools/Start Local Bot Client", false, 5001)]
+        public static void StartLocalBotClient()
+        {
+#if !UNITY_EDITOR_WIN
+            EditorUtility.DisplayDialog("Unsupported Platform", "This menu currently supports Windows only (BAT launch).", "OK");
+            return;
+#else
+            var repoRoot = FindRepoRoot();
+            if (string.IsNullOrEmpty(repoRoot))
             {
-                EditorUtility.DisplayDialog("Launch Failed", exception.Message, "OK");
+                EditorUtility.DisplayDialog("Path Error", "Could not locate repository root containing /server.", "OK");
+                return;
             }
+
+            var batchPath = Path.Combine(repoRoot, BotBatchRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(batchPath))
+            {
+                EditorUtility.DisplayDialog("Missing File", $"Batch file not found:\n{batchPath}", "OK");
+                return;
+            }
+
+            StartBatch(batchPath, "bot client");
 #endif
         }
 
@@ -122,6 +133,26 @@ namespace CodexSix.TopdownShooter.EditorTools
             catch
             {
                 return false;
+            }
+        }
+
+        private static void StartBatch(string batchPath, string label)
+        {
+            try
+            {
+                var processStartInfo = new ProcessStartInfo
+                {
+                    FileName = batchPath,
+                    WorkingDirectory = Path.GetDirectoryName(batchPath) ?? string.Empty,
+                    UseShellExecute = true
+                };
+
+                Process.Start(processStartInfo);
+                UnityEngine.Debug.Log($"Requested {label} start via BAT: {batchPath}");
+            }
+            catch (Exception exception)
+            {
+                EditorUtility.DisplayDialog("Launch Failed", exception.Message, "OK");
             }
         }
     }
