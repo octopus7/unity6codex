@@ -14,3 +14,9 @@
 - Before destructive scene or asset changes, state the affected scope.
 - Do not perform destructive work unless the user explicitly requested it.
 - If a safe path exists, always prefer and suggest the safe path first.
+
+## Bootstrap Reporting Convention
+
+- When notifying the user about a safe bootstrap run, prefix with `🟢`.
+- When notifying the user about a destructive bootstrap run, prefix with `🟠`.
+- Use explicit labels in messages, e.g. `🟢 Safe Bootstrap` or `🟠 Destructive Bootstrap`.

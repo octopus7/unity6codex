@@ -35,3 +35,7 @@
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Unity scene backup folders
+**/[Bb]ackups/
+**/[Bb]ackups.meta
