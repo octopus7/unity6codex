@@ -116,6 +116,7 @@ public sealed class GameWorld
             Nickname = nickname,
             Position = spawn,
             AimDirection = new Vector2f(1f, 0f),
+            CurrentSpreadDegrees = GameRules.SpreadMinAngleDegrees,
             Hp = GameRules.MaxHp,
             IsAlive = true,
             InShopZone = false,
@@ -165,6 +166,7 @@ public sealed class GameWorld
     {
         _serverTick++;
         UpdatePlayerMovementAndPortals();
+        RecoverWeaponSpread();
         ProcessFiring();
         UpdateProjectiles();
         ProcessRespawns();
@@ -322,16 +324,21 @@ public sealed class GameWorld
             var aim = player.AimDirection.LengthSquared <= 0.00001f
                 ? new Vector2f(1f, 0f)
                 : player.AimDirection.Normalized();
+            var spreadOffsetDegrees = NextSpreadOffsetDegrees(player.CurrentSpreadDegrees);
+            var firedDirection = RotateDirectionByDegrees(aim, spreadOffsetDegrees).Normalized();
 
             _projectiles.Add(new ProjectileState
             {
                 ProjectileId = _nextProjectileId++,
                 OwnerPlayerId = player.PlayerId,
-                Position = player.Position + (aim * GameRules.ProjectileSpawnOffset),
-                Direction = aim,
+                Position = player.Position + (firedDirection * GameRules.ProjectileSpawnOffset),
+                Direction = firedDirection,
                 SpawnTick = _serverTick
             });
 
+            player.CurrentSpreadDegrees = MathF.Min(
+                GameRules.SpreadMaxAngleDegrees,
+                player.CurrentSpreadDegrees + GameRules.SpreadIncreasePerShotDegrees);
             player.NextFireAllowedTick = _serverTick + GameRules.FireCooldownTicks;
             _pendingEvents.Add(new GameEvent(GameEventType.ShotFired, player.PlayerId, 0, 0, 0, player.Position));
         }
@@ -418,6 +425,7 @@ public sealed class GameWorld
         victim.SpeedBuffStacks = 0;
         victim.InShopZone = false;
         victim.FireHeld = false;
+        victim.CurrentSpreadDegrees = GameRules.SpreadMinAngleDegrees;
 
         _pendingEvents.Add(new GameEvent(
             GameEventType.Death,
@@ -529,6 +537,7 @@ public sealed class GameWorld
             player.SpeedBuffStacks = 0;
             player.InShopZone = false;
             player.FireHeld = false;
+            player.CurrentSpreadDegrees = GameRules.SpreadMinAngleDegrees;
 
             _pendingEvents.Add(new GameEvent(
                 GameEventType.Respawn,
@@ -724,6 +733,53 @@ public sealed class GameWorld
                 CreatedTick = 0
             });
         }
+    }
+
+    private void RecoverWeaponSpread()
+    {
+        var recoveryPerTick = GameRules.SpreadRecoveryPerSecondDegrees * GameRules.TickDelta;
+        if (recoveryPerTick <= 0f)
+        {
+            return;
+        }
+
+        foreach (var player in _players.Values)
+        {
+            if (!player.IsAlive || player.FireHeld)
+            {
+                continue;
+            }
+
+            player.CurrentSpreadDegrees = MathF.Max(
+                GameRules.SpreadMinAngleDegrees,
+                player.CurrentSpreadDegrees - recoveryPerTick);
+        }
+    }
+
+    private float NextSpreadOffsetDegrees(float currentSpreadDegrees)
+    {
+        if (currentSpreadDegrees <= 0.0001f)
+        {
+            return 0f;
+        }
+
+        var sample = (float)_random.NextDouble();
+        return ((sample * 2f) - 1f) * currentSpreadDegrees;
+    }
+
+    private static Vector2f RotateDirectionByDegrees(Vector2f direction, float degrees)
+    {
+        if (MathF.Abs(degrees) <= 0.0001f)
+        {
+            return direction;
+        }
+
+        var radians = degrees * (MathF.PI / 180f);
+        var sin = MathF.Sin(radians);
+        var cos = MathF.Cos(radians);
+        return new Vector2f(
+            (direction.X * cos) - (direction.Y * sin),
+            (direction.X * sin) + (direction.Y * cos));
     }
 
     private Vector2f NextSpawnPoint()

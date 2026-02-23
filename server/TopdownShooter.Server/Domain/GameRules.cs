@@ -15,6 +15,10 @@ public static class GameRules
     public const float ProjectileSpawnOffset = 0.9f;
     public const int ProjectileLifetimeTicks = 45; // 1.5s at 30Hz
     public const float ProjectileHitRadius = 0.8f;
+    public const float SpreadMinAngleDegrees = 0.5f;
+    public const float SpreadMaxAngleDegrees = 10f;
+    public const float SpreadIncreasePerShotDegrees = 1.2f;
+    public const float SpreadRecoveryPerSecondDegrees = 7.5f;
 
     public const int FireCooldownTicks = 6; // 0.2s at 30Hz
     public const int RespawnDelayTicks = 150; // 5s at 30Hz

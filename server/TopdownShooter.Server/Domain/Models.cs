@@ -25,6 +25,7 @@ public sealed class PlayerState
     public short MoveY { get; set; }
     public bool FireHeld { get; set; }
     public uint LastInputSeq { get; set; }
+    public float CurrentSpreadDegrees { get; set; } = GameRules.SpreadMinAngleDegrees;
 
     public uint RespawnAtTick { get; set; }
     public uint NextFireAllowedTick { get; set; }
