@@ -8,6 +8,7 @@ namespace CodexSix.TopdownShooter.Game
         public NetworkGameClient Client;
         public int HealItemId = 1;
         public int SpeedItemId = 2;
+        public float UiScale = 2f;
 
         private string _host = "127.0.0.1";
         private string _port = "7777";
@@ -16,7 +17,18 @@ namespace CodexSix.TopdownShooter.Game
 
         private void OnGUI()
         {
+            if (UiScale <= 0.01f)
+            {
+                UiScale = 2f;
+            }
+
+            var scale = Mathf.Max(1f, UiScale);
+            var previousMatrix = GUI.matrix;
+            GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
+
             _windowRect = GUILayout.Window(GetInstanceID(), _windowRect, DrawWindow, "TopDown Shooter Debug");
+
+            GUI.matrix = previousMatrix;
         }
 
         private void DrawWindow(int id)

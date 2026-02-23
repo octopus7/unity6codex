@@ -1,41 +1,102 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using CodexSix.TopdownShooter.Game;
 using CodexSix.TopdownShooter.Net;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Rendering;
 
 namespace CodexSix.TopdownShooter.EditorTools
 {
     public static class TopDownShooterBootstrap
     {
         private const string ScenePath = "Assets/Scenes/MainScene.unity";
+        private const string BackupFolderPath = "Assets/Scenes/Backups";
+        private const string GeneratedRootName = "__BootstrapGenerated";
 
-        [MenuItem("Tools/TopDownShooter/Bootstrap MVP Scene")]
-        public static void BootstrapScene()
+        [MenuItem("Tools/TopDownShooter/Bootstrap MVP Scene (Safe)")]
+        public static void BootstrapSceneSafe()
         {
-            EnsureFolders();
+            BootstrapScene(destructiveReset: false);
+        }
 
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        [MenuItem("Tools/TopDownShooter/Bootstrap MVP Scene (Destructive Reset)")]
+        public static void BootstrapSceneDestructive()
+        {
+            if (File.Exists(ToAbsoluteProjectPath(ScenePath)))
+            {
+                EditorUtility.DisplayDialog(
+                    "Destructive Reset Blocked",
+                    "Policy: Destructive Reset is only allowed for initial scene creation.\n" +
+                    "Use 'Bootstrap MVP Scene (Safe)' for normal updates.",
+                    "OK");
+                return;
+            }
 
-            BuildLighting();
-            BuildEnvironment();
-            var camera = BuildCamera();
-            var client = BuildRuntime(camera);
-            BuildDebugHud(client);
-            AddSpawnPoints();
-            SaveAndRegisterScene(scene);
+            var confirm = EditorUtility.DisplayDialog(
+                "Destructive Reset",
+                "This will rebuild MainScene and can overwrite scene-level setup.\n" +
+                "A backup scene file will be created first.\n\nContinue?",
+                "Continue",
+                "Cancel");
 
-            Debug.Log("Bootstrap complete: Assets/Scenes/MainScene.unity");
+            if (!confirm)
+            {
+                return;
+            }
+
+            BootstrapScene(destructiveReset: true);
         }
 
         [MenuItem("Tools/TopDownShooter/Add Lighting To Current Scene")]
         public static void AddLightingToCurrentScene()
         {
-            BuildLighting();
+            EnsureDefaultLighting();
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Debug.Log("TopDownShooter lighting added to current scene.");
+            Debug.Log("TopDownShooter lighting applied to current scene.");
+        }
+
+        private static void BootstrapScene(bool destructiveReset)
+        {
+            EnsureFolders();
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
+            var sceneExists = File.Exists(ToAbsoluteProjectPath(ScenePath));
+            Scene scene;
+
+            if (!sceneExists)
+            {
+                scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+            else if (destructiveReset)
+            {
+                BackupSceneAsset();
+                scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+            else
+            {
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            }
+
+            var generatedRoot = RecreateGeneratedRoot();
+
+            EnsureDefaultLighting(parentForNewLight: generatedRoot.transform, preferExternalDirectionalLight: true);
+            BuildEnvironment(generatedRoot.transform);
+            var camera = BuildCamera(generatedRoot.transform, preferExternalCamera: true);
+            var client = BuildRuntime(generatedRoot.transform, camera);
+            BuildDebugHud(generatedRoot.transform, client);
+            AddSpawnPoints(generatedRoot.transform);
+
+            SaveAndRegisterScene(scene);
+            Debug.Log(
+                $"Bootstrap complete ({(destructiveReset ? "destructive reset" : "safe rebuild of generated root")}): {ScenePath}");
         }
 
         private static void EnsureFolders()
@@ -49,11 +110,138 @@ namespace CodexSix.TopdownShooter.EditorTools
             {
                 AssetDatabase.CreateFolder("Assets", "Scripts");
             }
+
+            if (!AssetDatabase.IsValidFolder(BackupFolderPath))
+            {
+                AssetDatabase.CreateFolder("Assets/Scenes", "Backups");
+            }
         }
 
-        private static void BuildEnvironment()
+        private static void BackupSceneAsset()
+        {
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var backupPath = $"{BackupFolderPath}/MainScene_backup_{timestamp}.unity";
+
+            if (!File.Exists(ToAbsoluteProjectPath(ScenePath)))
+            {
+                return;
+            }
+
+            if (AssetDatabase.CopyAsset(ScenePath, backupPath))
+            {
+                Debug.Log($"Created scene backup: {backupPath}");
+            }
+            else
+            {
+                Debug.LogWarning("Failed to create scene backup before destructive reset.");
+            }
+        }
+
+        private static string ToAbsoluteProjectPath(string assetPath)
+        {
+            return Path.GetFullPath(Path.Combine(Application.dataPath, "..", assetPath));
+        }
+
+        private static GameObject RecreateGeneratedRoot()
+        {
+            var activeScene = SceneManager.GetActiveScene();
+            foreach (var rootObject in activeScene.GetRootGameObjects())
+            {
+                if (rootObject.name != GeneratedRootName)
+                {
+                    continue;
+                }
+
+                UnityEngine.Object.DestroyImmediate(rootObject);
+                break;
+            }
+
+            return new GameObject(GeneratedRootName);
+        }
+
+        private static void EnsureDefaultLighting(Transform parentForNewLight = null, bool preferExternalDirectionalLight = false)
+        {
+            Light directional = null;
+
+            if (preferExternalDirectionalLight)
+            {
+                directional = FindExternalDirectionalLight();
+            }
+
+            if (directional == null)
+            {
+                directional = FindAnyDirectionalLight();
+            }
+
+            if (directional == null)
+            {
+                var lightObject = new GameObject("Directional Light");
+                if (parentForNewLight != null)
+                {
+                    lightObject.transform.SetParent(parentForNewLight, worldPositionStays: false);
+                }
+
+                directional = lightObject.AddComponent<Light>();
+                directional.type = LightType.Directional;
+                directional.color = new Color(1f, 0.97f, 0.9f);
+                directional.intensity = 1.15f;
+                directional.shadows = LightShadows.Soft;
+                lightObject.transform.rotation = Quaternion.Euler(52f, -30f, 0f);
+            }
+
+            RenderSettings.sun = directional;
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.38f, 0.42f, 0.47f);
+            RenderSettings.ambientEquatorColor = new Color(0.24f, 0.26f, 0.29f);
+            RenderSettings.ambientGroundColor = new Color(0.12f, 0.12f, 0.12f);
+        }
+
+        private static Light FindExternalDirectionalLight()
+        {
+            var lights = UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None);
+            foreach (var light in lights)
+            {
+                if (light.type != LightType.Directional)
+                {
+                    continue;
+                }
+
+                if (IsUnderGeneratedRoot(light.transform))
+                {
+                    continue;
+                }
+
+                return light;
+            }
+
+            return null;
+        }
+
+        private static Light FindAnyDirectionalLight()
+        {
+            return UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None)
+                .FirstOrDefault(light => light.type == LightType.Directional);
+        }
+
+        private static bool IsUnderGeneratedRoot(Transform transform)
+        {
+            while (transform != null)
+            {
+                if (transform.name == GeneratedRootName)
+                {
+                    return true;
+                }
+
+                transform = transform.parent;
+            }
+
+            return false;
+        }
+
+        private static void BuildEnvironment(Transform parent)
         {
             var environmentRoot = new GameObject("Environment");
+            environmentRoot.transform.SetParent(parent, worldPositionStays: false);
 
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
@@ -77,31 +265,6 @@ namespace CodexSix.TopdownShooter.EditorTools
             BuildPortals(environmentRoot.transform);
         }
 
-        private static void BuildLighting()
-        {
-            var existing = Object.FindObjectOfType<Light>();
-            if (existing != null && existing.type == LightType.Directional)
-            {
-                RenderSettings.sun = existing;
-            }
-            else
-            {
-                var lightObject = new GameObject("Directional Light");
-                var light = lightObject.AddComponent<Light>();
-                light.type = LightType.Directional;
-                light.color = new Color(1f, 0.97f, 0.9f);
-                light.intensity = 1.15f;
-                light.shadows = LightShadows.Soft;
-                lightObject.transform.rotation = Quaternion.Euler(52f, -30f, 0f);
-                RenderSettings.sun = light;
-            }
-
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.38f, 0.42f, 0.47f);
-            RenderSettings.ambientEquatorColor = new Color(0.24f, 0.26f, 0.29f);
-            RenderSettings.ambientGroundColor = new Color(0.12f, 0.12f, 0.12f);
-        }
-
         private static void BuildShopArea(Transform parent)
         {
             var zone = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -109,8 +272,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             zone.transform.SetParent(parent, false);
             zone.transform.position = new Vector3(0f, 0.1f, 28f);
             zone.transform.localScale = new Vector3(12f, 0.2f, 12f);
-            var zoneRenderer = zone.GetComponent<Renderer>();
-            zoneRenderer.sharedMaterial.color = new Color(0.16f, 0.35f, 0.19f);
+            zone.GetComponent<Renderer>().sharedMaterial.color = new Color(0.16f, 0.35f, 0.19f);
             var box = zone.GetComponent<BoxCollider>();
             box.isTrigger = true;
             zone.AddComponent<ShopZoneMarker>().Size = new Vector2(12f, 12f);
@@ -153,7 +315,7 @@ namespace CodexSix.TopdownShooter.EditorTools
             portal.transform.position = position;
             portal.transform.localScale = new Vector3(1.2f, 0.1f, 1.2f);
             portal.GetComponent<Renderer>().sharedMaterial.color = color;
-            Object.DestroyImmediate(portal.GetComponent<CapsuleCollider>());
+            UnityEngine.Object.DestroyImmediate(portal.GetComponent<CapsuleCollider>());
             var collider = portal.AddComponent<SphereCollider>();
             collider.radius = 1.2f;
             collider.isTrigger = true;
@@ -183,9 +345,19 @@ namespace CodexSix.TopdownShooter.EditorTools
             obstacle.GetComponent<Renderer>().sharedMaterial.color = new Color(0.36f, 0.37f, 0.4f);
         }
 
-        private static Camera BuildCamera()
+        private static Camera BuildCamera(Transform parent, bool preferExternalCamera)
         {
+            if (preferExternalCamera)
+            {
+                var externalMainCamera = FindExternalMainCamera();
+                if (externalMainCamera != null)
+                {
+                    return externalMainCamera;
+                }
+            }
+
             var cameraObject = new GameObject("Main Camera");
+            cameraObject.transform.SetParent(parent, false);
             cameraObject.tag = "MainCamera";
             var camera = cameraObject.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
@@ -199,9 +371,30 @@ namespace CodexSix.TopdownShooter.EditorTools
             return camera;
         }
 
-        private static NetworkGameClient BuildRuntime(Camera camera)
+        private static Camera FindExternalMainCamera()
+        {
+            var cameras = UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+            foreach (var camera in cameras)
+            {
+                if (IsUnderGeneratedRoot(camera.transform))
+                {
+                    continue;
+                }
+
+                if (camera.CompareTag("MainCamera"))
+                {
+                    return camera;
+                }
+            }
+
+            return null;
+        }
+
+        private static NetworkGameClient BuildRuntime(Transform parent, Camera camera)
         {
             var runtimeRoot = new GameObject("GameRuntime");
+            runtimeRoot.transform.SetParent(parent, false);
+
             var transport = runtimeRoot.AddComponent<TcpGameTransport>();
             var client = runtimeRoot.AddComponent<NetworkGameClient>();
             var inputSender = runtimeRoot.AddComponent<LocalInputSender>();
@@ -222,7 +415,12 @@ namespace CodexSix.TopdownShooter.EditorTools
             inputSender.WorldCamera = camera;
             inputSender.SendRateHz = 30f;
 
-            var follow = camera.gameObject.AddComponent<TopDownCameraFollow>();
+            var follow = camera.GetComponent<TopDownCameraFollow>();
+            if (follow == null)
+            {
+                follow = camera.gameObject.AddComponent<TopDownCameraFollow>();
+            }
+
             follow.Client = client;
             follow.Offset = new Vector3(0f, 18f, -10f);
             follow.FixedEuler = new Vector3(60f, 0f, 0f);
@@ -230,18 +428,23 @@ namespace CodexSix.TopdownShooter.EditorTools
             return client;
         }
 
-        private static void BuildDebugHud(NetworkGameClient client)
+        private static void BuildDebugHud(Transform parent, NetworkGameClient client)
         {
             var hudObject = new GameObject("DebugHud");
+            hudObject.transform.SetParent(parent, false);
+
             var hud = hudObject.AddComponent<SimpleDebugHud>();
             hud.Client = client;
             hud.HealItemId = 1;
             hud.SpeedItemId = 2;
+            hud.UiScale = 2f;
         }
 
-        private static void AddSpawnPoints()
+        private static void AddSpawnPoints(Transform parent)
         {
             var root = new GameObject("SpawnPoints");
+            root.transform.SetParent(parent, false);
+
             var points = new[]
             {
                 new Vector3(-16f, 0f, -16f),

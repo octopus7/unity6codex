@@ -24,13 +24,17 @@ Server console commands:
 
 In Unity Editor:
 - Open project `codexsix`
-- Menu: `Tools > TopDownShooter > Bootstrap MVP Scene`
+- Menu: `Tools > TopDownShooter > Bootstrap MVP Scene (Safe)`
 
 This creates:
 - `Assets/Scenes/MainScene.unity`
 - Runtime objects (transport/client/input/HUD)
 - Environment, obstacles, portals, shop zone
 - Build Settings scene registration
+
+Destructive full reset (with backup):
+- `Tools > TopDownShooter > Bootstrap MVP Scene (Destructive Reset)`
+- Policy: available only for initial scene creation (before `MainScene.unity` exists).
 
 ## 3) Play
 
