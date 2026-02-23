@@ -45,6 +45,8 @@ namespace CodexSix.TopdownShooter.Game
         [Header("Item Drop Labels")]
         public bool ShowItemDropLabels = true;
         public Vector3 ItemDropLabelWorldOffset = new Vector3(0f, 0.42f, 0f);
+        [Min(0.1f)] public float ItemDropLabelShowDistance = 4f;
+        [Min(0f)] public float ItemDropLabelLineLift = 1f;
         [Min(9)] public int ItemDropLabelFontSize = 13;
         public Color ItemDropLabelTextColor = Color.white;
         public Color ItemDropLabelBackgroundColor = new Color(0f, 0f, 0f, 0.62f);
@@ -229,11 +231,28 @@ namespace CodexSix.TopdownShooter.Game
             EnsureItemDropLabelStyles();
             var textPaddingX = 10f;
             var textPaddingY = 5f;
+            if (!TryGetLocalPlayerPosition(out var localPlayerPosition))
+            {
+                return;
+            }
+
+            var maxLabelDistance = ItemDropLabelShowDistance > 0f ? ItemDropLabelShowDistance : 4f;
+            var maxLabelDistanceSquared = maxLabelDistance * maxLabelDistance;
+            var lineLift = ItemDropLabelLineLift > 0f ? ItemDropLabelLineLift : 1f;
+            var lineHeight = _itemDropLabelTextStyle.lineHeight > 0f
+                ? _itemDropLabelTextStyle.lineHeight
+                : _itemDropLabelTextStyle.fontSize + 2f;
+            var lineLiftPixels = lineLift * Mathf.Max(12f, lineHeight);
 
             foreach (var pair in _itemDropViews)
             {
                 var itemDropView = pair.Value;
                 if (itemDropView == null || !itemDropView.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                if ((itemDropView.transform.position - localPlayerPosition).sqrMagnitude > maxLabelDistanceSquared)
                 {
                     continue;
                 }
@@ -262,7 +281,7 @@ namespace CodexSix.TopdownShooter.Game
                 var boxHeight = textSize.y + (textPaddingY * 2f);
                 var boxRect = new Rect(
                     x: screenPosition.x - (boxWidth * 0.5f),
-                    y: Screen.height - screenPosition.y - (boxHeight * 0.5f),
+                    y: Screen.height - screenPosition.y - (boxHeight * 0.5f) - lineLiftPixels,
                     width: boxWidth,
                     height: boxHeight);
 

@@ -15,15 +15,15 @@ namespace CodexSix.TopdownShooter.Game
         private const int MaxKnownServers = 8;
         private const int ProbeTimeoutMs = 1500;
         private const float AutoProbeIntervalSeconds = 1f;
-        private const float MinimumLoadingDurationSeconds = 0.5f;
+        private const float MinimumLoadingDurationSeconds = 0.2f;
 
         public NetworkGameClient Client;
         public float UiScale = 2f;
         public bool HideWhenConnected = true;
 
         [Header("Startup Loading")]
-        public float StartupLoadingSeconds = 1.6f;
-        public float StartupCompletedHoldSeconds = 0.7f;
+        public float StartupLoadingSeconds = 0.2f;
+        public float StartupCompletedHoldSeconds = 0f;
 
         private readonly List<string> _knownServers = new();
         private string _host = "127.0.0.1";

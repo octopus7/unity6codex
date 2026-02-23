@@ -726,6 +726,8 @@ namespace CodexSix.TopdownShooter.EditorTools
             client.RespawnBurstPoolInitialSize = 16;
             client.RespawnBurstPoolMaxSize = 48;
             client.RespawnBurstLifetimeSeconds = 1.1f;
+            client.ItemDropLabelShowDistance = 4f;
+            client.ItemDropLabelLineLift = 1f;
 
             inputSender.Client = client;
             inputSender.WorldCamera = camera;
@@ -762,6 +764,8 @@ namespace CodexSix.TopdownShooter.EditorTools
             connection.Client = client;
             connection.UiScale = 2f;
             connection.HideWhenConnected = true;
+            connection.StartupLoadingSeconds = 0.2f;
+            connection.StartupCompletedHoldSeconds = 0f;
 
             var shopObject = new GameObject("ShopPanel");
             shopObject.transform.SetParent(hudRoot.transform, false);
