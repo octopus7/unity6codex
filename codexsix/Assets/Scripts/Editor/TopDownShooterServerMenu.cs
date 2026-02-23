@@ -18,7 +18,7 @@ namespace CodexSix.TopdownShooter.EditorTools
         private const string BotWindowTitlePrefix = "TopdownShooter.BotClient";
         private const int DefaultPort = 7777;
 
-        [MenuItem("Tools/Start Local Server", false, 5000)]
+        [MenuItem("Tools/Server/Start Local Server", false, 5000)]
         public static void StartLocalServer()
         {
 #if !UNITY_EDITOR_WIN
@@ -52,7 +52,7 @@ namespace CodexSix.TopdownShooter.EditorTools
 #endif
         }
 
-        [MenuItem("Tools/Start Local Bot Client", false, 5001)]
+        [MenuItem("Tools/Server/Start Local Bot Client", false, 5001)]
         public static void StartLocalBotClient()
         {
 #if !UNITY_EDITOR_WIN
@@ -77,7 +77,7 @@ namespace CodexSix.TopdownShooter.EditorTools
 #endif
         }
 
-        [MenuItem("Tools/Start Local Server + Bot Client", false, 5002)]
+        [MenuItem("Tools/Restart Server BotClient", false, 5002)]
         public static void StartLocalServerAndBotClient()
         {
 #if !UNITY_EDITOR_WIN
