@@ -133,6 +133,72 @@ public sealed class GameWorld
         _projectiles.RemoveAll(projectile => projectile.OwnerPlayerId == playerId);
     }
 
+    public bool TryDetachPlayerForReconnect(int playerId, out ReconnectPlayerState reconnectState)
+    {
+        reconnectState = default;
+        if (!_players.TryGetValue(playerId, out var player))
+        {
+            return false;
+        }
+
+        reconnectState = new ReconnectPlayerState(
+            PlayerId: player.PlayerId,
+            Nickname: player.Nickname,
+            Kind: player.Kind,
+            Position: player.Position,
+            AimDirection: player.AimDirection,
+            Hp: player.Hp,
+            IsAlive: player.IsAlive,
+            InShopZone: player.InShopZone,
+            CarriedCoins: player.CarriedCoins,
+            SpeedBuffStacks: player.SpeedBuffStacks,
+            MoveX: player.MoveX,
+            MoveY: player.MoveY,
+            FireHeld: player.FireHeld,
+            LastInputSeq: player.LastInputSeq,
+            RespawnAtTick: player.RespawnAtTick,
+            NextFireAllowedTick: player.NextFireAllowedTick);
+
+        _players.Remove(playerId);
+        _projectiles.RemoveAll(projectile => projectile.OwnerPlayerId == playerId);
+        return true;
+    }
+
+    public bool TryRestorePlayerFromReconnect(ReconnectPlayerState reconnectState)
+    {
+        if (_players.Count >= _maxPlayers || _players.ContainsKey(reconnectState.PlayerId))
+        {
+            return false;
+        }
+
+        _players[reconnectState.PlayerId] = new PlayerState
+        {
+            PlayerId = reconnectState.PlayerId,
+            Nickname = reconnectState.Nickname,
+            Kind = reconnectState.Kind,
+            Position = reconnectState.Position,
+            AimDirection = reconnectState.AimDirection,
+            Hp = reconnectState.Hp,
+            IsAlive = reconnectState.IsAlive,
+            InShopZone = reconnectState.InShopZone,
+            CarriedCoins = reconnectState.CarriedCoins,
+            SpeedBuffStacks = reconnectState.SpeedBuffStacks,
+            MoveX = reconnectState.MoveX,
+            MoveY = reconnectState.MoveY,
+            FireHeld = reconnectState.FireHeld,
+            LastInputSeq = reconnectState.LastInputSeq,
+            RespawnAtTick = reconnectState.RespawnAtTick,
+            NextFireAllowedTick = reconnectState.NextFireAllowedTick
+        };
+
+        if (reconnectState.PlayerId >= _nextPlayerId)
+        {
+            _nextPlayerId = reconnectState.PlayerId + 1;
+        }
+
+        return true;
+    }
+
     public bool ContainsPlayer(int playerId)
     {
         return _players.ContainsKey(playerId);

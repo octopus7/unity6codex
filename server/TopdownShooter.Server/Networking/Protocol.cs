@@ -18,4 +18,6 @@ public static class ProtocolConstants
 {
     public const ushort ProtocolVersion = 2;
     public const int HeaderSize = 12;
+    // Increment this whenever server-side behavior/protocol expectations change.
+    public const int ServerBuildVersion = 1;
 }

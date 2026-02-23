@@ -7,6 +7,8 @@ namespace TopdownShooter.Server.Networking;
 
 public static class ProtocolCodec
 {
+    private const int MaxReconnectTokenBytes = 96;
+
     public static byte[] EncodeFrame(MessageType messageType, uint sequence, Action<BinaryWriter> writePayload)
     {
         using var payloadStream = new MemoryStream();
@@ -58,6 +60,7 @@ public static class ProtocolCodec
         using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
         var nickname = ReadString8(reader, GameRules.MaxNicknameBytes);
         var kind = PlayerKind.Human;
+        var reconnectToken = string.Empty;
         if (stream.Position < stream.Length)
         {
             var rawKind = reader.ReadByte();
@@ -66,7 +69,12 @@ public static class ProtocolCodec
                 : PlayerKind.Human;
         }
 
-        return new HelloMessage(nickname, kind);
+        if (stream.Position < stream.Length)
+        {
+            reconnectToken = ReadString8(reader, MaxReconnectTokenBytes);
+        }
+
+        return new HelloMessage(nickname, kind, reconnectToken);
     }
 
     public static InputFrameMessage DecodeInputFrame(byte[] payload)
@@ -100,18 +108,20 @@ public static class ProtocolCodec
         return new PingMessage(reader.ReadInt64());
     }
 
-    public static void WriteWelcomePayload(BinaryWriter writer, int playerId, ServerConfig config)
+    public static void WriteWelcomePayload(BinaryWriter writer, int playerId, ServerConfig config, string reconnectToken)
     {
         writer.Write(playerId);
         writer.Write(config.TickRateHz);
         writer.Write(config.SnapshotRateHz);
         writer.Write(config.MaxPlayers);
+        WriteString8(writer, reconnectToken ?? string.Empty, MaxReconnectTokenBytes);
     }
 
-    public static void WritePongPayload(BinaryWriter writer, long clientUnixMs, long serverUnixMs)
+    public static void WritePongPayload(BinaryWriter writer, long clientUnixMs, long serverUnixMs, int serverBuildVersion)
     {
         writer.Write(clientUnixMs);
         writer.Write(serverUnixMs);
+        writer.Write(serverBuildVersion);
     }
 
     public static void WriteErrorPayload(BinaryWriter writer, ushort errorCode, string message)

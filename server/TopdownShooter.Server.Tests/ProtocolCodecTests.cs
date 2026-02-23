@@ -1,5 +1,6 @@
 using TopdownShooter.Server.Networking;
 using TopdownShooter.Server.Domain;
+using TopdownShooter.Server.Configuration;
 
 namespace TopdownShooter.Server.Tests;
 
@@ -70,6 +71,7 @@ public sealed class ProtocolCodecTests
 
         Assert.Equal("Test", decoded.Nickname);
         Assert.Equal(PlayerKind.Human, decoded.Kind);
+        Assert.Equal(string.Empty, decoded.ReconnectToken);
     }
 
     [Fact]
@@ -90,5 +92,55 @@ public sealed class ProtocolCodecTests
 
         Assert.Equal("AI1", decoded.Nickname);
         Assert.Equal(PlayerKind.Bot, decoded.Kind);
+        Assert.Equal(string.Empty, decoded.ReconnectToken);
+    }
+
+    [Fact]
+    public void DecodeHello_ReadsReconnectTokenWhenPresent()
+    {
+        const string reconnectToken = "reconnect-token-001";
+
+        byte[] payload;
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream))
+        {
+            writer.Write((byte)3);
+            writer.Write(new byte[] { (byte)'R', (byte)'E', (byte)'C' });
+            writer.Write((byte)PlayerKind.Human);
+            ProtocolCodec.WriteString8(writer, reconnectToken, maxBytes: 96);
+            writer.Flush();
+            payload = stream.ToArray();
+        }
+
+        var decoded = ProtocolCodec.DecodeHello(payload);
+
+        Assert.Equal("REC", decoded.Nickname);
+        Assert.Equal(PlayerKind.Human, decoded.Kind);
+        Assert.Equal(reconnectToken, decoded.ReconnectToken);
+    }
+
+    [Fact]
+    public void WriteWelcomePayload_WritesReconnectToken()
+    {
+        const string reconnectToken = "welcome-token-abc";
+
+        byte[] payload;
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream))
+        {
+            ProtocolCodec.WriteWelcomePayload(writer, playerId: 7, new ServerConfig(), reconnectToken);
+            writer.Flush();
+            payload = stream.ToArray();
+        }
+
+        using (var stream = new MemoryStream(payload))
+        using (var reader = new BinaryReader(stream))
+        {
+            Assert.Equal(7, reader.ReadInt32());
+            Assert.Equal(30, reader.ReadInt32());
+            Assert.Equal(20, reader.ReadInt32());
+            Assert.Equal(8, reader.ReadInt32());
+            Assert.Equal(reconnectToken, ProtocolCodec.ReadString8(reader, 96));
+        }
     }
 }

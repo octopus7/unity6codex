@@ -2,7 +2,7 @@ using TopdownShooter.Server.Domain;
 
 namespace TopdownShooter.Server.Networking;
 
-public readonly record struct HelloMessage(string Nickname, PlayerKind Kind);
+public readonly record struct HelloMessage(string Nickname, PlayerKind Kind, string ReconnectToken);
 
 public readonly record struct InputFrameMessage(
     uint InputSeq,

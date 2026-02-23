@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using TopdownShooter.Server.Configuration;
 using TopdownShooter.Server.Domain;
 using TopdownShooter.Server.Networking;
@@ -14,15 +15,20 @@ public sealed class GameServer
     private readonly TcpListener _listener;
     private readonly ConcurrentDictionary<int, ClientConnection> _connections = new();
     private readonly ConcurrentQueue<InboundEnvelope> _inbound = new();
+    private readonly Dictionary<string, ReconnectSession> _sessionsByToken = new(StringComparer.Ordinal);
+    private readonly Dictionary<int, string> _tokenByPlayerId = new();
+    private readonly TimeSpan _reconnectGracePeriod;
 
     private int _nextConnectionId = 1;
     private int _serverSequence;
+    private long _nextReconnectSessionPruneUnixMs;
 
     public GameServer(ServerConfig config)
     {
         _config = config;
         _world = new GameWorld(config.MaxPlayers, config.MaxWorldCoins);
         _listener = new TcpListener(IPAddress.Parse(config.ListenIp), config.ListenPort);
+        _reconnectGracePeriod = TimeSpan.FromSeconds(config.ReconnectGraceSeconds);
     }
 
     public async Task RunAsync(CancellationToken token)
@@ -126,6 +132,7 @@ public sealed class GameServer
         {
             DrainInboundQueue(token);
             _world.Step();
+            PruneExpiredReconnectSessions();
 
             snapshotAccumulator += 1.0 / _config.TickRateHz;
             if (snapshotAccumulator < snapshotIntervalSeconds)
@@ -194,6 +201,16 @@ public sealed class GameServer
             return;
         }
 
+        var hello = ProtocolCodec.DecodeHello(payload);
+        var nickname = NormalizeNickname(hello.Nickname);
+        var kind = SanitizePlayerKind(hello.Kind);
+        var reconnectToken = NormalizeReconnectToken(hello.ReconnectToken);
+
+        if (TryReconnectExistingSession(connection, sequence, reconnectToken, token))
+        {
+            return;
+        }
+
         if (_world.PlayerCount >= _config.MaxPlayers)
         {
             _ = TrySendErrorAsync(connection, 1010, "Server full", token);
@@ -201,9 +218,6 @@ public sealed class GameServer
             return;
         }
 
-        var hello = ProtocolCodec.DecodeHello(payload);
-        var nickname = NormalizeNickname(hello.Nickname);
-        var kind = SanitizePlayerKind(hello.Kind);
         var playerId = _world.AddPlayer(nickname, kind);
         if (playerId <= 0)
         {
@@ -212,11 +226,19 @@ public sealed class GameServer
             return;
         }
 
+        reconnectToken = AllocateReconnectToken();
+        _sessionsByToken[reconnectToken] = new ReconnectSession(
+            playerId: playerId,
+            activeConnectionId: connection.ConnectionId,
+            parkedState: null,
+            expiresAtUtc: DateTimeOffset.MaxValue);
+        _tokenByPlayerId[playerId] = reconnectToken;
+
         connection.BindPlayer(playerId);
         _ = connection.SendAsync(
             MessageType.Welcome,
             sequence,
-            writer => ProtocolCodec.WriteWelcomePayload(writer, playerId, _config),
+            writer => ProtocolCodec.WriteWelcomePayload(writer, playerId, _config, reconnectToken),
             token);
 
         Console.WriteLine($"[join] player={playerId} kind={kind} nickname={nickname} connection={connection.ConnectionId}");
@@ -251,7 +273,11 @@ public sealed class GameServer
         _ = connection.SendAsync(
             MessageType.Pong,
             sequence,
-            writer => ProtocolCodec.WritePongPayload(writer, ping.ClientUnixMs, serverMs),
+            writer => ProtocolCodec.WritePongPayload(
+                writer,
+                ping.ClientUnixMs,
+                serverMs,
+                ProtocolConstants.ServerBuildVersion),
             token);
     }
 
@@ -320,8 +346,41 @@ public sealed class GameServer
         var playerId = connection.PlayerId;
         if (playerId.HasValue)
         {
-            _world.RemovePlayer(playerId.Value);
-            Console.WriteLine($"[leave] player={playerId.Value} connection={connection.ConnectionId}");
+            var wasHandledBySession = false;
+            if (_tokenByPlayerId.TryGetValue(playerId.Value, out var reconnectToken) &&
+                _sessionsByToken.TryGetValue(reconnectToken, out var reconnectSession))
+            {
+                wasHandledBySession = true;
+
+                if (reconnectSession.ActiveConnectionId.HasValue &&
+                    reconnectSession.ActiveConnectionId.Value != connection.ConnectionId)
+                {
+                    Console.WriteLine(
+                        $"[disconnect-stale] player={playerId.Value} connection={connection.ConnectionId} activeConnection={reconnectSession.ActiveConnectionId.Value}");
+                }
+                else if (_world.TryDetachPlayerForReconnect(playerId.Value, out var parkedState))
+                {
+                    reconnectSession.ActiveConnectionId = null;
+                    reconnectSession.ParkedState = parkedState;
+                    reconnectSession.ExpiresAtUtc = DateTimeOffset.UtcNow.Add(_reconnectGracePeriod);
+                    Console.WriteLine(
+                        $"[leave] player={playerId.Value} connection={connection.ConnectionId} reconnectUntil={reconnectSession.ExpiresAtUtc:O}");
+                }
+                else
+                {
+                    reconnectSession.ActiveConnectionId = null;
+                    reconnectSession.ParkedState = null;
+                    reconnectSession.ExpiresAtUtc = DateTimeOffset.UtcNow;
+                    RemoveReconnectSession(reconnectToken, playerId.Value);
+                    Console.WriteLine($"[leave] player={playerId.Value} connection={connection.ConnectionId}");
+                }
+            }
+
+            if (!wasHandledBySession)
+            {
+                _world.RemovePlayer(playerId.Value);
+                Console.WriteLine($"[leave] player={playerId.Value} connection={connection.ConnectionId}");
+            }
         }
         else
         {
@@ -329,6 +388,169 @@ public sealed class GameServer
         }
 
         _ = connection.DisposeAsync();
+    }
+
+    private bool TryReconnectExistingSession(ClientConnection connection, uint sequence, string reconnectToken, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(reconnectToken))
+        {
+            return false;
+        }
+
+        if (!_sessionsByToken.TryGetValue(reconnectToken, out var reconnectSession))
+        {
+            return false;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (!reconnectSession.ActiveConnectionId.HasValue &&
+            (!reconnectSession.ParkedState.HasValue || reconnectSession.ExpiresAtUtc <= now))
+        {
+            RemoveReconnectSession(reconnectToken, reconnectSession.PlayerId);
+            return false;
+        }
+
+        var tookOverConnectionId = -1;
+        if (reconnectSession.ActiveConnectionId.HasValue &&
+            reconnectSession.ActiveConnectionId.Value != connection.ConnectionId)
+        {
+            tookOverConnectionId = reconnectSession.ActiveConnectionId.Value;
+            if (_connections.TryGetValue(tookOverConnectionId, out var previousConnection))
+            {
+                previousConnection.Disconnect();
+            }
+        }
+        else if (!reconnectSession.ActiveConnectionId.HasValue)
+        {
+            if (_world.PlayerCount >= _config.MaxPlayers)
+            {
+                _ = TrySendErrorAsync(connection, 1010, "Server full", token);
+                connection.Disconnect();
+                return true;
+            }
+
+            if (!reconnectSession.ParkedState.HasValue ||
+                !_world.TryRestorePlayerFromReconnect(reconnectSession.ParkedState.Value))
+            {
+                _ = TrySendErrorAsync(connection, 1010, "Reconnect failed", token);
+                connection.Disconnect();
+                return true;
+            }
+
+            reconnectSession.ParkedState = null;
+        }
+
+        reconnectSession.ActiveConnectionId = connection.ConnectionId;
+        reconnectSession.ExpiresAtUtc = DateTimeOffset.MaxValue;
+        connection.BindPlayer(reconnectSession.PlayerId);
+        _tokenByPlayerId[reconnectSession.PlayerId] = reconnectToken;
+
+        _ = connection.SendAsync(
+            MessageType.Welcome,
+            sequence,
+            writer => ProtocolCodec.WriteWelcomePayload(writer, reconnectSession.PlayerId, _config, reconnectToken),
+            token);
+
+        if (tookOverConnectionId > 0)
+        {
+            Console.WriteLine(
+                $"[rejoin] player={reconnectSession.PlayerId} connection={connection.ConnectionId} takeoverConnection={tookOverConnectionId}");
+        }
+        else
+        {
+            Console.WriteLine($"[rejoin] player={reconnectSession.PlayerId} connection={connection.ConnectionId}");
+        }
+
+        return true;
+    }
+
+    private void PruneExpiredReconnectSessions()
+    {
+        var nowUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (nowUnixMs < _nextReconnectSessionPruneUnixMs)
+        {
+            return;
+        }
+
+        _nextReconnectSessionPruneUnixMs = nowUnixMs + 1000;
+        if (_sessionsByToken.Count == 0)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var expiredTokens = new List<string>();
+        foreach (var pair in _sessionsByToken)
+        {
+            var reconnectSession = pair.Value;
+            if (reconnectSession.ActiveConnectionId.HasValue)
+            {
+                continue;
+            }
+
+            if (reconnectSession.ExpiresAtUtc > now)
+            {
+                continue;
+            }
+
+            expiredTokens.Add(pair.Key);
+        }
+
+        for (var i = 0; i < expiredTokens.Count; i++)
+        {
+            var reconnectToken = expiredTokens[i];
+            if (!_sessionsByToken.TryGetValue(reconnectToken, out var reconnectSession))
+            {
+                continue;
+            }
+
+            RemoveReconnectSession(reconnectToken, reconnectSession.PlayerId);
+            Console.WriteLine($"[reconnect-expired] player={reconnectSession.PlayerId}");
+        }
+    }
+
+    private void RemoveReconnectSession(string reconnectToken, int playerId)
+    {
+        _sessionsByToken.Remove(reconnectToken);
+        if (_tokenByPlayerId.TryGetValue(playerId, out var mappedToken) &&
+            string.Equals(mappedToken, reconnectToken, StringComparison.Ordinal))
+        {
+            _tokenByPlayerId.Remove(playerId);
+        }
+    }
+
+    private string AllocateReconnectToken()
+    {
+        string reconnectToken;
+        do
+        {
+            reconnectToken = CreateReconnectToken();
+        } while (_sessionsByToken.ContainsKey(reconnectToken));
+
+        return reconnectToken;
+    }
+
+    private static string NormalizeReconnectToken(string reconnectToken)
+    {
+        if (string.IsNullOrWhiteSpace(reconnectToken))
+        {
+            return string.Empty;
+        }
+
+        reconnectToken = reconnectToken.Trim();
+        return reconnectToken.Length <= 96
+            ? reconnectToken
+            : reconnectToken[..96];
+    }
+
+    private static string CreateReconnectToken()
+    {
+        Span<byte> bytes = stackalloc byte[24];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToBase64String(bytes)
+            .TrimEnd('=')
+            .Replace('+', '-')
+            .Replace('/', '_');
     }
 
     private static string NormalizeNickname(string value)
@@ -382,6 +604,26 @@ public sealed class GameServer
     private void OnConnectionClosed(ClientConnection connection)
     {
         _inbound.Enqueue(new InboundEnvelope(InboundKind.Disconnected, connection, null));
+    }
+
+    private sealed class ReconnectSession
+    {
+        public ReconnectSession(
+            int playerId,
+            int? activeConnectionId,
+            ReconnectPlayerState? parkedState,
+            DateTimeOffset expiresAtUtc)
+        {
+            PlayerId = playerId;
+            ActiveConnectionId = activeConnectionId;
+            ParkedState = parkedState;
+            ExpiresAtUtc = expiresAtUtc;
+        }
+
+        public int PlayerId { get; }
+        public int? ActiveConnectionId { get; set; }
+        public ReconnectPlayerState? ParkedState { get; set; }
+        public DateTimeOffset ExpiresAtUtc { get; set; }
     }
 
     private enum InboundKind : byte

@@ -42,6 +42,13 @@ namespace CodexSix.TopdownShooter.Game
         [Min(1)] public int RespawnBurstPoolMaxSize = 48;
         [Min(0.25f)] public float RespawnBurstLifetimeSeconds = 1.1f;
 
+        [Header("Item Drop Labels")]
+        public bool ShowItemDropLabels = true;
+        public Vector3 ItemDropLabelWorldOffset = new Vector3(0f, 0.42f, 0f);
+        [Min(9)] public int ItemDropLabelFontSize = 13;
+        public Color ItemDropLabelTextColor = Color.white;
+        public Color ItemDropLabelBackgroundColor = new Color(0f, 0f, 0f, 0.62f);
+
         public int LocalPlayerId { get; private set; } = -1;
         public int LocalHp { get; private set; } = 100;
         public int LocalCoins { get; private set; }
@@ -65,6 +72,7 @@ namespace CodexSix.TopdownShooter.Game
         private readonly Dictionary<int, GameObject> _coinViews = new();
         private readonly Dictionary<int, GameObject> _itemDropViews = new();
         private readonly Dictionary<int, int> _itemDropItemIds = new();
+        private readonly Dictionary<int, string> _itemDropNames = new();
         private readonly Dictionary<int, Vector3> _playerTargetPositions = new();
         private readonly Dictionary<int, Quaternion> _playerTargetRotations = new();
         private readonly Dictionary<int, Vector3> _projectileTargetPositions = new();
@@ -74,11 +82,16 @@ namespace CodexSix.TopdownShooter.Game
         private readonly Queue<RespawnBurstEffectInstance> _respawnBurstAvailable = new();
         private readonly List<ActiveRespawnBurst> _activeRespawnBursts = new();
         private Material _coinMaterial;
+        private Texture2D _itemDropLabelBackgroundTexture;
+        private GUIStyle _itemDropLabelBackgroundStyle;
+        private GUIStyle _itemDropLabelTextStyle;
+        private readonly GUIContent _itemDropLabelContent = new();
         private uint _nextInputSeq;
         private uint _nextShopRequestSeq;
         private int _respawnBurstCreatedCount;
         private Transform _respawnBurstPoolRoot;
         private bool _respawnBurstMissingLogged;
+        private string _reconnectToken = string.Empty;
 
         private const uint CoinDispenserIntervalTicks = 150u;
         private const float ServerTickDeltaSeconds = 1f / 30f;
@@ -152,6 +165,7 @@ namespace CodexSix.TopdownShooter.Game
         {
             DestroyItemDropMaterials();
             DestroyCoinMaterial();
+            DestroyItemDropLabelResources();
         }
 
         private void LateUpdate()
@@ -174,6 +188,75 @@ namespace CodexSix.TopdownShooter.Game
             AnimateCoins(deltaTime);
         }
 
+        private void OnGUI()
+        {
+            if (!ShowItemDropLabels ||
+                CurrentConnectionState != ConnectionState.Connected ||
+                _itemDropViews.Count == 0)
+            {
+                return;
+            }
+
+            var worldCamera = Camera.main;
+            if (worldCamera == null)
+            {
+                return;
+            }
+
+            EnsureItemDropLabelStyles();
+            var textPaddingX = 10f;
+            var textPaddingY = 5f;
+
+            foreach (var pair in _itemDropViews)
+            {
+                var itemDropView = pair.Value;
+                if (itemDropView == null || !itemDropView.activeInHierarchy)
+                {
+                    continue;
+                }
+
+                if (!_itemDropItemIds.TryGetValue(pair.Key, out var itemId))
+                {
+                    continue;
+                }
+
+                var labelText = GetItemDropName(itemId);
+                if (string.IsNullOrWhiteSpace(labelText))
+                {
+                    continue;
+                }
+
+                var worldPosition = itemDropView.transform.position + ItemDropLabelWorldOffset;
+                var screenPosition = worldCamera.WorldToScreenPoint(worldPosition);
+                if (screenPosition.z <= 0f)
+                {
+                    continue;
+                }
+
+                _itemDropLabelContent.text = labelText;
+                var textSize = _itemDropLabelTextStyle.CalcSize(_itemDropLabelContent);
+                var boxWidth = textSize.x + (textPaddingX * 2f);
+                var boxHeight = textSize.y + (textPaddingY * 2f);
+                var boxRect = new Rect(
+                    x: screenPosition.x - (boxWidth * 0.5f),
+                    y: Screen.height - screenPosition.y - (boxHeight * 0.5f),
+                    width: boxWidth,
+                    height: boxHeight);
+
+                var previousGuiColor = GUI.color;
+                GUI.color = ItemDropLabelBackgroundColor;
+                GUI.Box(boxRect, GUIContent.none, _itemDropLabelBackgroundStyle);
+                GUI.color = previousGuiColor;
+
+                var textRect = new Rect(
+                    x: boxRect.x + textPaddingX,
+                    y: boxRect.y + textPaddingY,
+                    width: boxRect.width - (textPaddingX * 2f),
+                    height: boxRect.height - (textPaddingY * 2f));
+                GUI.Label(textRect, _itemDropLabelContent, _itemDropLabelTextStyle);
+            }
+        }
+
         public async void Connect(string host, int port, string nickname)
         {
             if (Transport == null)
@@ -184,7 +267,7 @@ namespace CodexSix.TopdownShooter.Game
 
             try
             {
-                await Transport.ConnectAsync(host, port, nickname, default);
+                await Transport.ConnectAsync(host, port, nickname, _reconnectToken, default);
             }
             catch (Exception exception)
             {
@@ -298,6 +381,11 @@ namespace CodexSix.TopdownShooter.Game
             LocalPlayerId = welcome.PlayerId;
             _nextInputSeq = 0;
             _nextShopRequestSeq = 0;
+            if (!string.IsNullOrWhiteSpace(welcome.ReconnectToken))
+            {
+                _reconnectToken = welcome.ReconnectToken;
+            }
+
             if (LocalPlayerId > 0 && InventoryManager != null)
             {
                 InventoryManager.GetOrCreateInventory(LocalPlayerId);
@@ -747,6 +835,101 @@ namespace CodexSix.TopdownShooter.Game
             }
 
             renderer.sharedMaterial = material;
+        }
+
+        private string GetItemDropName(int itemId)
+        {
+            if (_itemDropNames.TryGetValue(itemId, out var cachedName) &&
+                !string.IsNullOrWhiteSpace(cachedName))
+            {
+                return cachedName;
+            }
+
+            if (ItemDataManager != null)
+            {
+                var definition = ItemDataManager.GetItemOrNull(itemId);
+                if (definition != null && !string.IsNullOrWhiteSpace(definition.Name))
+                {
+                    _itemDropNames[itemId] = definition.Name;
+                    return definition.Name;
+                }
+            }
+
+            return $"Item {itemId}";
+        }
+
+        private void EnsureItemDropLabelStyles()
+        {
+            if (_itemDropLabelBackgroundTexture == null)
+            {
+                _itemDropLabelBackgroundTexture = CreateRoundedRectTexture(64, 40, 10f);
+            }
+
+            if (_itemDropLabelBackgroundStyle == null)
+            {
+                _itemDropLabelBackgroundStyle = new GUIStyle(GUI.skin.box)
+                {
+                    border = new RectOffset(10, 10, 10, 10),
+                    padding = new RectOffset(0, 0, 0, 0)
+                };
+            }
+
+            _itemDropLabelBackgroundStyle.normal.background = _itemDropLabelBackgroundTexture;
+            _itemDropLabelBackgroundStyle.hover.background = _itemDropLabelBackgroundTexture;
+            _itemDropLabelBackgroundStyle.active.background = _itemDropLabelBackgroundTexture;
+            _itemDropLabelBackgroundStyle.focused.background = _itemDropLabelBackgroundTexture;
+
+            if (_itemDropLabelTextStyle == null)
+            {
+                _itemDropLabelTextStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    clipping = TextClipping.Overflow,
+                    wordWrap = false
+                };
+            }
+
+            _itemDropLabelTextStyle.fontSize = Mathf.Max(9, ItemDropLabelFontSize);
+            _itemDropLabelTextStyle.normal.textColor = ItemDropLabelTextColor;
+            _itemDropLabelTextStyle.hover.textColor = ItemDropLabelTextColor;
+            _itemDropLabelTextStyle.active.textColor = ItemDropLabelTextColor;
+            _itemDropLabelTextStyle.focused.textColor = ItemDropLabelTextColor;
+        }
+
+        private static Texture2D CreateRoundedRectTexture(int width, int height, float radius)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            var pixels = new Color32[width * height];
+            var halfWidth = (width - 1) * 0.5f;
+            var halfHeight = (height - 1) * 0.5f;
+            var clampedRadius = Mathf.Clamp(radius, 2f, Mathf.Min(halfWidth, halfHeight));
+            var innerHalfWidth = halfWidth - clampedRadius;
+            var innerHalfHeight = halfHeight - clampedRadius;
+
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var px = Mathf.Abs(x - halfWidth) - innerHalfWidth;
+                    var py = Mathf.Abs(y - halfHeight) - innerHalfHeight;
+                    var ox = Mathf.Max(px, 0f);
+                    var oy = Mathf.Max(py, 0f);
+                    var outsideDistance = Mathf.Sqrt((ox * ox) + (oy * oy));
+                    var insideDistance = Mathf.Min(Mathf.Max(px, py), 0f);
+                    var signedDistance = outsideDistance + insideDistance - clampedRadius;
+                    var alpha = Mathf.Clamp01(1f - Mathf.Max(0f, signedDistance));
+                    pixels[(y * width) + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(alpha * 255f));
+                }
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply(updateMipmaps: false, makeNoLongerReadable: true);
+            return texture;
         }
 
         private static Material CreateItemDropMaterial(Texture2D texture)
@@ -1210,6 +1393,7 @@ namespace CodexSix.TopdownShooter.Game
             DestroyCoinMaterial();
             DestroyAllViews(_itemDropViews);
             _itemDropItemIds.Clear();
+            _itemDropNames.Clear();
             DestroyItemDropMaterials();
             ResetRespawnBursts();
         }
@@ -1220,6 +1404,15 @@ namespace CodexSix.TopdownShooter.Game
             {
                 Destroy(_coinMaterial);
                 _coinMaterial = null;
+            }
+        }
+
+        private void DestroyItemDropLabelResources()
+        {
+            if (_itemDropLabelBackgroundTexture != null)
+            {
+                Destroy(_itemDropLabelBackgroundTexture);
+                _itemDropLabelBackgroundTexture = null;
             }
         }
 

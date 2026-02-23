@@ -9,13 +9,21 @@ namespace CodexSix.TopdownShooter.Net
     {
         public const ushort ProtocolVersion = 2;
         public const int HeaderSize = 12;
+        // Must match server's ProtocolConstants.ServerBuildVersion.
+        public const int ExpectedServerBuildVersion = 1;
+        private const int MaxReconnectTokenBytes = 96;
 
-        public static byte[] EncodeHello(uint sequence, string nickname, PlayerKind kind = PlayerKind.Human)
+        public static byte[] EncodeHello(
+            uint sequence,
+            string nickname,
+            PlayerKind kind = PlayerKind.Human,
+            string reconnectToken = "")
         {
             return EncodeFrame(MessageType.Hello, sequence, writer =>
             {
                 WriteString8(writer, nickname ?? "Guest", 16);
                 writer.Write((byte)kind);
+                WriteString8(writer, reconnectToken ?? string.Empty, MaxReconnectTokenBytes);
             });
         }
 
@@ -81,13 +89,18 @@ namespace CodexSix.TopdownShooter.Net
         {
             using var stream = new MemoryStream(payload, writable: false);
             using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
-            return new ServerWelcome
+            var welcome = new ServerWelcome
             {
                 PlayerId = reader.ReadInt32(),
                 TickRateHz = reader.ReadInt32(),
                 SnapshotRateHz = reader.ReadInt32(),
                 MaxPlayers = reader.ReadInt32()
             };
+
+            welcome.ReconnectToken = stream.Position < stream.Length
+                ? ReadString8(reader, MaxReconnectTokenBytes)
+                : string.Empty;
+            return welcome;
         }
 
         public static ServerSnapshot DecodeSnapshot(byte[] payload)
@@ -223,14 +236,27 @@ namespace CodexSix.TopdownShooter.Net
 
         public static long DecodePong(byte[] payload)
         {
+            return DecodePongInfo(payload).RttMs;
+        }
+
+        public static PongInfo DecodePongInfo(byte[] payload)
+        {
             using var stream = new MemoryStream(payload, writable: false);
             using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
             var clientUnixMs = reader.ReadInt64();
             var serverUnixMs = reader.ReadInt64();
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var estimatedRtt = Math.Max(0L, now - clientUnixMs);
-            _ = serverUnixMs; // Reserved for future clock sync usage.
-            return estimatedRtt;
+            var hasServerBuildVersion = stream.Position < stream.Length;
+            var serverBuildVersion = hasServerBuildVersion ? reader.ReadInt32() : 0;
+
+            return new PongInfo
+            {
+                RttMs = estimatedRtt,
+                ServerUnixMs = serverUnixMs,
+                HasServerBuildVersion = hasServerBuildVersion,
+                ServerBuildVersion = serverBuildVersion
+            };
         }
 
         public static ServerError DecodeError(byte[] payload)

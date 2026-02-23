@@ -73,6 +73,7 @@ namespace CodexSix.TopdownShooter.Net
         public int TickRateHz;
         public int SnapshotRateHz;
         public int MaxPlayers;
+        public string ReconnectToken;
     }
 
     public struct PlayerSnapshot
@@ -169,11 +170,19 @@ namespace CodexSix.TopdownShooter.Net
         public string Message;
     }
 
+    public struct PongInfo
+    {
+        public long RttMs;
+        public long ServerUnixMs;
+        public bool HasServerBuildVersion;
+        public int ServerBuildVersion;
+    }
+
     public interface IGameTransport
     {
         ConnectionState CurrentState { get; }
 
-        Task ConnectAsync(string host, int port, string nickname, CancellationToken ct);
+        Task ConnectAsync(string host, int port, string nickname, string reconnectToken, CancellationToken ct);
         void Disconnect();
         void SendInput(in ClientInputFrame input);
         void SendShopPurchase(in ShopPurchaseRequest request);

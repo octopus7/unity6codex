@@ -31,7 +31,7 @@ namespace CodexSix.TopdownShooter.Net
         public event Action<ServerError> ErrorReceived;
         public event Action<ConnectionState> ConnectionStateChanged;
 
-        public async Task ConnectAsync(string host, int port, string nickname, CancellationToken ct)
+        public async Task ConnectAsync(string host, int port, string nickname, string reconnectToken, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(host))
             {
@@ -54,7 +54,7 @@ namespace CodexSix.TopdownShooter.Net
 
                 UpdateState(ConnectionState.Connected);
 
-                var frame = NetProtocolCodec.EncodeHello(NextSequence(), nickname);
+                var frame = NetProtocolCodec.EncodeHello(NextSequence(), nickname, PlayerKind.Human, reconnectToken);
                 await SendFrameAsync(frame, ct);
             }
             catch

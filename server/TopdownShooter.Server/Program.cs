@@ -13,7 +13,7 @@ Console.CancelKeyPress += (_, eventArgs) =>
 
 Console.WriteLine(
     $"Starting server on {config.ListenIp}:{config.ListenPort} " +
-    $"(tick={config.TickRateHz}Hz snapshot={config.SnapshotRateHz}Hz maxPlayers={config.MaxPlayers})");
+    $"(tick={config.TickRateHz}Hz snapshot={config.SnapshotRateHz}Hz maxPlayers={config.MaxPlayers} reconnectGrace={config.ReconnectGraceSeconds}s)");
 Console.WriteLine("Commands: status | kick <playerId> | quit");
 
 var runTask = server.RunAsync(cts.Token);
@@ -73,4 +73,3 @@ try
 catch (OperationCanceledException)
 {
 }
-

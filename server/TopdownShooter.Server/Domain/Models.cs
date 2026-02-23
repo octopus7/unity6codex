@@ -37,6 +37,24 @@ public sealed class PlayerState
     public uint NextFireAllowedTick { get; set; }
 }
 
+public readonly record struct ReconnectPlayerState(
+    int PlayerId,
+    string Nickname,
+    PlayerKind Kind,
+    Vector2f Position,
+    Vector2f AimDirection,
+    int Hp,
+    bool IsAlive,
+    bool InShopZone,
+    int CarriedCoins,
+    int SpeedBuffStacks,
+    short MoveX,
+    short MoveY,
+    bool FireHeld,
+    uint LastInputSeq,
+    uint RespawnAtTick,
+    uint NextFireAllowedTick);
+
 public sealed class ProjectileState
 {
     public int ProjectileId { get; init; }
