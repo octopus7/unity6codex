@@ -1,0 +1,42 @@
+# Quickstart
+
+## 1) Run server
+
+From repository root:
+
+```powershell
+cd server
+dotnet run --project TopdownShooter.Server
+```
+
+Optional arguments:
+
+```powershell
+dotnet run --project TopdownShooter.Server -- --ip 0.0.0.0 --port 7777 --max-players 8
+```
+
+Server console commands:
+- `status`
+- `kick <playerId>`
+- `quit`
+
+## 2) Bootstrap Unity scene
+
+In Unity Editor:
+- Open project `codexsix`
+- Menu: `Tools > TopDownShooter > Bootstrap MVP Scene`
+
+This creates:
+- `Assets/Scenes/MainScene.unity`
+- Runtime objects (transport/client/input/HUD)
+- Environment, obstacles, portals, shop zone
+- Build Settings scene registration
+
+## 3) Play
+
+- Enter host/port/nickname in the on-screen debug window.
+- Click `Connect`.
+- Move: `WASD`
+- Aim: mouse cursor
+- Fire: left mouse
+- Buy in shop: stand on item, click purchase button in debug window.
