@@ -34,6 +34,9 @@ Headless monitor from Unity Editor (Windows):
 
 In Unity Editor:
 - Open project `codexsix`
+- Optional map authoring:
+  - `Tools > TopDownShooter > Map Editor`
+  - Edit walls/spawns/shop/portals, then run `Tools > TopDownShooter > Export Map To Server JSON`
 - Menu: `Tools > TopDownShooter > Bootstrap MVP Scene (Safe)`
 
 This creates:

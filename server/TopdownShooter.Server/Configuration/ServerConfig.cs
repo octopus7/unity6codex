@@ -11,6 +11,7 @@ public sealed class ServerConfig
     public int SnapshotRateHz { get; init; } = 20;
     public int MaxWorldCoins { get; init; } = 5000;
     public int ReconnectGraceSeconds { get; init; } = 60;
+    public string MapFilePath { get; init; } = "Content/Maps/main.map.json";
 
     public static ServerConfig Load(string baseDirectory, string[] args)
     {
@@ -23,6 +24,7 @@ public sealed class ServerConfig
         var snapshotRate = fromFile.SnapshotRateHz;
         var maxWorldCoins = fromFile.MaxWorldCoins;
         var reconnectGraceSeconds = fromFile.ReconnectGraceSeconds;
+        var mapFilePath = fromFile.MapFilePath;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -87,6 +89,10 @@ public sealed class ServerConfig
 
                     i++;
                     break;
+                case "--map-file":
+                    mapFilePath = value;
+                    i++;
+                    break;
             }
         }
 
@@ -98,7 +104,10 @@ public sealed class ServerConfig
             TickRateHz = Math.Clamp(tickRate, 10, 120),
             SnapshotRateHz = Math.Clamp(snapshotRate, 5, 60),
             MaxWorldCoins = Math.Clamp(maxWorldCoins, 500, 100_000),
-            ReconnectGraceSeconds = Math.Clamp(reconnectGraceSeconds, 5, 600)
+            ReconnectGraceSeconds = Math.Clamp(reconnectGraceSeconds, 5, 600),
+            MapFilePath = string.IsNullOrWhiteSpace(mapFilePath)
+                ? "Content/Maps/main.map.json"
+                : mapFilePath
         };
     }
 
@@ -121,7 +130,8 @@ public sealed class ServerConfig
             TickRateHz = ReadInt(root, "tickRateHz", 30),
             SnapshotRateHz = ReadInt(root, "snapshotRateHz", 20),
             MaxWorldCoins = ReadInt(root, "maxWorldCoins", 5000),
-            ReconnectGraceSeconds = ReadInt(root, "reconnectGraceSeconds", 60)
+            ReconnectGraceSeconds = ReadInt(root, "reconnectGraceSeconds", 60),
+            MapFilePath = ReadString(root, "mapFilePath", "Content/Maps/main.map.json")
         };
 
         return config;

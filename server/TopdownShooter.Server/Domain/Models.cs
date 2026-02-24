@@ -88,6 +88,7 @@ public sealed class PortalState
     public PortalType PortalType { get; init; }
     public Vector2f Position { get; init; }
     public float Radius { get; init; }
+    public Vector2f TargetPosition { get; init; }
 }
 
 public sealed class ShopZoneState
