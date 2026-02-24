@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.cs text
+*.md text
+*.uxml text
+*.uss text
+*.json text
+*.asmdef text

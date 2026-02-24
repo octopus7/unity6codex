@@ -1,0 +1,9 @@
+# OS / Editor
+.DS_Store
+Thumbs.db
+
+# IDE / generated
+*.user
+*.sln
+*.csproj
+*.unityproj

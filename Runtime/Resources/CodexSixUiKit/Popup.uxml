@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="popup-container" class="cs6-popup">
+        <ui:Label name="popup-title" class="cs6-popup-title" text="Title" />
+        <ui:Label name="popup-body" class="cs6-popup-body" text="Body" />
+        <ui:VisualElement class="cs6-popup-buttons">
+            <ui:Button name="cancel-button" text="Cancel" />
+            <ui:Button name="confirm-button" text="Confirm" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,24 @@
+{
+  "name": "com.codexsix.uikit.runtime",
+  "displayName": "CodexSix UI Kit Runtime",
+  "version": "0.1.0",
+  "unity": "6000.3",
+  "description": "Reusable UI Toolkit runtime framework for game UI composition with stack-based screens, modals, toasts, and typed state/signal channels.",
+  "keywords": [
+    "ui",
+    "ui-toolkit",
+    "runtime",
+    "unity6",
+    "game-ui"
+  ],
+  "author": {
+    "name": "CodexSix"
+  },
+  "samples": [
+    {
+      "displayName": "Mock Arena UI",
+      "description": "Mock adapter and demo bootstrap for integrating the runtime framework.",
+      "path": "Samples~/MockArenaUI"
+    }
+  ]
+}
