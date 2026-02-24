@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="cs6-root">
+        <ui:VisualElement name="screen-layer" class="cs6-screen-layer" />
+        <ui:VisualElement name="modal-layer" class="cs6-modal-layer" />
+        <ui:VisualElement name="overlay-layer" class="cs6-overlay-layer" />
+    </ui:VisualElement>
+</ui:UXML>

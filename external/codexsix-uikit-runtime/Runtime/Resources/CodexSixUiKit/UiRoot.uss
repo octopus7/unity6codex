@@ -1,0 +1,111 @@
+.cs6-root {
+    flex-grow: 1;
+}
+
+.cs6-screen-layer {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 16px;
+    bottom: 16px;
+    pointer-events: none;
+}
+
+.cs6-modal-layer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+.cs6-overlay-layer {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    width: 360px;
+    pointer-events: none;
+}
+
+.cs6-screen-label {
+    color: rgb(235, 235, 235);
+    background-color: rgba(0, 0, 0, 0.45);
+    border-radius: 6px;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    unity-font-style: bold;
+}
+
+.cs6-popup {
+    min-width: 360px;
+    max-width: 520px;
+    padding: 14px;
+    border-radius: 10px;
+    background-color: rgba(20, 24, 30, 0.95);
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-color: rgb(70, 85, 105);
+    border-bottom-color: rgb(70, 85, 105);
+    border-left-color: rgb(70, 85, 105);
+    border-right-color: rgb(70, 85, 105);
+    pointer-events: auto;
+}
+
+.cs6-popup-title {
+    color: rgb(245, 246, 249);
+    unity-font-style: bold;
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+
+.cs6-popup-body {
+    color: rgb(210, 214, 222);
+    white-space: normal;
+    margin-bottom: 12px;
+}
+
+.cs6-popup-buttons {
+    flex-direction: row;
+    justify-content: flex-end;
+}
+
+.cs6-popup-buttons > Button {
+    margin-left: 6px;
+}
+
+.cs6-toast-item {
+    margin-bottom: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    background-color: rgba(14, 18, 24, 0.92);
+    border-left-width: 4px;
+    border-left-color: rgb(90, 115, 140);
+    pointer-events: auto;
+}
+
+.cs6-toast-message {
+    color: rgb(236, 241, 247);
+}
+
+.cs6-toast-priority-low {
+    border-left-color: rgb(90, 115, 140);
+}
+
+.cs6-toast-priority-normal {
+    border-left-color: rgb(95, 145, 220);
+}
+
+.cs6-toast-priority-high {
+    border-left-color: rgb(224, 178, 82);
+}
+
+.cs6-toast-priority-critical {
+    border-left-color: rgb(230, 90, 90);
+}

@@ -1,0 +1,23 @@
+{
+  "name": "CodexSix.UiKit.Runtime.Editor.Tests",
+  "rootNamespace": "CodexSix.UiKit.Runtime.Tests.Editor",
+  "references": [
+    "CodexSix.UiKit.Runtime",
+    "UnityEngine.TestRunner",
+    "UnityEditor.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
