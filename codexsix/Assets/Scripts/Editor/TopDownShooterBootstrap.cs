@@ -718,6 +718,8 @@ namespace CodexSix.TopdownShooter.EditorTools
             var inputSender = runtimeRoot.AddComponent<LocalInputSender>();
             var itemDataManager = runtimeRoot.AddComponent<ItemDataManager>();
             var inventoryManager = runtimeRoot.AddComponent<PlayerInventoryManager>();
+            var growthTreeDataManager = runtimeRoot.AddComponent<GrowthTreeDataManager>();
+            var growthProgressionManager = runtimeRoot.AddComponent<GrowthProgressionManager>();
 
             var playerContainer = new GameObject("Players").transform;
             playerContainer.SetParent(runtimeRoot.transform, false);
@@ -751,6 +753,14 @@ namespace CodexSix.TopdownShooter.EditorTools
             inventoryManager.DefaultSlotCount = 24;
             client.ItemDataManager = itemDataManager;
             client.InventoryManager = inventoryManager;
+
+            growthTreeDataManager.ResourcesTreePath = "Progression/growth_tree";
+            growthTreeDataManager.LoadOnAwake = true;
+
+            growthProgressionManager.Client = client;
+            growthProgressionManager.TreeDataManager = growthTreeDataManager;
+            growthProgressionManager.DefaultGemBalance = 12;
+            growthProgressionManager.LoadOnAwake = true;
 
             var follow = camera.GetComponent<TopDownCameraFollow>();
             if (follow == null)
@@ -806,6 +816,18 @@ namespace CodexSix.TopdownShooter.EditorTools
             inventory.InventoryManager = client.GetComponent<PlayerInventoryManager>();
             inventory.ItemDataManager = client.GetComponent<ItemDataManager>();
             inventory.UiScale = 2f;
+
+            var growthObject = new GameObject("GrowthPanel");
+            growthObject.transform.SetParent(hudRoot.transform, false);
+            var growthPanel = growthObject.AddComponent<GrowthPanelHud>();
+            growthPanel.Client = client;
+            growthPanel.TreeDataManager = client.GetComponent<GrowthTreeDataManager>();
+            growthPanel.ProgressionManager = client.GetComponent<GrowthProgressionManager>();
+            growthPanel.InputSender = client.GetComponent<LocalInputSender>();
+            growthPanel.UiScale = 2f;
+            growthPanel.StartVisible = false;
+
+            status.GrowthPanel = growthPanel;
 
             var coinDispenserObject = new GameObject("CoinDispenserPanel");
             coinDispenserObject.transform.SetParent(hudRoot.transform, false);

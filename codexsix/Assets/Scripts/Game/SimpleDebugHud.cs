@@ -53,6 +53,25 @@ namespace CodexSix.TopdownShooter.Game
             inventory.ItemDataManager = GetComponent<ItemDataManager>();
             inventory.UiScale = UiScale;
 
+            var growthTreeData = GetOrAdd<GrowthTreeDataManager>();
+            growthTreeData.ResourcesTreePath = "Progression/growth_tree";
+            growthTreeData.LoadOnAwake = true;
+
+            var growthProgression = GetOrAdd<GrowthProgressionManager>();
+            growthProgression.Client = Client;
+            growthProgression.TreeDataManager = growthTreeData;
+            growthProgression.DefaultGemBalance = 12;
+            growthProgression.LoadOnAwake = true;
+
+            var growthPanel = GetOrAdd<GrowthPanelHud>();
+            growthPanel.Client = Client;
+            growthPanel.TreeDataManager = growthTreeData;
+            growthPanel.ProgressionManager = growthProgression;
+            growthPanel.InputSender = FindFirstObjectByType<LocalInputSender>();
+            growthPanel.UiScale = UiScale;
+
+            status.GrowthPanel = growthPanel;
+
             var coinDispenser = GetOrAdd<CoinDispenserHud>();
             coinDispenser.Client = Client;
             coinDispenser.WorldCamera = Camera.main;

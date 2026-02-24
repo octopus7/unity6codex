@@ -12,6 +12,7 @@ namespace CodexSix.TopdownShooter.Game
         public NetworkGameClient Client;
         public Camera WorldCamera;
         public float SendRateHz = 30f;
+        public bool ExternalUiFireBlock;
 
         [Header("Crosshair")]
         public bool DrawCrosshair = true;
@@ -142,10 +143,11 @@ namespace CodexSix.TopdownShooter.Game
         private bool ReadFireInput()
         {
 #if ENABLE_INPUT_SYSTEM
-            return Mouse.current != null ? Mouse.current.leftButton.isPressed : Input.GetMouseButton(0);
+            var fireHeld = Mouse.current != null ? Mouse.current.leftButton.isPressed : Input.GetMouseButton(0);
 #else
-            return Input.GetMouseButton(0);
+            var fireHeld = Input.GetMouseButton(0);
 #endif
+            return ExternalUiFireBlock ? false : fireHeld;
         }
 
         private void UpdateRecoil(bool fireHeld)

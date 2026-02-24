@@ -5,6 +5,7 @@ namespace CodexSix.TopdownShooter.Game
     public sealed class StatusPanelHud : MonoBehaviour
     {
         public NetworkGameClient Client;
+        public GrowthPanelHud GrowthPanel;
         public float UiScale = 2f;
 
         private bool _overheadHudBound;
@@ -42,7 +43,7 @@ namespace CodexSix.TopdownShooter.Game
             var viewWidth = Screen.width / scale;
             var viewHeight = Screen.height / scale;
 
-            const float panelWidth = 280f;
+            const float panelWidth = 340f;
             const float panelHeight = 24f;
             const float margin = 12f;
 
@@ -60,12 +61,24 @@ namespace CodexSix.TopdownShooter.Game
             const float separatorWidth = 12f;
             const float coinsValueWidth = 72f;
             const float coinsLabelWidth = 52f;
+            const float growthButtonWidth = 72f;
             const float spacing = 4f;
 
             var pingRect = new Rect(rect.xMax - pingWidth, rect.y, pingWidth, rect.height);
             var separatorRect = new Rect(pingRect.x - separatorWidth - spacing, rect.y, separatorWidth, rect.height);
             var coinsValueRect = new Rect(separatorRect.x - coinsValueWidth - spacing, rect.y, coinsValueWidth, rect.height);
             var coinsLabelRect = new Rect(coinsValueRect.x - coinsLabelWidth, rect.y, coinsLabelWidth, rect.height);
+            var growthButtonRect = new Rect(coinsLabelRect.x - growthButtonWidth - spacing, rect.y + 1f, growthButtonWidth, rect.height - 2f);
+
+            if (GrowthPanel == null)
+            {
+                GrowthPanel = Object.FindFirstObjectByType<GrowthPanelHud>();
+            }
+
+            if (GrowthPanel != null && GUI.Button(growthButtonRect, "Growth"))
+            {
+                GrowthPanel.ToggleVisibility();
+            }
 
             DrawShadowedLabel(coinsLabelRect, "Coins", _leftStyle, _leftShadowStyle);
             DrawShadowedLabel(coinsValueRect, Client.LocalCoins.ToString(), _rightStyle, _rightShadowStyle);
