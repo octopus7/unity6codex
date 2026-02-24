@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af9c8e7ee88049d1ab65d9993f53e53b, type: 3}
+  m_Name: MainMap
+  m_EditorClassIdentifier: Assembly-CSharp::CodexSix.TopdownShooter.Game.TopDownMapAuthoringAsset
+  SchemaVersion: 1
+  MapId: main
+  BattleBounds:
+    MinX: -20
+    MinY: -20
+    MaxX: 20
+    MaxY: 20
+  ShopZone:
+    MinX: -6
+    MinY: 22
+    MaxX: 6
+    MaxY: 34
+  Obstacles:
+  - ObstacleId: Obstacle_Center_SW
+    MinX: -2
+    MinY: -2
+    MaxX: -0.6
+    MaxY: -0.6
+  - ObstacleId: Obstacle_Center_SE
+    MinX: 0.6
+    MinY: -2
+    MaxX: 2
+    MaxY: -0.6
+  - ObstacleId: Obstacle_Center_NW
+    MinX: -2
+    MinY: 0.6
+    MaxX: -0.6
+    MaxY: 2
+  - ObstacleId: Obstacle_Center_NE
+    MinX: 0.6
+    MinY: 0.6
+    MaxX: 2
+    MaxY: 2
+  - ObstacleId: Obstacle_East
+    MinX: 8.5
+    MinY: -1
+    MaxX: 11.5
+    MaxY: 1
+  - ObstacleId: Obstacle_West
+    MinX: -11.5
+    MinY: -1
+    MaxX: -8.5
+    MaxY: 1
+  - ObstacleId: Obstacle_North
+    MinX: -1
+    MinY: 8.5
+    MaxX: 1
+    MaxY: 11.5
+  - ObstacleId: Obstacle_South
+    MinX: -1
+    MinY: -11.5
+    MaxX: 1
+    MaxY: -8.5
+  PlayerSpawns:
+  - {x: -16, y: -16}
+  - {x: -16, y: 16}
+  - {x: 16, y: -16}
+  - {x: 16, y: 16}
+  - {x: 0, y: -16}
+  - {x: 0, y: 16}
+  - {x: -16, y: 0}
+  - {x: 16, y: 0}
+  CoinSpawners:
+  - SpawnerId: 1
+    Position: {x: 0, y: 0}
+    IntervalTicks: 150
+    SpawnAmount: 1
+  Portals:
+  - PortalId: 1
+    PortalType: 1
+    Position: {x: -18, y: 0}
+    Radius: 1.2
+    Target: {x: 0, y: 28}
+  - PortalId: 2
+    PortalType: 1
+    Position: {x: 18, y: 0}
+    Radius: 1.2
+    Target: {x: 0, y: 28}
+  - PortalId: 3
+    PortalType: 2
+    Position: {x: 0, y: 23}
+    Radius: 1.2
+    Target: {x: 0, y: 16}
