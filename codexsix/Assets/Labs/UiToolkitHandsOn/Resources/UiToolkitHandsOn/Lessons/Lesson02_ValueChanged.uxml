@@ -1,0 +1,9 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="lesson-card">
+        <ui:Label text="Step 2 links value-changed events to multiple controls." class="lesson-heading" />
+        <ui:TextField name="player-name-field" label="Player Name" value="Rookie" />
+        <ui:SliderInt name="power-slider" label="Power" low-value="0" high-value="100" value="25" />
+        <ui:ProgressBar name="power-bar" title="Power 25" value="25" />
+        <ui:Label name="preview-label" text="Preview: Rookie / Power 25" class="live-preview" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="lesson-card">
+        <ui:Label text="Step 3 creates rows in code and filters at runtime." class="lesson-heading" />
+        <ui:TextField name="item-filter-field" label="Filter Keyword" />
+        <ui:ScrollView name="item-scroll-view" class="item-scroll-view" />
+        <ui:Label name="item-selected-label" text="Selected item: none" class="live-preview" />
+    </ui:VisualElement>
+</ui:UXML>

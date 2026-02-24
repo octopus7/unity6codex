@@ -1,0 +1,151 @@
+.lab-root {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-color: rgb(16, 22, 31);
+}
+
+.lab-panel {
+    width: 760px;
+    max-width: 96%;
+    min-height: 560px;
+    padding: 16px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: rgb(31, 38, 50);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(74, 88, 108);
+    border-right-color: rgb(74, 88, 108);
+    border-top-color: rgb(74, 88, 108);
+    border-bottom-color: rgb(74, 88, 108);
+}
+
+.lab-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.lab-title {
+    color: rgb(237, 244, 255);
+    font-size: 22px;
+    -unity-font-style: bold;
+}
+
+.lab-progress {
+    color: rgb(155, 201, 255);
+    font-size: 14px;
+}
+
+.lesson-title {
+    margin-top: 10px;
+    color: rgb(230, 236, 245);
+    font-size: 18px;
+    -unity-font-style: bold;
+}
+
+.lesson-objective {
+    margin-top: 8px;
+    color: rgb(194, 207, 223);
+    font-size: 13px;
+    white-space: normal;
+}
+
+.lesson-checklist {
+    margin-top: 8px;
+    margin-bottom: 12px;
+    color: rgb(152, 226, 184);
+    font-size: 12px;
+    white-space: normal;
+}
+
+.lesson-stage {
+    flex-grow: 1;
+    min-height: 320px;
+    padding: 14px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    background-color: rgb(23, 29, 40);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(56, 68, 84);
+    border-right-color: rgb(56, 68, 84);
+    border-top-color: rgb(56, 68, 84);
+    border-bottom-color: rgb(56, 68, 84);
+}
+
+.lesson-card {
+    flex-grow: 1;
+    row-gap: 8px;
+}
+
+.lesson-heading {
+    color: rgb(220, 228, 242);
+    font-size: 15px;
+    -unity-font-style: bold;
+}
+
+.lesson-copy {
+    color: rgb(183, 198, 219);
+    font-size: 13px;
+    white-space: normal;
+}
+
+.counter-value {
+    color: rgb(255, 226, 145);
+    font-size: 18px;
+    margin-top: 8px;
+}
+
+.accent-button {
+    margin-top: 10px;
+    height: 32px;
+    background-color: rgb(46, 108, 175);
+    color: rgb(243, 248, 255);
+}
+
+.live-preview {
+    margin-top: 8px;
+    color: rgb(253, 248, 204);
+    -unity-font-style: bold;
+}
+
+.item-scroll-view {
+    margin-top: 10px;
+    height: 220px;
+}
+
+.inventory-item-button {
+    margin-bottom: 6px;
+    background-color: rgb(64, 75, 94);
+    color: rgb(231, 238, 250);
+}
+
+.lab-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 12px;
+    column-gap: 8px;
+}
+
+.nav-button {
+    min-width: 100px;
+    height: 30px;
+    background-color: rgb(65, 74, 91);
+    color: rgb(235, 240, 247);
+}
+
+.nav-button--accent {
+    background-color: rgb(40, 125, 81);
+}

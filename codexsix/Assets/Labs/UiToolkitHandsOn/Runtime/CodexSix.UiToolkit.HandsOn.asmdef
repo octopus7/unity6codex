@@ -1,0 +1,14 @@
+{
+  "name": "CodexSix.UiToolkit.HandsOn",
+  "rootNamespace": "CodexSix.UiToolkit.HandsOn",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement class="lesson-card">
+        <ui:Label text="Step 1 focuses on query + click callback wiring." class="lesson-heading" />
+        <ui:Label text="Button click updates a shared counter label." class="lesson-copy" />
+        <ui:Label name="counter-value" text="Click count: 0" class="counter-value" />
+        <ui:Button name="counter-button" text="Click me" class="accent-button" />
+    </ui:VisualElement>
+</ui:UXML>
