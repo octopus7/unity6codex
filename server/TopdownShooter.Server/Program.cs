@@ -1,9 +1,22 @@
 using TopdownShooter.Server.Configuration;
 using TopdownShooter.Server.Runtime;
+using TopdownShooter.Server.WorldMap;
 
 var config = ServerConfig.Load(AppContext.BaseDirectory, args);
+if (!WorldMapLoader.TryLoad(config.MapFilePath, AppContext.BaseDirectory, out var mapConfig, out var mapErrors))
+{
+    Console.Error.WriteLine("Failed to load world map:");
+    foreach (var mapError in mapErrors)
+    {
+        Console.Error.WriteLine(mapError);
+    }
+
+    Environment.ExitCode = 1;
+    return;
+}
+
 using var cts = new CancellationTokenSource();
-var server = new GameServer(config);
+var server = new GameServer(config, mapConfig);
 var isHeadless = string.Equals(
     Environment.GetEnvironmentVariable("TOPDOWN_HEADLESS"),
     "1",

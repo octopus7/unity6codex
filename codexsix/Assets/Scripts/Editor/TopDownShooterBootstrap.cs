@@ -69,6 +69,18 @@ namespace CodexSix.TopdownShooter.EditorTools
 
         private static void BootstrapScene(bool destructiveReset)
         {
+            var mapAsset = TopDownMapExportUtility.LoadOrCreateDefaultAsset();
+            if (!TopDownMapAuthoringValidator.TryValidate(mapAsset, out var mapErrors))
+            {
+                Debug.LogError("Safe bootstrap blocked: map authoring asset is invalid.");
+                foreach (var mapError in mapErrors)
+                {
+                    Debug.LogError(" - " + mapError);
+                }
+
+                return;
+            }
+
             EnsureFolders();
             FixItemIconImportSettings();
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
@@ -96,11 +108,11 @@ namespace CodexSix.TopdownShooter.EditorTools
             var generatedRoot = RecreateGeneratedRoot();
 
             EnsureDefaultLighting(parentForNewLight: generatedRoot.transform, preferExternalDirectionalLight: true);
-            BuildEnvironment(generatedRoot.transform);
+            BuildEnvironment(generatedRoot.transform, mapAsset);
             var camera = BuildCamera(generatedRoot.transform, preferExternalCamera: true);
             var client = BuildRuntime(generatedRoot.transform, camera);
             BuildDebugHud(generatedRoot.transform, client, camera);
-            AddSpawnPoints(generatedRoot.transform);
+            AddSpawnPoints(generatedRoot.transform, mapAsset);
 
             SaveAndRegisterScene(scene);
             Debug.Log(
@@ -246,50 +258,89 @@ namespace CodexSix.TopdownShooter.EditorTools
             return false;
         }
 
-        private static void BuildEnvironment(Transform parent)
+        private static void BuildEnvironment(Transform parent, TopDownMapAuthoringAsset mapAsset)
         {
             var environmentRoot = new GameObject("Environment");
             environmentRoot.transform.SetParent(parent, worldPositionStays: false);
 
+            var battleCenter = mapAsset.BattleBounds.Center;
+            var battleSize = mapAsset.BattleBounds.Size;
+
             var ground = GameObject.CreatePrimitive(PrimitiveType.Plane);
             ground.name = "Ground";
             ground.transform.SetParent(environmentRoot.transform, false);
-            ground.transform.localScale = new Vector3(4f, 1f, 4f);
-            ground.transform.position = Vector3.zero;
+            ground.transform.localScale = new Vector3(
+                Mathf.Max(1f, battleSize.x / 10f),
+                1f,
+                Mathf.Max(1f, battleSize.y / 10f));
+            ground.transform.position = new Vector3(battleCenter.x, 0f, battleCenter.y);
             ApplyMaterialColor(ground.GetComponent<Renderer>(), new Color(0.23f, 0.26f, 0.24f));
 
-            AddBoundaryWall(environmentRoot.transform, "Wall_North", new Vector3(0f, 1f, 20.5f), new Vector3(42f, 2f, 1f));
-            AddBoundaryWall(environmentRoot.transform, "Wall_South", new Vector3(0f, 1f, -20.5f), new Vector3(42f, 2f, 1f));
-            AddBoundaryWall(environmentRoot.transform, "Wall_East", new Vector3(20.5f, 1f, 0f), new Vector3(1f, 2f, 42f));
-            AddBoundaryWall(environmentRoot.transform, "Wall_West", new Vector3(-20.5f, 1f, 0f), new Vector3(1f, 2f, 42f));
+            AddBoundaryWall(
+                environmentRoot.transform,
+                "Wall_North",
+                new Vector3(battleCenter.x, 1f, mapAsset.BattleBounds.MaxY + 0.5f),
+                new Vector3(battleSize.x + 2f, 2f, 1f));
+            AddBoundaryWall(
+                environmentRoot.transform,
+                "Wall_South",
+                new Vector3(battleCenter.x, 1f, mapAsset.BattleBounds.MinY - 0.5f),
+                new Vector3(battleSize.x + 2f, 2f, 1f));
+            AddBoundaryWall(
+                environmentRoot.transform,
+                "Wall_East",
+                new Vector3(mapAsset.BattleBounds.MaxX + 0.5f, 1f, battleCenter.y),
+                new Vector3(1f, 2f, battleSize.y + 2f));
+            AddBoundaryWall(
+                environmentRoot.transform,
+                "Wall_West",
+                new Vector3(mapAsset.BattleBounds.MinX - 0.5f, 1f, battleCenter.y),
+                new Vector3(1f, 2f, battleSize.y + 2f));
 
-            BuildCenterStructure(environmentRoot.transform);
-            AddObstacle(environmentRoot.transform, "Obstacle_East", new Vector3(10f, 0.75f, 0f), new Vector3(3f, 1.5f, 2f));
-            AddObstacle(environmentRoot.transform, "Obstacle_West", new Vector3(-10f, 0.75f, 0f), new Vector3(3f, 1.5f, 2f));
-            AddObstacle(environmentRoot.transform, "Obstacle_North", new Vector3(0f, 0.75f, 10f), new Vector3(2f, 1.5f, 3f));
-            AddObstacle(environmentRoot.transform, "Obstacle_South", new Vector3(0f, 0.75f, -10f), new Vector3(2f, 1.5f, 3f));
+            foreach (var obstacle in mapAsset.Obstacles)
+            {
+                var width = Mathf.Max(0.2f, obstacle.MaxX - obstacle.MinX);
+                var depth = Mathf.Max(0.2f, obstacle.MaxY - obstacle.MinY);
+                var centerX = (obstacle.MinX + obstacle.MaxX) * 0.5f;
+                var centerY = (obstacle.MinY + obstacle.MaxY) * 0.5f;
+                var obstacleName = string.IsNullOrWhiteSpace(obstacle.ObstacleId)
+                    ? "Obstacle"
+                    : obstacle.ObstacleId;
 
-            BuildShopArea(environmentRoot.transform);
-            BuildPortals(environmentRoot.transform);
+                AddObstacle(
+                    environmentRoot.transform,
+                    obstacleName,
+                    new Vector3(centerX, 0.75f, centerY),
+                    new Vector3(width, 1.5f, depth));
+            }
+
+            BuildShopArea(environmentRoot.transform, mapAsset);
+            BuildPortals(environmentRoot.transform, mapAsset);
         }
 
-        private static void BuildShopArea(Transform parent)
+        private static void BuildShopArea(Transform parent, TopDownMapAuthoringAsset mapAsset)
         {
+            var shopCenter = mapAsset.ShopZone.Center;
+            var shopSize = mapAsset.ShopZone.Size;
+
             var zone = GameObject.CreatePrimitive(PrimitiveType.Cube);
             zone.name = "ShopZone";
             zone.transform.SetParent(parent, false);
-            zone.transform.position = new Vector3(0f, 0.1f, 28f);
-            zone.transform.localScale = new Vector3(12f, 0.2f, 12f);
+            zone.transform.position = new Vector3(shopCenter.x, 0.1f, shopCenter.y);
+            zone.transform.localScale = new Vector3(shopSize.x, 0.2f, shopSize.y);
             ApplyMaterialColor(zone.GetComponent<Renderer>(), new Color(0.16f, 0.35f, 0.19f));
             var box = zone.GetComponent<BoxCollider>();
             box.isTrigger = true;
-            zone.AddComponent<ShopZoneMarker>().Size = new Vector2(12f, 12f);
+            zone.AddComponent<ShopZoneMarker>().Size = shopSize;
+
+            var itemOffset = Mathf.Clamp(shopSize.x * 0.2f, 1.2f, 2.2f);
+            var itemScale = Mathf.Clamp(Mathf.Min(shopSize.x, shopSize.y) * 0.13f, 1.2f, 1.6f);
 
             var healPad = GameObject.CreatePrimitive(PrimitiveType.Cube);
             healPad.name = "ShopItem_Heal50";
             healPad.transform.SetParent(parent, false);
-            healPad.transform.position = new Vector3(-2f, 0.5f, 28f);
-            healPad.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
+            healPad.transform.position = new Vector3(shopCenter.x - itemOffset, 0.5f, shopCenter.y);
+            healPad.transform.localScale = new Vector3(itemScale, 1f, itemScale);
             ApplyMaterialColor(healPad.GetComponent<Renderer>(), new Color(0.8f, 0.25f, 0.25f));
             var healMarker = healPad.AddComponent<ShopItemMarker>();
             healMarker.ItemId = 1;
@@ -299,8 +350,8 @@ namespace CodexSix.TopdownShooter.EditorTools
             var speedPad = GameObject.CreatePrimitive(PrimitiveType.Cube);
             speedPad.name = "ShopItem_Speed20";
             speedPad.transform.SetParent(parent, false);
-            speedPad.transform.position = new Vector3(2f, 0.5f, 28f);
-            speedPad.transform.localScale = new Vector3(1.6f, 1f, 1.6f);
+            speedPad.transform.position = new Vector3(shopCenter.x + itemOffset, 0.5f, shopCenter.y);
+            speedPad.transform.localScale = new Vector3(itemScale, 1f, itemScale);
             ApplyMaterialColor(speedPad.GetComponent<Renderer>(), new Color(0.25f, 0.45f, 0.9f));
             var speedMarker = speedPad.AddComponent<ShopItemMarker>();
             speedMarker.ItemId = 2;
@@ -308,24 +359,40 @@ namespace CodexSix.TopdownShooter.EditorTools
             speedMarker.ItemName = "MoveSpeed+20%";
         }
 
-        private static void BuildPortals(Transform parent)
+        private static void BuildPortals(Transform parent, TopDownMapAuthoringAsset mapAsset)
         {
-            AddPortal(parent, "Portal_Entry_Left", new Vector3(-18f, 0.1f, 0f), 1, PortalType.Entry, new Color(0.1f, 0.6f, 1f));
-            AddPortal(parent, "Portal_Entry_Right", new Vector3(18f, 0.1f, 0f), 2, PortalType.Entry, new Color(0.1f, 0.6f, 1f));
-            AddPortal(parent, "Portal_Exit_Shop", new Vector3(0f, 0.1f, 23f), 3, PortalType.Exit, new Color(1f, 0.55f, 0.1f));
+            foreach (var portal in mapAsset.Portals.OrderBy(portal => portal.PortalId))
+            {
+                var runtimePortalType = ToRuntimePortalType(portal.PortalType);
+                var portalColor = runtimePortalType == PortalType.Entry
+                    ? new Color(0.1f, 0.6f, 1f)
+                    : new Color(1f, 0.55f, 0.1f);
+                var portalName = runtimePortalType == PortalType.Entry
+                    ? $"Portal_Entry_{portal.PortalId}"
+                    : $"Portal_Exit_{portal.PortalId}";
+
+                AddPortal(
+                    parent,
+                    portalName,
+                    new Vector3(portal.Position.x, 0.1f, portal.Position.y),
+                    (byte)Mathf.Clamp(portal.PortalId, 1, byte.MaxValue),
+                    runtimePortalType,
+                    Mathf.Max(0.2f, portal.Radius),
+                    portalColor);
+            }
         }
 
-        private static void AddPortal(Transform parent, string name, Vector3 position, byte portalId, PortalType portalType, Color color)
+        private static void AddPortal(Transform parent, string name, Vector3 position, byte portalId, PortalType portalType, float radius, Color color)
         {
             var portal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             portal.name = name;
             portal.transform.SetParent(parent, false);
             portal.transform.position = position;
-            portal.transform.localScale = new Vector3(1.2f, 0.1f, 1.2f);
+            portal.transform.localScale = new Vector3(radius, 0.1f, radius);
             ApplyMaterialColor(portal.GetComponent<Renderer>(), color);
             UnityEngine.Object.DestroyImmediate(portal.GetComponent<CapsuleCollider>());
             var collider = portal.AddComponent<SphereCollider>();
-            collider.radius = 1.2f;
+            collider.radius = radius;
             collider.isTrigger = true;
 
             var marker = portal.AddComponent<PortalMarker>();
@@ -333,6 +400,13 @@ namespace CodexSix.TopdownShooter.EditorTools
             marker.PortalType = portalType;
 
             BuildPortalGroundIndicator(parent, name, position, portalType);
+        }
+
+        private static PortalType ToRuntimePortalType(TopDownMapPortalType portalType)
+        {
+            return portalType == TopDownMapPortalType.Exit
+                ? PortalType.Exit
+                : PortalType.Entry;
         }
 
         private static void BuildPortalGroundIndicator(Transform parent, string portalName, Vector3 position, PortalType portalType)
@@ -844,28 +918,17 @@ namespace CodexSix.TopdownShooter.EditorTools
             overheadHp.UiScale = 2f;
         }
 
-        private static void AddSpawnPoints(Transform parent)
+        private static void AddSpawnPoints(Transform parent, TopDownMapAuthoringAsset mapAsset)
         {
             var root = new GameObject("SpawnPoints");
             root.transform.SetParent(parent, false);
 
-            var points = new[]
-            {
-                new Vector3(-16f, 0f, -16f),
-                new Vector3(-16f, 0f, 16f),
-                new Vector3(16f, 0f, -16f),
-                new Vector3(16f, 0f, 16f),
-                new Vector3(0f, 0f, -16f),
-                new Vector3(0f, 0f, 16f),
-                new Vector3(-16f, 0f, 0f),
-                new Vector3(16f, 0f, 0f)
-            };
-
-            for (var i = 0; i < points.Length; i++)
+            for (var i = 0; i < mapAsset.PlayerSpawns.Count; i++)
             {
                 var spawn = new GameObject($"Spawn_{i + 1}");
                 spawn.transform.SetParent(root.transform, false);
-                spawn.transform.position = points[i];
+                var point = mapAsset.PlayerSpawns[i];
+                spawn.transform.position = new Vector3(point.x, 0f, point.y);
             }
         }
 

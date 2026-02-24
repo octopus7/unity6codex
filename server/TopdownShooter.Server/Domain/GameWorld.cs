@@ -1,4 +1,5 @@
 using TopdownShooter.Server.Networking;
+using TopdownShooter.Server.WorldMap;
 
 namespace TopdownShooter.Server.Domain;
 
@@ -16,11 +17,9 @@ public sealed class GameWorld
     private readonly Aabb2[] _obstacles;
     private readonly ShopZoneState _shopZone;
     private readonly Vector2f[] _spawnPoints;
-
-    private readonly Vector2f _shopSpawnPoint = new(0f, 28f);
-    private readonly Vector2f _shopExitPoint = new(0f, 16f);
-    private readonly Vector2f _coinDispenserPosition = new(0f, 0f);
-    private int _coinDispenserStackId = -1;
+    private readonly MapBounds _battleBounds;
+    private readonly CoinSpawnerState[] _coinSpawners;
+    private readonly Dictionary<int, int> _coinSpawnerStackIds = new();
 
     private readonly int _maxPlayers;
     private readonly int _maxWorldCoins;
@@ -49,50 +48,57 @@ public sealed class GameWorld
         new Vector2f(-14f, -6f), new Vector2f(-10f, -6f), new Vector2f(-6f, -6f), new Vector2f(-2f, -6f)
     ];
 
-    public GameWorld(int maxPlayers, int maxWorldCoins, int? randomSeed = null)
+    public GameWorld(int maxPlayers, int maxWorldCoins, WorldMapConfig? mapConfig = null, int? randomSeed = null)
     {
         _maxPlayers = maxPlayers;
         _maxWorldCoins = maxWorldCoins;
         _random = randomSeed.HasValue ? new Random(randomSeed.Value) : new Random();
+        var resolvedMap = mapConfig ?? WorldMapDefaults.Create();
+        if (!WorldMapValidator.TryValidate(resolvedMap, out var mapErrors))
+        {
+            throw new ArgumentException(
+                "Invalid world map config: " + string.Join("; ", mapErrors),
+                nameof(mapConfig));
+        }
+
+        _battleBounds = resolvedMap.BattleBounds;
 
         _shopZone = new ShopZoneState
         {
-            MinX = -6f,
-            MinY = 22f,
-            MaxX = 6f,
-            MaxY = 34f
+            MinX = resolvedMap.ShopZone.MinX,
+            MinY = resolvedMap.ShopZone.MinY,
+            MaxX = resolvedMap.ShopZone.MaxX,
+            MaxY = resolvedMap.ShopZone.MaxY
         };
 
-        _portals =
-        [
-            new PortalState { PortalId = 1, PortalType = PortalType.Entry, Position = new Vector2f(-18f, 0f), Radius = 1.2f },
-            new PortalState { PortalId = 2, PortalType = PortalType.Entry, Position = new Vector2f(18f, 0f), Radius = 1.2f },
-            new PortalState { PortalId = 3, PortalType = PortalType.Exit, Position = new Vector2f(0f, 23f), Radius = 1.2f }
-        ];
+        _portals = resolvedMap.Portals
+            .OrderBy(portal => portal.PortalId)
+            .Select(portal => new PortalState
+            {
+                PortalId = (byte)portal.PortalId,
+                PortalType = portal.PortalType,
+                Position = portal.Position.ToVector2f(),
+                Radius = portal.Radius,
+                TargetPosition = portal.Target.ToVector2f()
+            })
+            .ToArray();
 
-        _obstacles =
-        [
-            new Aabb2(-2f, -2f, -0.6f, -0.6f),
-            new Aabb2(0.6f, -2f, 2f, -0.6f),
-            new Aabb2(-2f, 0.6f, -0.6f, 2f),
-            new Aabb2(0.6f, 0.6f, 2f, 2f),
-            new Aabb2(8.5f, -1f, 11.5f, 1f),
-            new Aabb2(-11.5f, -1f, -8.5f, 1f),
-            new Aabb2(-1f, 8.5f, 1f, 11.5f),
-            new Aabb2(-1f, -11.5f, 1f, -8.5f)
-        ];
+        _obstacles = resolvedMap.Obstacles
+            .Select(obstacle => new Aabb2(obstacle.MinX, obstacle.MinY, obstacle.MaxX, obstacle.MaxY))
+            .ToArray();
 
-        _spawnPoints =
-        [
-            new Vector2f(-16f, -16f),
-            new Vector2f(-16f, 16f),
-            new Vector2f(16f, -16f),
-            new Vector2f(16f, 16f),
-            new Vector2f(0f, -16f),
-            new Vector2f(0f, 16f),
-            new Vector2f(-16f, 0f),
-            new Vector2f(16f, 0f)
-        ];
+        _spawnPoints = resolvedMap.PlayerSpawns
+            .Select(spawn => spawn.ToVector2f())
+            .ToArray();
+
+        _coinSpawners = resolvedMap.CoinSpawners
+            .OrderBy(spawner => spawner.SpawnerId)
+            .Select(spawner => new CoinSpawnerState(
+                spawner.SpawnerId,
+                spawner.Position.ToVector2f(),
+                spawner.IntervalTicks,
+                spawner.SpawnAmount))
+            .ToArray();
 
         InitializeItemDrops();
     }
@@ -270,13 +276,14 @@ public sealed class GameWorld
                 projectile.Direction))
             .ToList();
 
+        var dispenserStackIds = _coinSpawnerStackIds.Values.ToHashSet();
         var coins = _coinStacks
             .Select(stack => new CoinSnapshotState(
                 stack.CoinStackId,
                 stack.Position,
                 stack.Amount,
                 stack.CreatedTick,
-                stack.CoinStackId == _coinDispenserStackId))
+                dispenserStackIds.Contains(stack.CoinStackId)))
             .ToList();
 
         var itemDrops = _itemDrops
@@ -358,7 +365,7 @@ public sealed class GameWorld
             {
                 if (Vector2f.DistanceSquared(player.Position, portal.Position) <= (portal.Radius * portal.Radius))
                 {
-                    player.Position = _shopSpawnPoint;
+                    player.Position = portal.TargetPosition;
                     player.InShopZone = true;
                     return;
                 }
@@ -371,7 +378,7 @@ public sealed class GameWorld
         {
             if (Vector2f.DistanceSquared(player.Position, portal.Position) <= (portal.Radius * portal.Radius))
             {
-                player.Position = _shopExitPoint;
+                player.Position = portal.TargetPosition;
                 player.InShopZone = false;
                 return;
             }
@@ -544,28 +551,41 @@ public sealed class GameWorld
 
     private void ProcessCoinDispenser()
     {
-        if (_serverTick == 0 || (_serverTick % GameRules.CoinDispenserIntervalTicks) != 0)
+        if (_coinSpawners.Length == 0)
         {
             return;
         }
 
-        var dispenserStack = _coinStacks.FirstOrDefault(stack => stack.CoinStackId == _coinDispenserStackId);
-        if (dispenserStack != null)
+        foreach (var spawner in _coinSpawners)
         {
-            dispenserStack.Amount += GameRules.CoinDispenserSpawnAmount;
-            return;
+            if (_serverTick == 0 || (_serverTick % spawner.IntervalTicks) != 0)
+            {
+                continue;
+            }
+
+            if (_coinSpawnerStackIds.TryGetValue(spawner.SpawnerId, out var existingStackId))
+            {
+                var existingStack = _coinStacks.FirstOrDefault(stack => stack.CoinStackId == existingStackId);
+                if (existingStack != null)
+                {
+                    existingStack.Amount += spawner.SpawnAmount;
+                    continue;
+                }
+
+                _coinSpawnerStackIds.Remove(spawner.SpawnerId);
+            }
+
+            var newStack = new CoinStackState
+            {
+                CoinStackId = _nextCoinStackId++,
+                Position = spawner.Position,
+                Amount = spawner.SpawnAmount,
+                CreatedTick = _serverTick
+            };
+
+            _coinStacks.Add(newStack);
+            _coinSpawnerStackIds[spawner.SpawnerId] = newStack.CoinStackId;
         }
-
-        var newStack = new CoinStackState
-        {
-            CoinStackId = _nextCoinStackId++,
-            Position = _coinDispenserPosition,
-            Amount = GameRules.CoinDispenserSpawnAmount,
-            CreatedTick = _serverTick
-        };
-
-        _coinStacks.Add(newStack);
-        _coinDispenserStackId = newStack.CoinStackId;
     }
 
     private void EnforceWorldCoinCap()
@@ -585,10 +605,7 @@ public sealed class GameWorld
 
             total -= oldest.Amount;
             _coinStacks.Remove(oldest);
-            if (oldest.CoinStackId == _coinDispenserStackId)
-            {
-                _coinDispenserStackId = -1;
-            }
+            ClearSpawnerStackId(oldest.CoinStackId);
         }
     }
 
@@ -641,10 +658,7 @@ public sealed class GameWorld
 
                 player.CarriedCoins += coin.Amount;
                 _coinStacks.RemoveAt(index);
-                if (coin.CoinStackId == _coinDispenserStackId)
-                {
-                    _coinDispenserStackId = -1;
-                }
+                ClearSpawnerStackId(coin.CoinStackId);
 
                 _pendingEvents.Add(new GameEvent(
                     GameEventType.CoinPicked,
@@ -685,6 +699,31 @@ public sealed class GameWorld
                     itemDrop.Quantity,
                     itemDrop.Position));
             }
+        }
+    }
+
+    private void ClearSpawnerStackId(int coinStackId)
+    {
+        if (_coinSpawnerStackIds.Count == 0)
+        {
+            return;
+        }
+
+        var spawnerIdToRemove = -1;
+        foreach (var pair in _coinSpawnerStackIds)
+        {
+            if (pair.Value != coinStackId)
+            {
+                continue;
+            }
+
+            spawnerIdToRemove = pair.Key;
+            break;
+        }
+
+        if (spawnerIdToRemove > 0)
+        {
+            _coinSpawnerStackIds.Remove(spawnerIdToRemove);
         }
     }
 
@@ -860,17 +899,16 @@ public sealed class GameWorld
         return spawn;
     }
 
-    private static bool IsWithinBattleBounds(Vector2f position)
+    private bool IsWithinBattleBounds(Vector2f position)
     {
-        return position.X is >= -20f and <= 20f &&
-               position.Y is >= -20f and <= 20f;
+        return _battleBounds.Contains(position);
     }
 
     private Vector2f ClampToBattleBounds(Vector2f position)
     {
         return new Vector2f(
-            Math.Clamp(position.X, -20f, 20f),
-            Math.Clamp(position.Y, -20f, 20f));
+            Math.Clamp(position.X, _battleBounds.MinX, _battleBounds.MaxX),
+            Math.Clamp(position.Y, _battleBounds.MinY, _battleBounds.MaxY));
     }
 
     private Vector2f ClampToShopBounds(Vector2f position)
@@ -902,6 +940,12 @@ public sealed class GameWorld
     }
 
     private readonly record struct PendingShopPurchase(int PlayerId, byte ItemId);
+
+    private readonly record struct CoinSpawnerState(
+        int SpawnerId,
+        Vector2f Position,
+        int IntervalTicks,
+        int SpawnAmount);
 
     private readonly record struct Aabb2(float MinX, float MinY, float MaxX, float MaxY)
     {

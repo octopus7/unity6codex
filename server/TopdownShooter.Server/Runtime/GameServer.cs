@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using TopdownShooter.Server.Configuration;
 using TopdownShooter.Server.Domain;
 using TopdownShooter.Server.Networking;
+using TopdownShooter.Server.WorldMap;
 
 namespace TopdownShooter.Server.Runtime;
 
@@ -23,10 +24,10 @@ public sealed class GameServer
     private int _serverSequence;
     private long _nextReconnectSessionPruneUnixMs;
 
-    public GameServer(ServerConfig config)
+    public GameServer(ServerConfig config, WorldMapConfig? mapConfig = null)
     {
         _config = config;
-        _world = new GameWorld(config.MaxPlayers, config.MaxWorldCoins);
+        _world = new GameWorld(config.MaxPlayers, config.MaxWorldCoins, mapConfig);
         _listener = new TcpListener(IPAddress.Parse(config.ListenIp), config.ListenPort);
         _reconnectGracePeriod = TimeSpan.FromSeconds(config.ReconnectGraceSeconds);
     }
