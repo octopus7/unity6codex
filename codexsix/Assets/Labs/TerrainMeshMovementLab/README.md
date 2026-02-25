@@ -1,4 +1,4 @@
-﻿# Terrain Mesh Movement Lab
+# Terrain Mesh Movement Lab
 
 This lab is isolated from existing gameplay and network code.
 
@@ -13,10 +13,11 @@ Existing scenes (`Assets/Scenes/*`) and existing gameplay scripts are not modifi
 ## Features
 
 - Deterministic generation from world seed + absolute world grid coordinates
-- Per-chunk height PNG storage (RGBA two-channel packed height)
+- Per-chunk height PNG storage (8-bit grayscale height)
 - Mesh reconstruction from saved height PNG
 - Physical terrain generation for adjacent chunk grid (default `3x3`) with player-chunk recentering
 - Player-centered minimap window with automatic neighbor chunk sampling near boundaries
+- Runtime performance graph overlay (FPS / frame-time)
 - Editor NxN stitched top-down height viewer
 
 ## Menus
@@ -33,6 +34,7 @@ Existing scenes (`Assets/Scenes/*`) and existing gameplay scripts are not modifi
    - Move: `WASD` / arrow keys
    - Jump: `Space`
    - Regenerate: `R`
+   - Toggle performance graph: `F3`
 
 ## Generated Heightmap Path
 

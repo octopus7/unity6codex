@@ -12,7 +12,9 @@ namespace CodexSix.TerrainMeshMovementLab.Editor
         private Vector2Int _centerChunk = Vector2Int.zero;
         private int _gridSize = 3;
         private bool _autoGenerateMissing = true;
-        private Vector2 _scroll;
+        private bool _isDraggingPreview;
+        private Vector2 _lastDragMouse;
+        private Vector2 _dragRemainderPixels;
 
         private Texture2D _previewTexture;
         private string _lastStatus = "Ready";
@@ -41,6 +43,9 @@ namespace CodexSix.TerrainMeshMovementLab.Editor
                 DestroyImmediate(_previewTexture);
                 _previewTexture = null;
             }
+
+            _isDraggingPreview = false;
+            _dragRemainderPixels = Vector2.zero;
         }
 
         private void OnGUI()
@@ -90,6 +95,9 @@ namespace CodexSix.TerrainMeshMovementLab.Editor
             }
 
             _autoGenerateMissing = EditorGUILayout.ToggleLeft("Auto-generate missing chunk PNG", _autoGenerateMissing);
+            EditorGUILayout.HelpBox(
+                "Preview navigation: drag anywhere in preview to scroll contiguous neighboring chunks.",
+                MessageType.None);
 
             EditorGUILayout.BeginHorizontal();
 
@@ -117,15 +125,18 @@ namespace CodexSix.TerrainMeshMovementLab.Editor
                 return;
             }
 
-            _scroll = EditorGUILayout.BeginScrollView(_scroll, GUILayout.MinHeight(220f));
-            var maxWidth = position.width - 32f;
-            var drawWidth = Mathf.Min(maxWidth, _previewTexture.width);
-            var ratio = _previewTexture.height > 0 ? _previewTexture.width / (float)_previewTexture.height : 1f;
-            var drawHeight = drawWidth / Mathf.Max(0.001f, ratio);
+            var viewportHeight = Mathf.Max(220f, position.height - 290f);
+            var viewportRect = GUILayoutUtility.GetRect(10f, viewportHeight, GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true));
+            var drawSize = Mathf.Min(viewportRect.width, viewportRect.height);
+            var drawRect = new Rect(
+                viewportRect.x + ((viewportRect.width - drawSize) * 0.5f),
+                viewportRect.y + ((viewportRect.height - drawSize) * 0.5f),
+                drawSize,
+                drawSize);
 
-            var rect = GUILayoutUtility.GetRect(drawWidth, drawHeight, GUILayout.ExpandWidth(false));
-            EditorGUI.DrawPreviewTexture(rect, _previewTexture, null, ScaleMode.ScaleToFit);
-            EditorGUILayout.EndScrollView();
+            EditorGUI.DrawRect(viewportRect, new Color(0.12f, 0.12f, 0.12f, 1f));
+            GUI.DrawTexture(drawRect, _previewTexture, ScaleMode.StretchToFill, alphaBlend: false);
+            HandlePreviewDragInput(drawRect);
         }
 
         private void DrawFooter()
@@ -211,7 +222,7 @@ namespace CodexSix.TerrainMeshMovementLab.Editor
                 for (var x = 0; x < chunkPixels; x++)
                 {
                     var height = heights[x + 1, z + 1];
-                    var color = EvaluateHeightColor(_config, height);
+                    var color = TerrainLabHeightColorRamp.Evaluate(_config, height);
 
                     var outX = (gridX * chunkPixels) + x;
                     var outY = (gridZ * chunkPixels) + z;
@@ -256,25 +267,110 @@ namespace CodexSix.TerrainMeshMovementLab.Editor
             _lastStatus = $"Preview exported: {path}";
         }
 
-        private static Color32 EvaluateHeightColor(TerrainLabWorldConfig config, float height)
+        private void HandlePreviewDragInput(Rect previewRect)
         {
-            if (Mathf.Approximately(config.HeightMin, config.HeightMax))
+            var currentEvent = Event.current;
+            if (currentEvent == null)
             {
-                return new Color32(124, 170, 124, 255);
+                return;
             }
 
-            var t = Mathf.InverseLerp(config.HeightMin, config.HeightMax, height);
-            if (t < 0.30f)
+            switch (currentEvent.type)
             {
-                return Color32.Lerp(new Color32(35, 90, 42, 255), new Color32(84, 130, 62, 255), t / 0.30f);
-            }
+                case EventType.MouseDown:
+                    if (currentEvent.button != 0 || !previewRect.Contains(currentEvent.mousePosition))
+                    {
+                        return;
+                    }
 
-            if (t < 0.7f)
-            {
-                return Color32.Lerp(new Color32(84, 130, 62, 255), new Color32(160, 150, 95, 255), (t - 0.30f) / 0.40f);
-            }
+                    _isDraggingPreview = true;
+                    _lastDragMouse = currentEvent.mousePosition;
+                    _dragRemainderPixels = Vector2.zero;
+                    currentEvent.Use();
+                    return;
 
-            return Color32.Lerp(new Color32(160, 150, 95, 255), new Color32(238, 236, 220, 255), (t - 0.7f) / 0.3f);
+                case EventType.MouseDrag:
+                    if (!_isDraggingPreview)
+                    {
+                        return;
+                    }
+
+                    var delta = currentEvent.mousePosition - _lastDragMouse;
+                    _lastDragMouse = currentEvent.mousePosition;
+                    _dragRemainderPixels += delta;
+                    if (ConsumePreviewDragRemainder(previewRect))
+                    {
+                        RefreshPreview();
+                    }
+
+                    currentEvent.Use();
+                    return;
+
+                case EventType.MouseUp:
+                case EventType.MouseLeaveWindow:
+                case EventType.Ignore:
+                    if (!_isDraggingPreview)
+                    {
+                        return;
+                    }
+
+                    _isDraggingPreview = false;
+                    _dragRemainderPixels = Vector2.zero;
+                    currentEvent.Use();
+                    return;
+            }
         }
+
+        private bool ConsumePreviewDragRemainder(Rect previewRect)
+        {
+            if (_gridSize <= 0)
+            {
+                return false;
+            }
+
+            var chunkWidthPixels = previewRect.width / _gridSize;
+            var chunkHeightPixels = previewRect.height / _gridSize;
+            if (chunkWidthPixels <= 0.01f || chunkHeightPixels <= 0.01f)
+            {
+                return false;
+            }
+
+            var moved = false;
+
+            while (Mathf.Abs(_dragRemainderPixels.x) >= chunkWidthPixels)
+            {
+                if (_dragRemainderPixels.x > 0f)
+                {
+                    _centerChunk.x -= 1;
+                    _dragRemainderPixels.x -= chunkWidthPixels;
+                }
+                else
+                {
+                    _centerChunk.x += 1;
+                    _dragRemainderPixels.x += chunkWidthPixels;
+                }
+
+                moved = true;
+            }
+
+            while (Mathf.Abs(_dragRemainderPixels.y) >= chunkHeightPixels)
+            {
+                if (_dragRemainderPixels.y > 0f)
+                {
+                    _centerChunk.y -= 1;
+                    _dragRemainderPixels.y -= chunkHeightPixels;
+                }
+                else
+                {
+                    _centerChunk.y += 1;
+                    _dragRemainderPixels.y += chunkHeightPixels;
+                }
+
+                moved = true;
+            }
+
+            return moved;
+        }
+
     }
 }

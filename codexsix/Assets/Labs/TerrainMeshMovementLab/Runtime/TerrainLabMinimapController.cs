@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace CodexSix.TerrainMeshMovementLab
 {
@@ -13,10 +14,14 @@ namespace CodexSix.TerrainMeshMovementLab
         public bool ShowMinimap = true;
         public Rect ScreenRect = new(16f, 36f, 220f, 220f);
         [Range(0.01f, 1f)] public float RefreshIntervalSeconds = 0.12f;
+        [Min(0f)] public float MinWorldMoveBeforeRefresh = 0.4f;
 
         private Texture2D _minimapTexture;
         private Color32[] _pixels;
         private float _nextRefreshAt;
+        private bool _hasLastRefreshCenter;
+        private Vector3 _lastRefreshCenter;
+        private readonly Dictionary<Vector2Int, TerrainLabChunkHeightData> _chunkDataFrameCache = new();
 
         private void Awake()
         {
@@ -67,6 +72,7 @@ namespace CodexSix.TerrainMeshMovementLab
         public void RequestImmediateRefresh()
         {
             _nextRefreshAt = -1f;
+            _hasLastRefreshCenter = false;
         }
 
         private void Update()
@@ -79,6 +85,17 @@ namespace CodexSix.TerrainMeshMovementLab
             if (Time.unscaledTime < _nextRefreshAt)
             {
                 return;
+            }
+
+            if (MinWorldMoveBeforeRefresh > 0f && _hasLastRefreshCenter)
+            {
+                var sqrDistance = (PlayerTarget.position - _lastRefreshCenter).sqrMagnitude;
+                var minSqrDistance = MinWorldMoveBeforeRefresh * MinWorldMoveBeforeRefresh;
+                if (sqrDistance < minSqrDistance)
+                {
+                    _nextRefreshAt = Time.unscaledTime + Mathf.Max(0.01f, RefreshIntervalSeconds);
+                    return;
+                }
             }
 
             _nextRefreshAt = Time.unscaledTime + Mathf.Max(0.01f, RefreshIntervalSeconds);
@@ -122,6 +139,7 @@ namespace CodexSix.TerrainMeshMovementLab
             var worldSize = config.MinimapWindowWorldSize;
             var half = worldSize * 0.5f;
             var center = PlayerTarget.position;
+            _chunkDataFrameCache.Clear();
 
             for (var py = 0; py < size; py++)
             {
@@ -133,15 +151,9 @@ namespace CodexSix.TerrainMeshMovementLab
                     var u = px / (float)(size - 1);
                     var worldX = Mathf.Lerp(center.x - half, center.x + half, u);
 
-                    var sampled = TerrainLabHeightSampler.TrySampleHeight(
-                        config,
-                        World.CurrentSeed,
-                        new Vector2(worldX, worldZ),
-                        autoGenerateMissing: true,
-                        out var height);
-
+                    var sampled = TrySampleHeightCached(config, new Vector2(worldX, worldZ), out var height);
                     var color = sampled
-                        ? EvaluateHeightColor(config, height)
+                        ? TerrainLabHeightColorRamp.Evaluate(config, height)
                         : new Color32(18, 20, 24, 255);
 
                     _pixels[(py * size) + px] = color;
@@ -150,6 +162,8 @@ namespace CodexSix.TerrainMeshMovementLab
 
             _minimapTexture.SetPixels32(_pixels);
             _minimapTexture.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+            _lastRefreshCenter = center;
+            _hasLastRefreshCenter = true;
         }
 
         private void EnsureTexture(int size)
@@ -185,25 +199,54 @@ namespace CodexSix.TerrainMeshMovementLab
             _pixels = new Color32[size * size];
         }
 
-        private static Color32 EvaluateHeightColor(TerrainLabWorldConfig config, float height)
+        private bool TrySampleHeightCached(TerrainLabWorldConfig config, Vector2 worldXZ, out float height)
         {
-            if (Mathf.Approximately(config.HeightMin, config.HeightMax))
+            var chunkCoord = TerrainLabHeightSampler.GetChunkCoordFromWorld(config, worldXZ);
+            if (!_chunkDataFrameCache.TryGetValue(chunkCoord, out var chunkData))
             {
-                return new Color32(124, 170, 124, 255);
+                chunkData = World.GetOrCreateChunkData(chunkCoord);
+                _chunkDataFrameCache[chunkCoord] = chunkData;
             }
 
-            var t = Mathf.InverseLerp(config.HeightMin, config.HeightMax, height);
-            if (t < 0.30f)
+            if (chunkData == null)
             {
-                return Color32.Lerp(new Color32(35, 90, 42, 255), new Color32(84, 130, 62, 255), t / 0.30f);
+                height = 0f;
+                return false;
             }
 
-            if (t < 0.7f)
-            {
-                return Color32.Lerp(new Color32(84, 130, 62, 255), new Color32(160, 150, 95, 255), (t - 0.30f) / 0.40f);
-            }
-
-            return Color32.Lerp(new Color32(160, 150, 95, 255), new Color32(238, 236, 220, 255), (t - 0.7f) / 0.3f);
+            var local = TerrainLabHeightSampler.GetLocalVertexCoordinates(config, worldXZ, chunkCoord);
+            return TrySampleChunkHeightBilinear(config, chunkData, local.x, local.y, out height);
         }
+
+        private static bool TrySampleChunkHeightBilinear(
+            TerrainLabWorldConfig config,
+            TerrainLabChunkHeightData chunkData,
+            float localVertexX,
+            float localVertexZ,
+            out float height)
+        {
+            var clampedX = Mathf.Clamp(localVertexX, 0f, config.ChunkCells);
+            var clampedZ = Mathf.Clamp(localVertexZ, 0f, config.ChunkCells);
+
+            var x0 = Mathf.FloorToInt(clampedX);
+            var z0 = Mathf.FloorToInt(clampedZ);
+            var x1 = Mathf.Min(x0 + 1, config.ChunkCells);
+            var z1 = Mathf.Min(z0 + 1, config.ChunkCells);
+
+            var tx = clampedX - x0;
+            var tz = clampedZ - z0;
+
+            var heights = chunkData.Heights;
+            var h00 = heights[x0 + 1, z0 + 1];
+            var h10 = heights[x1 + 1, z0 + 1];
+            var h01 = heights[x0 + 1, z1 + 1];
+            var h11 = heights[x1 + 1, z1 + 1];
+
+            var hx0 = Mathf.Lerp(h00, h10, tx);
+            var hx1 = Mathf.Lerp(h01, h11, tx);
+            height = Mathf.Lerp(hx0, hx1, tz);
+            return true;
+        }
+
     }
 }

@@ -17,6 +17,7 @@ namespace CodexSix.TerrainMeshMovementLab
         private MeshRenderer _meshRenderer;
         private Mesh _mesh;
         private Material _runtimeMaterial;
+        private Texture2D _runtimeColorTexture;
 
         private Vector2Int _currentChunkCoord;
         private int _currentSeed;
@@ -67,6 +68,23 @@ namespace CodexSix.TerrainMeshMovementLab
                 Destroy(_runtimeMaterial);
 #endif
                 _runtimeMaterial = null;
+            }
+
+            if (_runtimeColorTexture != null)
+            {
+#if UNITY_EDITOR
+                if (Application.isEditor)
+                {
+                    DestroyImmediate(_runtimeColorTexture);
+                }
+                else
+                {
+                    Destroy(_runtimeColorTexture);
+                }
+#else
+                Destroy(_runtimeColorTexture);
+#endif
+                _runtimeColorTexture = null;
             }
         }
 
@@ -143,6 +161,7 @@ namespace CodexSix.TerrainMeshMovementLab
             var vertices = new Vector3[vertexCount];
             var normals = new Vector3[vertexCount];
             var uvs = new Vector2[vertexCount];
+            var colors = new Color32[vertexCount];
             var triangles = new int[chunkCells * chunkCells * 6];
 
             var heights = data.Heights;
@@ -159,6 +178,7 @@ namespace CodexSix.TerrainMeshMovementLab
                     vertices[index] = new Vector3(x * cellSize, h, z * cellSize);
                     normals[index] = CalculateNormalFromPadded(heights, x + 1, z + 1, cellSize);
                     uvs[index] = new Vector2(x / (float)chunkCells, z / (float)chunkCells);
+                    colors[index] = TerrainLabHeightColorRamp.Evaluate(WorldConfig, h);
                     index++;
                 }
             }
@@ -199,6 +219,7 @@ namespace CodexSix.TerrainMeshMovementLab
             _mesh.vertices = vertices;
             _mesh.normals = normals;
             _mesh.uv = uvs;
+            _mesh.colors32 = colors;
             _mesh.triangles = triangles;
             _mesh.RecalculateBounds();
 
@@ -211,7 +232,7 @@ namespace CodexSix.TerrainMeshMovementLab
             _currentChunkCoord = chunkCoord;
             _currentSeed = seed;
 
-            EnsureMaterial();
+            ApplyColorTexture(colors, chunkVertices);
         }
 
         private static Vector3 CalculateNormalFromPadded(float[,] paddedHeights, int x, int z, float cellSize)
@@ -233,30 +254,164 @@ namespace CodexSix.TerrainMeshMovementLab
                 return;
             }
 
-            if (_meshRenderer.sharedMaterial != null)
+            if (_runtimeMaterial != null)
             {
+                if (_meshRenderer.sharedMaterial != _runtimeMaterial)
+                {
+                    _meshRenderer.sharedMaterial = _runtimeMaterial;
+                }
+
                 return;
             }
 
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
+            var source = _meshRenderer.sharedMaterial;
+            if (source != null)
             {
-                shader = Shader.Find("Standard");
+                _runtimeMaterial = new Material(source);
+            }
+            else
+            {
+                var shader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (shader == null)
+                {
+                    shader = Shader.Find("Unlit/Texture");
+                }
+
+                if (shader == null)
+                {
+                    shader = Shader.Find("Universal Render Pipeline/Lit");
+                }
+
+                if (shader == null)
+                {
+                    shader = Shader.Find("Standard");
+                }
+
+                if (shader == null)
+                {
+                    return;
+                }
+
+                _runtimeMaterial = new Material(shader);
             }
 
-            if (shader == null)
-            {
-                return;
-            }
-
-            _runtimeMaterial = new Material(shader)
-            {
-                color = TerrainColor,
-                name = "TerrainLabRuntimeMaterial",
-                hideFlags = HideFlags.HideAndDontSave
-            };
+            _runtimeMaterial.name = "TerrainLabRuntimeMaterial";
+            _runtimeMaterial.hideFlags = HideFlags.HideAndDontSave;
+            _runtimeMaterial.color = Color.white;
+            ForceOpaqueSurface(_runtimeMaterial);
 
             _meshRenderer.sharedMaterial = _runtimeMaterial;
+        }
+
+        private void ApplyColorTexture(Color32[] colors, int resolution)
+        {
+            EnsureMaterial();
+            if (_runtimeMaterial == null)
+            {
+                return;
+            }
+
+            EnsureRuntimeColorTexture(resolution);
+            if (_runtimeColorTexture == null)
+            {
+                return;
+            }
+
+            _runtimeColorTexture.SetPixels32(colors);
+            _runtimeColorTexture.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+
+            if (_runtimeMaterial.HasProperty("_BaseMap"))
+            {
+                _runtimeMaterial.SetTexture("_BaseMap", _runtimeColorTexture);
+            }
+
+            if (_runtimeMaterial.HasProperty("_MainTex"))
+            {
+                _runtimeMaterial.SetTexture("_MainTex", _runtimeColorTexture);
+            }
+
+            if (_runtimeMaterial.HasProperty("_BaseColor"))
+            {
+                _runtimeMaterial.SetColor("_BaseColor", Color.white);
+            }
+
+            if (_runtimeMaterial.HasProperty("_Color"))
+            {
+                _runtimeMaterial.SetColor("_Color", Color.white);
+            }
+        }
+
+        private void EnsureRuntimeColorTexture(int resolution)
+        {
+            if (_runtimeColorTexture != null
+                && _runtimeColorTexture.width == resolution
+                && _runtimeColorTexture.height == resolution)
+            {
+                return;
+            }
+
+            if (_runtimeColorTexture != null)
+            {
+#if UNITY_EDITOR
+                if (Application.isEditor)
+                {
+                    DestroyImmediate(_runtimeColorTexture);
+                }
+                else
+                {
+                    Destroy(_runtimeColorTexture);
+                }
+#else
+                Destroy(_runtimeColorTexture);
+#endif
+                _runtimeColorTexture = null;
+            }
+
+            _runtimeColorTexture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, mipChain: false, linear: true)
+            {
+                name = "TerrainLabChunkColorMap",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+        }
+
+        private static void ForceOpaqueSurface(Material material)
+        {
+            if (material == null)
+            {
+                return;
+            }
+
+            if (material.HasProperty("_Surface"))
+            {
+                material.SetFloat("_Surface", 0f);
+            }
+
+            if (material.HasProperty("_Blend"))
+            {
+                material.SetFloat("_Blend", 0f);
+            }
+
+            if (material.HasProperty("_SrcBlend"))
+            {
+                material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            }
+
+            if (material.HasProperty("_DstBlend"))
+            {
+                material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+            }
+
+            if (material.HasProperty("_ZWrite"))
+            {
+                material.SetFloat("_ZWrite", 1f);
+            }
+
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.DisableKeyword("_ALPHABLEND_ON");
+            material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            material.renderQueue = -1;
         }
     }
 }

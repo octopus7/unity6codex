@@ -141,6 +141,10 @@ namespace CodexSix.TerrainMeshMovementLab.Editor
             minimap.PlayerTarget = player;
             world.MinimapController = minimap;
 
+            var performance = EnsureComponent<TerrainLabPerformanceGraph>(world.gameObject);
+            performance.ScreenRect = new Rect(16f, 270f, 320f, 130f);
+            world.PerformanceGraph = performance;
+
             playerController.World = world;
             playerController.MovementCamera = cameraObject.transform;
 

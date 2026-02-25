@@ -357,6 +357,9 @@ MonoBehaviour:
   WorldConfig: {fileID: 11400000, guid: 01714a8c184a0f1449048e40db0cc3f4, type: 2}
   RandomizeSeedOnRegenerate: 0
   FixedSeed: 12345
+  GeneratedGridSize: 3
+  FollowPlayerChunk: 1
+  ChunkCenterCheckIntervalSeconds: 0.2
   ChunkMeshGenerator: {fileID: 677837805}
   PlayerRoot: {fileID: 561405691}
   PlayerCharacterController: {fileID: 561405692}
@@ -460,6 +463,9 @@ MonoBehaviour:
   JumpHeight: 1.6
   GravityMagnitude: 20
   GroundSnapVelocity: -2
+  InputSmoothTime: 0.08
+  AutoCreateVisual: 1
+  BodyColor: {r: 0.18, g: 0.57, b: 0.98, a: 1}
 --- !u!1 &677837804
 GameObject:
   m_ObjectHideFlags: 0

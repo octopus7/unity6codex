@@ -22,7 +22,41 @@ namespace CodexSix.TerrainMeshMovementLab
 
     public static class TerrainLabHeightChunkStore
     {
-        private static readonly Dictionary<string, TerrainLabChunkHeightData> Cache = new(StringComparer.Ordinal);
+        private readonly struct ChunkCacheKey : IEquatable<ChunkCacheKey>
+        {
+            public ChunkCacheKey(int seed, int chunkX, int chunkZ, int chunkVertices)
+            {
+                Seed = seed;
+                ChunkX = chunkX;
+                ChunkZ = chunkZ;
+                ChunkVertices = chunkVertices;
+            }
+
+            public readonly int Seed;
+            public readonly int ChunkX;
+            public readonly int ChunkZ;
+            public readonly int ChunkVertices;
+
+            public bool Equals(ChunkCacheKey other)
+            {
+                return Seed == other.Seed
+                    && ChunkX == other.ChunkX
+                    && ChunkZ == other.ChunkZ
+                    && ChunkVertices == other.ChunkVertices;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return obj is ChunkCacheKey other && Equals(other);
+            }
+
+            public override int GetHashCode()
+            {
+                return HashCode.Combine(Seed, ChunkX, ChunkZ, ChunkVertices);
+            }
+        }
+
+        private static readonly Dictionary<ChunkCacheKey, TerrainLabChunkHeightData> Cache = new();
 
         public static string GetChunkFileName(int seed, Vector2Int chunkCoord, int chunkVertices)
         {
@@ -51,13 +85,13 @@ namespace CodexSix.TerrainMeshMovementLab
         {
             config.ValidateInPlace();
 
-            var assetPath = GetChunkAssetPath(config, seed, chunkCoord);
-            var cacheKey = BuildCacheKey(assetPath);
+            var cacheKey = BuildChunkCacheKey(seed, chunkCoord, config.ChunkVertices);
             if (!forceRegenerate && Cache.TryGetValue(cacheKey, out var cached))
             {
                 return cached;
             }
 
+            var assetPath = GetChunkAssetPath(config, seed, chunkCoord);
             var absolutePath = ResolveAbsolutePath(assetPath);
             if (forceRegenerate || (!File.Exists(absolutePath) && autoGenerateMissing))
             {
@@ -110,7 +144,7 @@ namespace CodexSix.TerrainMeshMovementLab
             var png = texture.EncodeToPNG();
             File.WriteAllBytes(absolutePath, png);
 
-            var cacheKey = BuildCacheKey(assetPath);
+            var cacheKey = BuildChunkCacheKey(seed, chunkCoord, config.ChunkVertices);
             Cache.Remove(cacheKey);
 
 #if UNITY_EDITOR
@@ -238,9 +272,9 @@ namespace CodexSix.TerrainMeshMovementLab
             return new TerrainLabChunkHeightData(expectedSize, heights);
         }
 
-        private static string BuildCacheKey(string assetPath)
+        private static ChunkCacheKey BuildChunkCacheKey(int seed, Vector2Int chunkCoord, int chunkVertices)
         {
-            return assetPath.Replace('\\', '/');
+            return new ChunkCacheKey(seed, chunkCoord.x, chunkCoord.y, chunkVertices);
         }
 
         private static string ResolveAbsolutePath(string assetPath)

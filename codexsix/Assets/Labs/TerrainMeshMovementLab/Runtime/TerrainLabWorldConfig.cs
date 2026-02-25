@@ -35,6 +35,7 @@ namespace CodexSix.TerrainMeshMovementLab
 
         public int ChunkVertices => ChunkCells + 1;
         public int PaddedChunkVertices => ChunkVertices + 2;
+        public float WaterLevel => (HeightMin + HeightMax) * 0.5f;
 
         public void ValidateInPlace()
         {

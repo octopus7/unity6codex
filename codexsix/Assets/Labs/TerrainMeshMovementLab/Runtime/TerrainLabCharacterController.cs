@@ -31,6 +31,7 @@ namespace CodexSix.TerrainMeshMovementLab
         [Min(0f)] public float JumpHeight = 1.6f;
         [Min(0.1f)] public float GravityMagnitude = 20f;
         public float GroundSnapVelocity = -2f;
+        [Min(0f)] public float InputSmoothTime = 0.08f;
 
         [Header("Visual")]
         public bool AutoCreateVisual = true;
@@ -39,6 +40,8 @@ namespace CodexSix.TerrainMeshMovementLab
         private CharacterController _controller;
         private float _verticalVelocity;
         private Material _runtimeVisualMaterial;
+        private Vector2 _smoothedMoveInput;
+        private Vector2 _smoothedMoveInputVelocity;
 
 #if ENABLE_INPUT_SYSTEM
         private InputAction _moveAction;
@@ -103,7 +106,22 @@ namespace CodexSix.TerrainMeshMovementLab
             }
 
             var moveInput = ReadMoveInput();
-            var move = CalculateWorldMove(moveInput);
+            if (InputSmoothTime > 0f)
+            {
+                _smoothedMoveInput = Vector2.SmoothDamp(
+                    _smoothedMoveInput,
+                    moveInput,
+                    ref _smoothedMoveInputVelocity,
+                    InputSmoothTime,
+                    Mathf.Infinity,
+                    deltaTime);
+            }
+            else
+            {
+                _smoothedMoveInput = moveInput;
+            }
+
+            var move = CalculateWorldMove(_smoothedMoveInput);
 
             if (_controller.isGrounded)
             {
@@ -155,7 +173,7 @@ namespace CodexSix.TerrainMeshMovementLab
                 return _moveAction.ReadValue<Vector2>();
             }
 #endif
-            return new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            return new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
         }
 
         private bool ReadJumpPressed()

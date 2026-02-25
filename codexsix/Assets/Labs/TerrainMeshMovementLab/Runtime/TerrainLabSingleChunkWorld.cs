@@ -21,6 +21,7 @@ namespace CodexSix.TerrainMeshMovementLab
         public Transform PlayerRoot;
         public CharacterController PlayerCharacterController;
         public TerrainLabMinimapController MinimapController;
+        public TerrainLabPerformanceGraph PerformanceGraph;
 
         [Header("Player Spawn")]
         public float PlayerHeightOffset = 0.25f;
@@ -50,6 +51,21 @@ namespace CodexSix.TerrainMeshMovementLab
             if (MinimapController == null)
             {
                 MinimapController = FindFirstObjectByType<TerrainLabMinimapController>();
+            }
+
+            if (PerformanceGraph == null)
+            {
+                PerformanceGraph = GetComponent<TerrainLabPerformanceGraph>();
+                if (PerformanceGraph == null)
+                {
+                    PerformanceGraph = FindFirstObjectByType<TerrainLabPerformanceGraph>();
+                }
+            }
+
+            if (PerformanceGraph == null)
+            {
+                PerformanceGraph = gameObject.AddComponent<TerrainLabPerformanceGraph>();
+                PerformanceGraph.ScreenRect = new Rect(16f, 270f, 320f, 130f);
             }
 
             if (PlayerRoot == null)
