@@ -161,7 +161,6 @@ namespace CodexSix.TerrainMeshMovementLab
             ResolveReferences();
             EnsureSurfaceObject();
             EnsureMaterial();
-            EnsureDepthTextureCamera();
             SyncToWorld(force: true);
         }
 
@@ -170,7 +169,6 @@ namespace CodexSix.TerrainMeshMovementLab
             ResolveReferences();
             EnsureSurfaceObject();
             EnsureMaterial();
-            EnsureDepthTextureCamera();
             SyncToWorld(force: true);
         }
 
@@ -224,7 +222,6 @@ namespace CodexSix.TerrainMeshMovementLab
             ResolveReferences();
             EnsureSurfaceObject();
             EnsureMaterial();
-            EnsureDepthTextureCamera();
             ApplyMaterialParameters();
         }
 
@@ -885,29 +882,6 @@ namespace CodexSix.TerrainMeshMovementLab
             _shoreDistanceMap.Apply(updateMipmaps: false, makeNoLongerReadable: false);
         }
 
-        private void EnsureDepthTextureCamera()
-        {
-            if (TargetCamera == null)
-            {
-                TargetCamera = Camera.main;
-            }
-
-            if (TargetCamera == null)
-            {
-                TargetCamera = FindFirstObjectByType<Camera>();
-            }
-
-            if (TargetCamera == null)
-            {
-                return;
-            }
-
-            if ((TargetCamera.depthTextureMode & DepthTextureMode.Depth) == 0)
-            {
-                TargetCamera.depthTextureMode |= DepthTextureMode.Depth;
-            }
-        }
-
         private void SyncToWorld(bool force)
         {
             if (!isActiveAndEnabled)
@@ -918,7 +892,6 @@ namespace CodexSix.TerrainMeshMovementLab
             ResolveReferences();
             EnsureSurfaceObject();
             EnsureMaterial();
-            EnsureDepthTextureCamera();
 
             if (_surfaceTransform == null || _surfaceRenderer == null || _runtimeMaterial == null)
             {

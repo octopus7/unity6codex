@@ -67,8 +67,6 @@ Shader "TerrainLab/WaterDepthShore"
             #pragma multi_compile_fwdbase
             #include "UnityCG.cginc"
             #include "Lighting.cginc"
-
-            UNITY_DECLARE_DEPTH_TEXTURE(_CameraDepthTexture);
             sampler2D _NormalMapA;
             sampler2D _NormalMapB;
             sampler2D _ShoreDistanceMap;
@@ -140,11 +138,6 @@ Shader "TerrainLab/WaterDepthShore"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                float rawDepth = SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.screenPos));
-                float sceneEyeDepth = LinearEyeDepth(rawDepth);
-                float waterEyeDepth = -UnityWorldToViewPos(i.worldPos).z;
-                float thickness = max(0.0, sceneEyeDepth - waterEyeDepth);
-
                 float2 normalUvA = (i.worldPos.xz * _NormalWorldScaleA) + (_Time.y * _NormalSpeedA.xy);
                 float2 normalUvB = (i.worldPos.xz * _NormalWorldScaleB) + (_Time.y * _NormalSpeedB.xy);
                 float3 normalA = UnpackNormal(tex2D(_NormalMapA, normalUvA));
@@ -161,15 +154,8 @@ Shader "TerrainLab/WaterDepthShore"
                     lightDir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
                 }
 
-                float depthBlueT = saturate((thickness - _DepthBlueStart) / max(0.0001, _DepthBlueRange));
-                float3 waterColor = lerp(_ShallowColor.rgb, _DeepBlueColor.rgb, depthBlueT);
-
-                float up = smoothstep(_DepthGreenMin, _DepthGreenPeak, thickness);
-                float down = 1.0 - smoothstep(_DepthGreenPeak, _DepthGreenMax, thickness);
-                float greenMask = saturate(up * down * _DepthGreenStrength);
-                waterColor = lerp(waterColor, _MidGreenColor.rgb, greenMask);
-
-                float baseAlpha = lerp(_ShallowAlpha, _DeepAlpha, depthBlueT);
+                float3 waterColor = _ShallowColor.rgb;
+                float baseAlpha = _ShallowAlpha;
 
                 float2 mapSize = max(_ShoreMapWorldSize.xy, float2(0.001, 0.001));
                 float2 shoreUv = (i.worldPos.xz - _ShoreMapWorldMin.xy) / mapSize;
