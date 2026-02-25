@@ -2,14 +2,16 @@
     flex-grow: 1;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    background-color: rgb(16, 22, 31);
+    padding: 12px;
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .lab-panel {
     width: 760px;
     max-width: 96%;
-    min-height: 560px;
+    max-height: 100%;
+    min-height: 0;
+    flex-shrink: 1;
     padding: 16px;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
@@ -68,7 +70,7 @@
 
 .lesson-stage {
     flex-grow: 1;
-    min-height: 320px;
+    min-height: 0;
     padding: 14px;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
@@ -87,6 +89,7 @@
 
 .lesson-card {
     flex-grow: 1;
+    min-height: 0;
     row-gap: 8px;
 }
 
@@ -123,7 +126,8 @@
 
 .item-scroll-view {
     margin-top: 10px;
-    height: 220px;
+    min-height: 0;
+    flex-grow: 1;
 }
 
 .inventory-item-button {
@@ -137,6 +141,7 @@
     justify-content: flex-end;
     margin-top: 12px;
     column-gap: 8px;
+    flex-shrink: 0;
 }
 
 .nav-button {

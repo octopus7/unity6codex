@@ -116,7 +116,7 @@ namespace CodexSix.UiToolkit.HandsOn
         private static PanelSettings CreateRuntimePanelSettings()
         {
             var panelSettings = ScriptableObject.CreateInstance<PanelSettings>();
-            panelSettings.clearColor = true;
+            panelSettings.clearColor = false;
 
             var defaultTheme = TryResolveEditorDefaultTheme();
             if (defaultTheme == null)
