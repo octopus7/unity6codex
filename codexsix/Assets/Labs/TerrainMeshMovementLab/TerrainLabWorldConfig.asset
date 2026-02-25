@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18e89ae27999bc643843fe9cf4e92488, type: 3}
+  m_Name: TerrainLabWorldConfig
+  m_EditorClassIdentifier: CodexSix.TerrainMeshMovementLab::CodexSix.TerrainMeshMovementLab.TerrainLabWorldConfig
+  DefaultSeed: 12345
+  ChunkCells: 64
+  CellSize: 1
+  HeightMin: -4
+  HeightMax: 12
+  NoiseScale: 28
+  Octaves: 4
+  Persistence: 0.5
+  Lacunarity: 2
+  HeightmapAssetFolder: Assets/Labs/TerrainMeshMovementLab/Generated/Heightmaps
+  ViewerDefaultGridSize: 3
+  MinimapTextureSize: 256
+  MinimapWindowWorldSize: 80
