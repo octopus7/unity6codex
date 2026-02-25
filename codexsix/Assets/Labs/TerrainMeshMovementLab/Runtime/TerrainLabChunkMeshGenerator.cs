@@ -1,5 +1,8 @@
 ﻿using UnityEngine;
 
+using System;
+using UnityEngine.Rendering;
+
 namespace CodexSix.TerrainMeshMovementLab
 {
     [DisallowMultipleComponent]
@@ -32,6 +35,32 @@ namespace CodexSix.TerrainMeshMovementLab
             _meshCollider = GetComponent<MeshCollider>();
             _meshRenderer = GetComponent<MeshRenderer>();
             EnsureMaterial();
+        }
+
+        private void OnEnable()
+        {
+            _meshFilter ??= GetComponent<MeshFilter>();
+            _meshCollider ??= GetComponent<MeshCollider>();
+            _meshRenderer ??= GetComponent<MeshRenderer>();
+            EnsureMaterial();
+            ReleaseRuntimeColorTexture();
+            RefreshExistingMeshColors();
+        }
+
+        private void OnValidate()
+        {
+            _meshFilter ??= GetComponent<MeshFilter>();
+            _meshCollider ??= GetComponent<MeshCollider>();
+            _meshRenderer ??= GetComponent<MeshRenderer>();
+
+            if (WorldConfig != null)
+            {
+                WorldConfig.ValidateInPlace();
+            }
+
+            EnsureMaterial();
+            ReleaseRuntimeColorTexture();
+            RefreshExistingMeshColors();
         }
 
         private void OnDestroy()
@@ -72,19 +101,7 @@ namespace CodexSix.TerrainMeshMovementLab
 
             if (_runtimeColorTexture != null)
             {
-#if UNITY_EDITOR
-                if (Application.isEditor)
-                {
-                    DestroyImmediate(_runtimeColorTexture);
-                }
-                else
-                {
-                    Destroy(_runtimeColorTexture);
-                }
-#else
-                Destroy(_runtimeColorTexture);
-#endif
-                _runtimeColorTexture = null;
+                ReleaseRuntimeColorTexture();
             }
         }
 
@@ -178,7 +195,7 @@ namespace CodexSix.TerrainMeshMovementLab
                     vertices[index] = new Vector3(x * cellSize, h, z * cellSize);
                     normals[index] = CalculateNormalFromPadded(heights, x + 1, z + 1, cellSize);
                     uvs[index] = new Vector2(x / (float)chunkCells, z / (float)chunkCells);
-                    colors[index] = TerrainLabHeightColorRamp.Evaluate(WorldConfig, h);
+                    colors[index] = TerrainLabTerrainMeshColorRamp.Evaluate(WorldConfig, h);
                     index++;
                 }
             }
@@ -256,6 +273,8 @@ namespace CodexSix.TerrainMeshMovementLab
 
             if (_runtimeMaterial != null)
             {
+                EnsureDepthAwareShaderForBuiltIn(_runtimeMaterial);
+                ForceOpaqueSurface(_runtimeMaterial);
                 if (_meshRenderer.sharedMaterial != _runtimeMaterial)
                 {
                     _meshRenderer.sharedMaterial = _runtimeMaterial;
@@ -268,25 +287,11 @@ namespace CodexSix.TerrainMeshMovementLab
             if (source != null)
             {
                 _runtimeMaterial = new Material(source);
+                EnsureDepthAwareShaderForBuiltIn(_runtimeMaterial);
             }
             else
             {
-                var shader = Shader.Find("Universal Render Pipeline/Unlit");
-                if (shader == null)
-                {
-                    shader = Shader.Find("Unlit/Texture");
-                }
-
-                if (shader == null)
-                {
-                    shader = Shader.Find("Universal Render Pipeline/Lit");
-                }
-
-                if (shader == null)
-                {
-                    shader = Shader.Find("Standard");
-                }
-
+                var shader = ResolveDefaultTerrainShader();
                 if (shader == null)
                 {
                     return;
@@ -301,6 +306,74 @@ namespace CodexSix.TerrainMeshMovementLab
             ForceOpaqueSurface(_runtimeMaterial);
 
             _meshRenderer.sharedMaterial = _runtimeMaterial;
+        }
+
+        private static Shader ResolveDefaultTerrainShader()
+        {
+            // Built-in pipeline: prefer Standard so terrain contributes to camera depth texture.
+            if (GraphicsSettings.currentRenderPipeline == null)
+            {
+                var standard = Shader.Find("Standard");
+                if (standard != null)
+                {
+                    return standard;
+                }
+
+                var legacyDiffuse = Shader.Find("Legacy Shaders/Diffuse");
+                if (legacyDiffuse != null)
+                {
+                    return legacyDiffuse;
+                }
+
+                return Shader.Find("Unlit/Texture");
+            }
+
+            var urpLit = Shader.Find("Universal Render Pipeline/Lit");
+            if (urpLit != null)
+            {
+                return urpLit;
+            }
+
+            var urpSimpleLit = Shader.Find("Universal Render Pipeline/Simple Lit");
+            if (urpSimpleLit != null)
+            {
+                return urpSimpleLit;
+            }
+
+            var urpUnlit = Shader.Find("Universal Render Pipeline/Unlit");
+            if (urpUnlit != null)
+            {
+                return urpUnlit;
+            }
+
+            var standardFallback = Shader.Find("Standard");
+            if (standardFallback != null)
+            {
+                return standardFallback;
+            }
+
+            return Shader.Find("Unlit/Texture");
+        }
+
+        private static void EnsureDepthAwareShaderForBuiltIn(Material material)
+        {
+            if (material == null || GraphicsSettings.currentRenderPipeline != null || material.shader == null)
+            {
+                return;
+            }
+
+            var shaderName = material.shader.name;
+            if (!string.Equals(shaderName, "Unlit/Texture", StringComparison.Ordinal)
+                && !string.Equals(shaderName, "Unlit/Color", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var standard = Shader.Find("Standard");
+            if (standard != null)
+            {
+                material.shader = standard;
+            }
         }
 
         private void ApplyColorTexture(Color32[] colors, int resolution)
@@ -352,28 +425,72 @@ namespace CodexSix.TerrainMeshMovementLab
 
             if (_runtimeColorTexture != null)
             {
-#if UNITY_EDITOR
-                if (Application.isEditor)
-                {
-                    DestroyImmediate(_runtimeColorTexture);
-                }
-                else
-                {
-                    Destroy(_runtimeColorTexture);
-                }
-#else
-                Destroy(_runtimeColorTexture);
-#endif
-                _runtimeColorTexture = null;
+                ReleaseRuntimeColorTexture();
             }
 
-            _runtimeColorTexture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, mipChain: false, linear: true)
+            _runtimeColorTexture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, mipChain: false, linear: false)
             {
                 name = "TerrainLabChunkColorMap",
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp,
                 hideFlags = HideFlags.HideAndDontSave
             };
+        }
+
+        private void ReleaseRuntimeColorTexture()
+        {
+            if (_runtimeColorTexture == null)
+            {
+                return;
+            }
+
+#if UNITY_EDITOR
+            if (Application.isEditor)
+            {
+                DestroyImmediate(_runtimeColorTexture);
+            }
+            else
+            {
+                Destroy(_runtimeColorTexture);
+            }
+#else
+            Destroy(_runtimeColorTexture);
+#endif
+            _runtimeColorTexture = null;
+        }
+
+        private void RefreshExistingMeshColors()
+        {
+            if (WorldConfig == null || _meshFilter == null)
+            {
+                return;
+            }
+
+            var existingMesh = _meshFilter.sharedMesh;
+            if (existingMesh == null)
+            {
+                return;
+            }
+
+            var vertices = existingMesh.vertices;
+            if (vertices == null || vertices.Length == 0)
+            {
+                return;
+            }
+
+            var colors = new Color32[vertices.Length];
+            for (var i = 0; i < vertices.Length; i++)
+            {
+                colors[i] = TerrainLabTerrainMeshColorRamp.Evaluate(WorldConfig, vertices[i].y);
+            }
+
+            existingMesh.colors32 = colors;
+
+            var expectedResolution = WorldConfig.ChunkVertices;
+            if (expectedResolution * expectedResolution == colors.Length)
+            {
+                ApplyColorTexture(colors, expectedResolution);
+            }
         }
 
         private static void ForceOpaqueSurface(Material material)

@@ -17,6 +17,7 @@ Existing scenes (`Assets/Scenes/*`) and existing gameplay scripts are not modifi
 - Mesh reconstruction from saved height PNG
 - Physical terrain generation for adjacent chunk grid (default `3x3`) with player-chunk recentering
 - Player-centered minimap window with automatic neighbor chunk sampling near boundaries
+- Water plane with depth-based color gradient and animated shoreline loop (Built-in shader)
 - Runtime performance graph overlay (FPS / frame-time)
 - Editor NxN stitched top-down height viewer
 

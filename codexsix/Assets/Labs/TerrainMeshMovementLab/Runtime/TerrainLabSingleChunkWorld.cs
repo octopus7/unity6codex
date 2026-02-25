@@ -21,7 +21,9 @@ namespace CodexSix.TerrainMeshMovementLab
         public Transform PlayerRoot;
         public CharacterController PlayerCharacterController;
         public TerrainLabMinimapController MinimapController;
+        public TerrainLabWaterController WaterController;
         public TerrainLabPerformanceGraph PerformanceGraph;
+        public TerrainLabHeightRangeDebugCube HeightRangeDebugCube;
 
         [Header("Player Spawn")]
         public float PlayerHeightOffset = 0.25f;
@@ -80,6 +82,9 @@ namespace CodexSix.TerrainMeshMovementLab
                     }
                 }
             }
+
+            EnsureWaterControllerReference();
+            EnsureHeightRangeDebugCubeReference();
         }
 
         private void OnDestroy()
@@ -132,6 +137,22 @@ namespace CodexSix.TerrainMeshMovementLab
             {
                 MinimapController.BindWorld(this);
                 MinimapController.RequestImmediateRefresh();
+            }
+
+            EnsureWaterControllerReference();
+            if (WaterController != null)
+            {
+                WaterController.BindWorld(this);
+                WaterController.BindPlayer(PlayerRoot);
+                WaterController.RequestImmediateSync();
+            }
+
+            EnsureHeightRangeDebugCubeReference();
+            if (HeightRangeDebugCube != null)
+            {
+                HeightRangeDebugCube.BindWorldConfig(WorldConfig);
+                HeightRangeDebugCube.BindPlayer(PlayerRoot);
+                HeightRangeDebugCube.RequestImmediateRefresh();
             }
 
             _nextCenterChunkCheckAt = Time.time + Mathf.Max(0.05f, ChunkCenterCheckIntervalSeconds);
@@ -217,6 +238,11 @@ namespace CodexSix.TerrainMeshMovementLab
             if (MinimapController != null)
             {
                 MinimapController.RequestImmediateRefresh();
+            }
+
+            if (WaterController != null)
+            {
+                WaterController.RequestImmediateSync();
             }
         }
 
@@ -338,6 +364,115 @@ namespace CodexSix.TerrainMeshMovementLab
             var fallback = PlayerRoot.position;
             fallback.y = finalHeight;
             PlayerRoot.position = fallback;
+        }
+
+        private void EnsureWaterControllerReference()
+        {
+            if (WaterController == null)
+            {
+                WaterController = FindFirstObjectByType<TerrainLabWaterController>();
+            }
+
+            if (WaterController == null)
+            {
+                var parent = transform.parent != null ? transform.parent : transform;
+                var waterTransform = parent.Find("Water");
+                if (waterTransform == null)
+                {
+                    var waterObject = new GameObject("Water");
+                    waterObject.transform.SetParent(parent);
+                    waterObject.transform.localPosition = Vector3.zero;
+                    waterObject.transform.localRotation = Quaternion.identity;
+                    waterObject.transform.localScale = Vector3.one;
+                    WaterController = waterObject.AddComponent<TerrainLabWaterController>();
+                }
+                else
+                {
+                    WaterController = waterTransform.GetComponent<TerrainLabWaterController>();
+                    if (WaterController == null)
+                    {
+                        WaterController = waterTransform.gameObject.AddComponent<TerrainLabWaterController>();
+                    }
+                }
+            }
+
+            if (WaterController != null)
+            {
+                WaterController.BindWorld(this);
+                if (PlayerRoot != null)
+                {
+                    WaterController.BindPlayer(PlayerRoot);
+                }
+            }
+        }
+
+        private void EnsureHeightRangeDebugCubeReference()
+        {
+            if (HeightRangeDebugCube == null)
+            {
+                HeightRangeDebugCube = FindFirstObjectByType<TerrainLabHeightRangeDebugCube>();
+            }
+
+            if (HeightRangeDebugCube == null)
+            {
+                var parent = transform.parent != null ? transform.parent : transform;
+                var cubeTransform = parent.Find("HeightRangeDebugCube");
+                GameObject cubeObject;
+                if (cubeTransform == null)
+                {
+                    cubeObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    cubeObject.name = "HeightRangeDebugCube";
+                    cubeObject.transform.SetParent(parent);
+                    cubeObject.transform.localPosition = new Vector3(5f, 0f, 0f);
+                    cubeObject.transform.localRotation = Quaternion.identity;
+                    cubeObject.transform.localScale = Vector3.one;
+                }
+                else
+                {
+                    cubeObject = cubeTransform.gameObject;
+                }
+
+                RemoveColliderIfExists(cubeObject);
+
+                HeightRangeDebugCube = cubeObject.GetComponent<TerrainLabHeightRangeDebugCube>();
+                if (HeightRangeDebugCube == null)
+                {
+                    HeightRangeDebugCube = cubeObject.AddComponent<TerrainLabHeightRangeDebugCube>();
+                }
+            }
+
+            if (HeightRangeDebugCube != null)
+            {
+                HeightRangeDebugCube.BindWorldConfig(WorldConfig);
+                HeightRangeDebugCube.BindPlayer(PlayerRoot);
+            }
+        }
+
+        private static void RemoveColliderIfExists(GameObject gameObject)
+        {
+            if (gameObject == null)
+            {
+                return;
+            }
+
+            var collider = gameObject.GetComponent<Collider>();
+            if (collider == null)
+            {
+                return;
+            }
+
+#if UNITY_EDITOR
+            if (Application.isEditor && !Application.isPlaying)
+            {
+                DestroyImmediate(collider);
+            }
+            else
+            {
+                Destroy(collider);
+            }
+#else
+            Destroy(collider);
+#endif
         }
     }
 }
