@@ -43,7 +43,7 @@ namespace CodexSix.TopdownShooter.Game
                 header,
                 "CloseButton",
                 "Close",
-                () => Handle.Cancel(),
+                HandleCloseClicked,
                 new Color(0.34f, 0.2f, 0.2f, 1f),
                 fontSize: 16,
                 minHeight: 40f);
@@ -184,6 +184,16 @@ namespace CodexSix.TopdownShooter.Game
         {
             _selectedEventId = eventId ?? string.Empty;
             Refresh();
+        }
+
+        private void HandleCloseClicked()
+        {
+            if (Handle.Cancel())
+            {
+                return;
+            }
+
+            Context?.ModalService.TryCancelTop();
         }
 
         private void Refresh()

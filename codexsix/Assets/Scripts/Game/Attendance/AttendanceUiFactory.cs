@@ -106,6 +106,9 @@ namespace CodexSix.TopdownShooter.Game
             var layout = rect.gameObject.AddComponent<LayoutElement>();
             layout.minHeight = minHeight;
             layout.preferredHeight = minHeight;
+            var estimatedWidth = Mathf.Max(96f, (labelText != null ? labelText.Length : 0) * Mathf.Max(8f, fontSize * 0.7f) + 36f);
+            layout.minWidth = estimatedWidth;
+            layout.preferredWidth = estimatedWidth;
 
             var background = AddImage(rect.gameObject, backgroundColor);
             var button = rect.gameObject.AddComponent<Button>();
