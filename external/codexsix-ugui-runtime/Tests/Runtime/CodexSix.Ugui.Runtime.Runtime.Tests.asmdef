@@ -1,0 +1,19 @@
+{
+  "name": "CodexSix.Ugui.Runtime.Runtime.Tests",
+  "rootNamespace": "CodexSix.UguiRuntime.Tests.Runtime",
+  "references": [
+    "CodexSix.Ugui.Runtime"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

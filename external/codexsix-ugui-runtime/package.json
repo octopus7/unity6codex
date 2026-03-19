@@ -1,0 +1,24 @@
+{
+  "name": "com.codexsix.ugui.runtime",
+  "displayName": "CodexSix uGUI Runtime",
+  "version": "0.1.0",
+  "unity": "6000.3",
+  "description": "Reusable Unity 6 uGUI runtime framework for stack-based screens, async popups, and gameplay input blocking.",
+  "keywords": [
+    "ui",
+    "ugui",
+    "runtime",
+    "unity6",
+    "game-ui"
+  ],
+  "author": {
+    "name": "CodexSix"
+  },
+  "samples": [
+    {
+      "displayName": "Stacked uGUI Demo",
+      "description": "Sample scene generator for the stack-based uGUI runtime.",
+      "path": "Samples~/StackedUguiDemo"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "CodexSix.Ugui.Runtime.Editor",
+  "rootNamespace": "CodexSix.UguiRuntime.Editor",
+  "references": [
+    "CodexSix.Ugui.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
