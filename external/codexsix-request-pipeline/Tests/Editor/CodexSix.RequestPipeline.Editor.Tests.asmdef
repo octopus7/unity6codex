@@ -1,0 +1,23 @@
+{
+  "name": "CodexSix.RequestPipeline.Editor.Tests",
+  "rootNamespace": "CodexSix.RequestPipeline.Tests.Editor",
+  "references": [
+    "CodexSix.RequestPipeline",
+    "CodexSix.RequestPipeline.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
+

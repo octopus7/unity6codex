@@ -1,0 +1,20 @@
+{
+  "name": "CodexSix.RequestPipeline.Runtime.Tests",
+  "rootNamespace": "CodexSix.RequestPipeline.Tests.Runtime",
+  "references": [
+    "CodexSix.RequestPipeline"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
+

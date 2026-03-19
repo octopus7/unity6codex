@@ -1,0 +1,25 @@
+{
+  "name": "com.codexsix.request-pipeline",
+  "displayName": "CodexSix Request Pipeline",
+  "version": "0.1.0",
+  "unity": "6000.3",
+  "description": "Minimal Unity package skeleton for request pipeline structure study with runtime, editor, tests, samples, and documentation.",
+  "keywords": [
+    "network",
+    "request",
+    "pipeline",
+    "runtime",
+    "unity6"
+  ],
+  "author": {
+    "name": "CodexSix"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Request Sample",
+      "description": "Minimal sample that exercises the dummy request transport.",
+      "path": "Samples~/BasicRequestSample"
+    }
+  ]
+}
+

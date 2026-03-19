@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.codexsix.request-pipeline": {
+      "version": "file:../../external/codexsix-request-pipeline",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.10",
       "depth": 0,
