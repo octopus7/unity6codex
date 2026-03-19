@@ -58,7 +58,9 @@ namespace CodexSix.TopdownShooter.Game
 
         public int LocalPlayerId { get; private set; } = -1;
         public int LocalHp { get; private set; } = 100;
-        public int LocalCoins { get; private set; }
+        public int ServerCoins { get; private set; }
+        public int LocalBonusCoins { get; private set; }
+        public int LocalCoins => Mathf.Max(0, ServerCoins + LocalBonusCoins);
         public bool LocalInShopZone { get; private set; }
         public int CurrentPlayerCount { get; private set; }
         public long LastPingMs { get; private set; }
@@ -102,6 +104,8 @@ namespace CodexSix.TopdownShooter.Game
 
         private const uint CoinDispenserIntervalTicks = 150u;
         private const float ServerTickDeltaSeconds = 1f / 30f;
+
+        public event Action SessionReady;
 
         private void Awake()
         {
@@ -440,6 +444,7 @@ namespace CodexSix.TopdownShooter.Game
             }
 
             Debug.Log($"Connected. LocalPlayerId={LocalPlayerId}, tick={welcome.TickRateHz}, snapshot={welcome.SnapshotRateHz}");
+            SessionReady?.Invoke();
         }
 
         private void OnSnapshotReceived(ServerSnapshot snapshot)
@@ -1148,7 +1153,7 @@ namespace CodexSix.TopdownShooter.Game
         private void UpdateLocalHud(PlayerSnapshot[] players)
         {
             LocalHp = 0;
-            LocalCoins = 0;
+            ServerCoins = 0;
             LocalInShopZone = false;
 
             if (LocalPlayerId <= 0)
@@ -1165,10 +1170,20 @@ namespace CodexSix.TopdownShooter.Game
                 }
 
                 LocalHp = player.Hp;
-                LocalCoins = player.CarriedCoins;
+                ServerCoins = player.CarriedCoins;
                 LocalInShopZone = player.InShopZone;
                 return;
             }
+        }
+
+        public void AddLocalBonusCoins(int amount)
+        {
+            if (amount == 0)
+            {
+                return;
+            }
+
+            LocalBonusCoins = Mathf.Max(0, LocalBonusCoins + amount);
         }
 
         private void UpdateLeaderboard(PlayerSnapshot[] players)
@@ -1468,7 +1483,7 @@ namespace CodexSix.TopdownShooter.Game
 
             LocalPlayerId = -1;
             LocalHp = 100;
-            LocalCoins = 0;
+            ServerCoins = 0;
             LocalInShopZone = false;
             CurrentPlayerCount = 0;
             LeaderboardText = "-";

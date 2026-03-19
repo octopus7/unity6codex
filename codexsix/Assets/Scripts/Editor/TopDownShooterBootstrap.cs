@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using CodexSix.TopdownShooter.Game;
 using CodexSix.TopdownShooter.Net;
+using CodexSix.UguiRuntime;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -916,6 +917,28 @@ namespace CodexSix.TopdownShooter.EditorTools
             overheadHp.Client = client;
             overheadHp.WorldCamera = camera;
             overheadHp.UiScale = 2f;
+
+            BuildAttendanceUi(hudRoot.transform, client);
+        }
+
+        private static void BuildAttendanceUi(Transform parent, NetworkGameClient client)
+        {
+            var attendanceUiObject = new GameObject("AttendanceUi");
+            attendanceUiObject.transform.SetParent(parent, false);
+
+            var runtimeInstaller = attendanceUiObject.AddComponent<UiRuntimeInstaller>();
+            var controller = attendanceUiObject.AddComponent<AttendanceUiController>();
+
+            controller.Client = client;
+            controller.InputSender = client.GetComponent<LocalInputSender>();
+            controller.GrowthProgressionManager = client.GetComponent<GrowthProgressionManager>();
+            controller.InventoryManager = client.GetComponent<PlayerInventoryManager>();
+            controller.ItemDataManager = client.GetComponent<ItemDataManager>();
+            controller.UiRuntimeInstaller = runtimeInstaller;
+            controller.EventCatalog = AttendanceEventEditorAssets.LoadOrCreateEventCatalog();
+            controller.UiCatalogAsset = AttendanceEventEditorAssets.LoadOrCreateUiCatalog();
+
+            runtimeInstaller.Catalog = controller.UiCatalogAsset;
         }
 
         private static void AddSpawnPoints(Transform parent, TopDownMapAuthoringAsset mapAsset)

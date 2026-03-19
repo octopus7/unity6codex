@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9abc35006eedb4b449bd7593ff73561c, type: 3}
+  m_Name: AttendanceUiCatalog
+  m_EditorClassIdentifier: CodexSix.Ugui.Runtime::CodexSix.UguiRuntime.UiCatalog
+  _screens:
+  - _id: attendance-launcher
+    _prefab: {fileID: 3702799921315866303, guid: 3fde892d359ae96418c27b7245a976c3, type: 3}
+    _cacheInstance: 1
+  _popups:
+  - _id: attendance-modal
+    _prefab: {fileID: 4326956490911575865, guid: bc0137cf17e7ace45817d1ea5d18fee7, type: 3}

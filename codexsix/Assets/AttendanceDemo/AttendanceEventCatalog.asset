@@ -1,0 +1,247 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8005fe4fe9b550d4e862c0ecd3a0478e, type: 3}
+  m_Name: AttendanceEventCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::CodexSix.TopdownShooter.Game.AttendanceEventCatalog
+  _events:
+  - _eventId: attendance-5
+    _displayName: 5 Days
+    _presentationMode: 1
+    _days:
+    - _dayNumber: 1
+      _title: Day 1
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 15
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 2
+      _title: Day 2
+      _rewardLabel: 
+      _rewards:
+      - _kind: 2
+        _amount: 1
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 3
+      _title: Day 3
+      _rewardLabel: 
+      _rewards:
+      - _kind: 3
+        _amount: 1
+        _itemId: 10005
+        _overrideLabel: 
+    - _dayNumber: 4
+      _title: Day 4
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 25
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 5
+      _title: Day 5
+      _rewardLabel: 
+      _rewards:
+      - _kind: 2
+        _amount: 2
+        _itemId: 0
+        _overrideLabel: 
+      - _kind: 3
+        _amount: 1
+        _itemId: 10009
+        _overrideLabel: 
+  - _eventId: attendance-7
+    _displayName: 7 Days
+    _presentationMode: 1
+    _days:
+    - _dayNumber: 1
+      _title: Day 1
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 10
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 2
+      _title: Day 2
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 20
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 3
+      _title: Day 3
+      _rewardLabel: 
+      _rewards:
+      - _kind: 2
+        _amount: 1
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 4
+      _title: Day 4
+      _rewardLabel: 
+      _rewards:
+      - _kind: 3
+        _amount: 2
+        _itemId: 10003
+        _overrideLabel: 
+    - _dayNumber: 5
+      _title: Day 5
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 30
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 6
+      _title: Day 6
+      _rewardLabel: 
+      _rewards:
+      - _kind: 2
+        _amount: 2
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 7
+      _title: Day 7
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 50
+        _itemId: 0
+        _overrideLabel: 
+      - _kind: 3
+        _amount: 1
+        _itemId: 10010
+        _overrideLabel: 
+  - _eventId: attendance-14
+    _displayName: 14 Days
+    _presentationMode: 2
+    _days:
+    - _dayNumber: 1
+      _title: Day 1
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 5
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 2
+      _title: Day 2
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 10
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 3
+      _title: Day 3
+      _rewardLabel: 
+      _rewards:
+      - _kind: 3
+        _amount: 1
+        _itemId: 10001
+        _overrideLabel: 
+    - _dayNumber: 4
+      _title: Day 4
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 15
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 5
+      _title: Day 5
+      _rewardLabel: 
+      _rewards:
+      - _kind: 2
+        _amount: 1
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 6
+      _title: Day 6
+      _rewardLabel: 
+      _rewards:
+      - _kind: 3
+        _amount: 2
+        _itemId: 10007
+        _overrideLabel: 
+    - _dayNumber: 7
+      _title: Day 7
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 25
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 8
+      _title: Day 8
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 30
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 9
+      _title: Day 9
+      _rewardLabel: 
+      _rewards:
+      - _kind: 3
+        _amount: 2
+        _itemId: 10008
+        _overrideLabel: 
+    - _dayNumber: 10
+      _title: Day 10
+      _rewardLabel: 
+      _rewards:
+      - _kind: 2
+        _amount: 2
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 11
+      _title: Day 11
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 35
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 12
+      _title: Day 12
+      _rewardLabel: 
+      _rewards:
+      - _kind: 3
+        _amount: 2
+        _itemId: 20001
+        _overrideLabel: 
+    - _dayNumber: 13
+      _title: Day 13
+      _rewardLabel: 
+      _rewards:
+      - _kind: 1
+        _amount: 45
+        _itemId: 0
+        _overrideLabel: 
+    - _dayNumber: 14
+      _title: Day 14
+      _rewardLabel: 
+      _rewards:
+      - _kind: 2
+        _amount: 3
+        _itemId: 0
+        _overrideLabel: 
+      - _kind: 3
+        _amount: 3
+        _itemId: 10005
+        _overrideLabel: 
