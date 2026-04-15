@@ -120,18 +120,50 @@ namespace McpTest.VoxelVillage
 
         public DialogueSetDefinition? GetFirstDialogueSet(string npcId)
         {
+            return GetDialogueSet(npcId, 0);
+        }
+
+        public int GetDialogueSetCount(string npcId)
+        {
+            if (!_npcs.TryGetValue(npcId, out var npc))
+            {
+                return 0;
+            }
+
+            var count = 0;
+            for (var index = 0; index < npc.dialogueSetIds.Length; index++)
+            {
+                if (_dialogueSets.TryGetValue(npc.dialogueSetIds[index], out var dialogueSet) && dialogueSet.lines.Length > 0)
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        public DialogueSetDefinition? GetDialogueSet(string npcId, int setIndex)
+        {
             if (!_npcs.TryGetValue(npcId, out var npc))
             {
                 return null;
             }
 
+            var resolvedIndex = 0;
             for (var index = 0; index < npc.dialogueSetIds.Length; index++)
             {
                 var dialogueSetId = npc.dialogueSetIds[index];
-                if (_dialogueSets.TryGetValue(dialogueSetId, out var dialogueSet))
+                if (!_dialogueSets.TryGetValue(dialogueSetId, out var dialogueSet) || dialogueSet.lines.Length == 0)
+                {
+                    continue;
+                }
+
+                if (resolvedIndex == setIndex)
                 {
                     return dialogueSet;
                 }
+
+                resolvedIndex++;
             }
 
             return null;
@@ -139,12 +171,22 @@ namespace McpTest.VoxelVillage
 
         public int GetDialogueLineCount(string npcId)
         {
-            return GetFirstDialogueSet(npcId)?.lines.Length ?? 0;
+            return GetDialogueLineCount(npcId, 0);
+        }
+
+        public int GetDialogueLineCount(string npcId, int setIndex)
+        {
+            return GetDialogueSet(npcId, setIndex)?.lines.Length ?? 0;
         }
 
         public DialogueLineDefinition? GetDialogueLine(string npcId, int lineIndex)
         {
-            var dialogueSet = GetFirstDialogueSet(npcId);
+            return GetDialogueLine(npcId, 0, lineIndex);
+        }
+
+        public DialogueLineDefinition? GetDialogueLine(string npcId, int setIndex, int lineIndex)
+        {
+            var dialogueSet = GetDialogueSet(npcId, setIndex);
             if (dialogueSet == null || lineIndex < 0 || lineIndex >= dialogueSet.lines.Length)
             {
                 return null;

@@ -34,3 +34,7 @@ Snapshot recorded at `2026-04-15 12:47:20 KST`.
 | 2026-04-15 13:03:55 KST | Verification pass | Done | `McpTest.VoxelVillage.EditModeTests` 15개 전체 통과, 리소스 데이터와 복셀 캐릭터 팩토리 검증 완료 |
 | 2026-04-15 13:07:02 KST | Controls toggle and help text fix | Done | 조작 설명 패널을 우측 상단 버튼 토글로 변경하고, 잘못된 `RectTransform` 적용과 다국어 폰트 문제를 함께 수정 |
 | 2026-04-15 13:14:00 KST | Interaction prompt slimming | Done | 상호작용 프롬프트 패널을 고정 폭에서 텍스트 기준 동적 폭으로 바꾸고 여백을 줄여 더 날렵하게 조정 |
+| 2026-04-15 13:43:26 KST | Multi-agent world integration | Done | Worker-authored layout/grid generation replaced fixed placement and single-door assumptions with seed-based layout and multi-door runtime state |
+| 2026-04-15 13:43:26 KST | Autonomous villager pass | Done | Twelve villagers now patrol with pathfinding, pause while speaking, and keep separation against the player and one another |
+| 2026-04-15 13:43:26 KST | Voxel environment pass | Done | Houses, doors, fountain, foliage, and decorative rocks now build from voxel meshes while runtime door state updates the occupancy grid |
+| 2026-04-15 13:43:26 KST | Verification pass | Done | Added procedural layout and dialogue-set tests; `McpTest.VoxelVillage.EditModeTests` passes after the world integration changes |

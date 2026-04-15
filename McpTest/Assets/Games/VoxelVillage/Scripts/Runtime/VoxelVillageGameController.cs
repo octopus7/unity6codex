@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -13,23 +14,44 @@ namespace McpTest.VoxelVillage
     public sealed class VoxelVillageGameController : MonoBehaviour
     {
         const float PlayerMoveSpeed = 8f;
+        const float PlayerCollisionRadius = 0.42f;
+        const float VillagerMoveSpeed = 2.55f;
+        const float VillagerCollisionRadius = 0.56f;
         const float InteractionDistance = 2.15f;
         const float CameraFollowSpeed = 6f;
         const float BubbleHeight = 2.45f;
         const float TownScaleMultiplier = 8f;
         const float BaseTownFootprint = 18f;
         const float TownFootprint = BaseTownFootprint * TownScaleMultiplier;
-        const float TownHalfExtent = TownFootprint * 0.5f - 8f;
+        const float TownHalfExtent = TownFootprint * 0.5f;
         const float CameraHeight = 18f;
         const float CameraDistance = 20f;
         const float CameraLookAhead = 13f;
-        const float PersonCollisionRadius = 0.7f;
         const float BaseCharacterHeight = 1.8f;
         const float PromptHorizontalPadding = 14f;
         const float PromptVerticalPadding = 9f;
         const float PromptMinWidth = 104f;
         const float PromptMaxWidth = 240f;
         const float PromptMinHeight = 44f;
+        const float DoorOpenAngle = 108f;
+        const int WorldGridSize = 72;
+        const float WorldCellSize = TownFootprint / WorldGridSize;
+
+        static readonly VillagerStyle[] VillagerStyles =
+        {
+            new VillagerStyle("villager_mina", new Color(0.82f, 0.35f, 0.31f), VoxelCharacterAccessoryType.MerchantApron, 1.04f),
+            new VillagerStyle("villager_jisu", new Color(0.83f, 0.68f, 0.24f), VoxelCharacterAccessoryType.GardenerHat, 0.96f),
+            new VillagerStyle("villager_haru", new Color(0.28f, 0.63f, 0.36f), VoxelCharacterAccessoryType.CarpenterBelt, 1.02f),
+            new VillagerStyle("villager_noah", new Color(0.29f, 0.48f, 0.82f), VoxelCharacterAccessoryType.WatcherScarf, 0.98f),
+            new VillagerStyle("villager_yuna", new Color(0.63f, 0.42f, 0.82f), VoxelCharacterAccessoryType.LanternCape, 1.01f),
+            new VillagerStyle("villager_kai", new Color(0.9f, 0.52f, 0.2f), VoxelCharacterAccessoryType.CourierPack, 0.99f),
+            new VillagerStyle("villager_arin", new Color(0.86f, 0.46f, 0.53f), VoxelCharacterAccessoryType.MerchantApron, 0.95f),
+            new VillagerStyle("villager_doyun", new Color(0.22f, 0.66f, 0.64f), VoxelCharacterAccessoryType.CarpenterBelt, 1.07f),
+            new VillagerStyle("villager_rika", new Color(0.95f, 0.52f, 0.46f), VoxelCharacterAccessoryType.GardenerHat, 0.97f),
+            new VillagerStyle("villager_sora", new Color(0.21f, 0.28f, 0.51f), VoxelCharacterAccessoryType.WatcherScarf, 1.03f),
+            new VillagerStyle("villager_nari", new Color(0.78f, 0.29f, 0.62f), VoxelCharacterAccessoryType.LanternCape, 0.94f),
+            new VillagerStyle("villager_toma", new Color(0.88f, 0.63f, 0.18f), VoxelCharacterAccessoryType.CourierPack, 1.05f)
+        };
 
         enum InteractionTarget
         {
@@ -56,17 +78,21 @@ namespace McpTest.VoxelVillage
 
         Transform _worldRoot = null!;
         GameObject _player = null!;
-        Transform _doorPivot = null!;
+        VillageLayoutData _layout = null!;
+        VillageGrid _villageGrid = null!;
         readonly List<VillagerInstance> _villagers = new List<VillagerInstance>();
+        readonly List<DoorInstance> _doors = new List<DoorInstance>();
+        readonly List<Vector2Int> _patrolCells = new List<Vector2Int>();
+        System.Random _worldRandom = new System.Random();
 
         InteractionTarget _currentTarget;
         VillagerInstance? _currentVillager;
         VillagerInstance? _activeDialogueVillager;
+        DoorInstance? _currentDoor;
         bool _dialogueActive;
         int _dialogueLineIndex;
-        bool _doorOpen;
         bool _helpVisible;
-        float _doorYaw;
+        int _worldSeed;
 
         void Awake()
         {
@@ -158,24 +184,34 @@ namespace McpTest.VoxelVillage
 
         void BuildWorld()
         {
+            if (_worldRoot != null)
+            {
+                Destroy(_worldRoot.gameObject);
+            }
+
+            _villagers.Clear();
+            _doors.Clear();
+            _patrolCells.Clear();
+            _currentTarget = InteractionTarget.None;
+            _currentVillager = null;
+            _currentDoor = null;
+            _activeDialogueVillager = null;
+            _dialogueActive = false;
+            _dialogueLineIndex = 0;
+
+            _worldSeed = Environment.TickCount ^ (int)(DateTime.UtcNow.Ticks & 0x7fffffff);
+            _worldRandom = new System.Random(_worldSeed);
+
             _worldRoot = new GameObject("VoxelVillageWorld").transform;
             _worldRoot.SetParent(transform, false);
+
+            _layout = ProceduralVillageGenerator.Generate(_worldSeed, WorldGridSize);
+            _villageGrid = VillageGrid.FromLayout(_layout);
+            CollectPatrolCells();
 
             var grassMaterial = CreateMaterial(new Color(0.49f, 0.74f, 0.46f));
             var roadMaterial = CreateMaterial(new Color(0.77f, 0.67f, 0.5f));
             var plazaMaterial = CreateMaterial(new Color(0.87f, 0.8f, 0.63f));
-            var wallWarmMaterial = CreateMaterial(new Color(0.89f, 0.84f, 0.72f));
-            var wallCoolMaterial = CreateMaterial(new Color(0.8f, 0.87f, 0.92f));
-            var wallPeachMaterial = CreateMaterial(new Color(0.92f, 0.8f, 0.72f));
-            var roofRedMaterial = CreateMaterial(new Color(0.73f, 0.31f, 0.23f));
-            var roofBlueMaterial = CreateMaterial(new Color(0.23f, 0.36f, 0.61f));
-            var roofGreenMaterial = CreateMaterial(new Color(0.24f, 0.48f, 0.27f));
-            var woodMaterial = CreateMaterial(new Color(0.56f, 0.35f, 0.2f));
-            var trunkMaterial = CreateMaterial(new Color(0.4f, 0.26f, 0.16f));
-            var foliageMaterial = CreateMaterial(new Color(0.23f, 0.56f, 0.23f));
-            var shrubMaterial = CreateMaterial(new Color(0.29f, 0.6f, 0.3f));
-            var flowerYellowMaterial = CreateMaterial(new Color(0.94f, 0.73f, 0.2f));
-            var flowerPinkMaterial = CreateMaterial(new Color(0.91f, 0.48f, 0.7f));
             var waterMaterial = CreateMaterial(new Color(0.31f, 0.61f, 0.82f));
 
             var ground = CreatePrimitive(
@@ -186,112 +222,12 @@ namespace McpTest.VoxelVillage
                 grassMaterial);
             ground.transform.SetParent(_worldRoot, false);
 
-            var mainRoad = CreatePrimitive(
-                PrimitiveType.Cube,
-                "MainRoad",
-                new Vector3(0f, -0.44f, 0f),
-                new Vector3(12f, 0.12f, TownFootprint * 0.82f),
-                roadMaterial);
-            mainRoad.transform.SetParent(_worldRoot, false);
-
-            var crossRoad = CreatePrimitive(
-                PrimitiveType.Cube,
-                "CrossRoad",
-                new Vector3(0f, -0.44f, 8f),
-                new Vector3(TownFootprint * 0.74f, 0.12f, 10f),
-                roadMaterial);
-            crossRoad.transform.SetParent(_worldRoot, false);
-
-            var sideRoadWest = CreatePrimitive(
-                PrimitiveType.Cube,
-                "SideRoadWest",
-                new Vector3(-28f, -0.44f, -4f),
-                new Vector3(9f, 0.12f, TownFootprint * 0.48f),
-                roadMaterial);
-            sideRoadWest.transform.SetParent(_worldRoot, false);
-
-            var sideRoadEast = CreatePrimitive(
-                PrimitiveType.Cube,
-                "SideRoadEast",
-                new Vector3(30f, -0.44f, -2f),
-                new Vector3(9f, 0.12f, TownFootprint * 0.52f),
-                roadMaterial);
-            sideRoadEast.transform.SetParent(_worldRoot, false);
-
-            var plaza = CreatePrimitive(
-                PrimitiveType.Cube,
-                "CentralPlaza",
-                new Vector3(0f, -0.41f, 2f),
-                new Vector3(22f, 0.16f, 18f),
-                plazaMaterial);
-            plaza.transform.SetParent(_worldRoot, false);
-
-            var fountainBase = CreatePrimitive(
-                PrimitiveType.Cylinder,
-                "FountainBase",
-                new Vector3(0f, 0.1f, 2f),
-                new Vector3(4f, 0.2f, 4f),
-                CreateMaterial(new Color(0.68f, 0.72f, 0.77f)));
-            fountainBase.transform.SetParent(_worldRoot, false);
-
-            var fountainWater = CreatePrimitive(
-                PrimitiveType.Cylinder,
-                "FountainWater",
-                new Vector3(0f, 0.24f, 2f),
-                new Vector3(3.2f, 0.08f, 3.2f),
-                waterMaterial);
-            fountainWater.transform.SetParent(_worldRoot, false);
-
-            CreateInteractiveHouse(new Vector3(16f, 1.6f, 10f), new Vector3(6.4f, 3.2f, 5.8f), wallWarmMaterial, roofRedMaterial, woodMaterial, roadMaterial);
-
-            CreateDecorativeHouse("NorthHouseA", new Vector3(-18f, 1.55f, 17f), new Vector3(7.2f, 3.1f, 5.6f), wallCoolMaterial, roofBlueMaterial);
-            CreateDecorativeHouse("NorthHouseB", new Vector3(34f, 1.65f, 18f), new Vector3(8f, 3.3f, 6.2f), wallPeachMaterial, roofGreenMaterial);
-            CreateDecorativeHouse("WestHouseA", new Vector3(-28f, 1.6f, -14f), new Vector3(7.6f, 3.2f, 5.4f), wallWarmMaterial, roofRedMaterial);
-            CreateDecorativeHouse("EastHouseA", new Vector3(31f, 1.55f, -18f), new Vector3(7.4f, 3.1f, 5.8f), wallCoolMaterial, roofBlueMaterial);
-            CreateDecorativeHouse("FarNorth", new Vector3(6f, 1.7f, 42f), new Vector3(9.2f, 3.4f, 6.6f), wallPeachMaterial, roofGreenMaterial);
-            CreateDecorativeHouse("FarSouth", new Vector3(-4f, 1.7f, -42f), new Vector3(9f, 3.4f, 6.6f), wallWarmMaterial, roofRedMaterial);
-            CreateDecorativeHouse("FarWest", new Vector3(-46f, 1.6f, 8f), new Vector3(8.4f, 3.2f, 6.1f), wallCoolMaterial, roofBlueMaterial);
-            CreateDecorativeHouse("FarEast", new Vector3(48f, 1.65f, 6f), new Vector3(8.6f, 3.3f, 6.1f), wallPeachMaterial, roofGreenMaterial);
-
-            CreatePlayer(new Vector3(-5f, 0.9f, -10f), new Color(0.16f, 0.41f, 0.95f));
-
-            CreateVillager("villager_mina", "Npc_Mina", new Vector3(2.8f, 0.9f, 10.5f), new Color(0.92f, 0.43f, 0.35f), new Vector3(0.9f, 1.88f, 0.9f), -35f, 0.06f, 1.9f, 6f, 1.4f, 0f, VoxelCharacterAccessoryType.MerchantApron);
-            CreateVillager("villager_jisu", "Npc_Jisu", new Vector3(-7.5f, 0.82f, 8.5f), new Color(0.94f, 0.68f, 0.26f), new Vector3(0.82f, 1.68f, 0.82f), 22f, 0.04f, 1.4f, 4f, 1f, 0.7f, VoxelCharacterAccessoryType.GardenerHat);
-            CreateVillager("villager_haru", "Npc_Haru", new Vector3(8.5f, 0.96f, 2.5f), new Color(0.34f, 0.75f, 0.46f), new Vector3(0.98f, 1.98f, 0.98f), -12f, 0.03f, 1.2f, 5f, 0.8f, 1.2f, VoxelCharacterAccessoryType.CarpenterBelt);
-            CreateVillager("villager_noah", "Npc_Noah", new Vector3(-16f, 0.9f, 15f), new Color(0.32f, 0.64f, 0.92f), new Vector3(0.86f, 1.8f, 0.86f), 40f, 0.02f, 0.9f, 7f, 1.8f, 1.9f, VoxelCharacterAccessoryType.WatcherScarf);
-            CreateVillager("villager_yuna", "Npc_Yuna", new Vector3(18f, 0.9f, 13f), new Color(0.76f, 0.47f, 0.9f), new Vector3(0.88f, 1.84f, 0.88f), 148f, 0.05f, 1.6f, 4.5f, 1.2f, 2.4f, VoxelCharacterAccessoryType.LanternCape);
-            CreateVillager("villager_kai", "Npc_Kai", new Vector3(24f, 0.9f, -8f), new Color(0.9f, 0.54f, 0.28f), new Vector3(0.92f, 1.86f, 0.92f), -120f, 0.04f, 2.2f, 5.5f, 2.2f, 3.1f, VoxelCharacterAccessoryType.CourierPack);
-            CreateVillager("villager_arin", "Npc_Arin", new Vector3(-24f, 0.84f, 2f), new Color(0.89f, 0.52f, 0.62f), new Vector3(0.84f, 1.72f, 0.84f), 84f, 0.03f, 1.1f, 3.5f, 0.9f, 3.8f, VoxelCharacterAccessoryType.MerchantApron);
-            CreateVillager("villager_doyun", "Npc_Doyun", new Vector3(30f, 0.95f, 16f), new Color(0.28f, 0.7f, 0.68f), new Vector3(0.96f, 1.94f, 0.96f), 166f, 0.04f, 1.5f, 6.5f, 1.1f, 4.6f, VoxelCharacterAccessoryType.CarpenterBelt);
-            CreateVillager("villager_rika", "Npc_Rika", new Vector3(12f, 0.86f, 24f), new Color(0.98f, 0.63f, 0.44f), new Vector3(0.86f, 1.76f, 0.86f), -168f, 0.05f, 1.3f, 4.8f, 1.5f, 5.1f, VoxelCharacterAccessoryType.GardenerHat);
-            CreateVillager("villager_sora", "Npc_Sora", new Vector3(-32f, 0.9f, -6f), new Color(0.45f, 0.58f, 0.93f), new Vector3(0.9f, 1.82f, 0.9f), 58f, 0.03f, 1f, 5.8f, 1.7f, 5.9f, VoxelCharacterAccessoryType.WatcherScarf);
-            CreateVillager("villager_nari", "Npc_Nari", new Vector3(6f, 0.88f, -20f), new Color(0.82f, 0.43f, 0.86f), new Vector3(0.88f, 1.8f, 0.88f), -42f, 0.04f, 1.7f, 4.2f, 1.4f, 6.6f, VoxelCharacterAccessoryType.LanternCape);
-            CreateVillager("villager_toma", "Npc_Toma", new Vector3(40f, 0.92f, -4f), new Color(0.84f, 0.72f, 0.33f), new Vector3(0.94f, 1.9f, 0.94f), -132f, 0.05f, 1.8f, 5.2f, 1.9f, 7.3f, VoxelCharacterAccessoryType.CourierPack);
-
-            CreateTree("TreeNorthWest", new Vector3(-20f, 0f, 28f), trunkMaterial, foliageMaterial);
-            CreateTree("TreeSouthWest", new Vector3(-34f, 0f, -28f), trunkMaterial, foliageMaterial);
-            CreateTree("TreeNorthEast", new Vector3(26f, 0f, 34f), trunkMaterial, foliageMaterial);
-            CreateTree("TreeSouthEast", new Vector3(41f, 0f, -26f), trunkMaterial, foliageMaterial);
-            CreateTree("TreeFarWest", new Vector3(-58f, 0f, 10f), trunkMaterial, foliageMaterial);
-            CreateTree("TreeFarEast", new Vector3(57f, 0f, -6f), trunkMaterial, foliageMaterial);
-
-            CreateShrub("ShrubA", new Vector3(-6f, 0.55f, 8f), new Vector3(1.5f, 1.2f, 1.4f), shrubMaterial);
-            CreateShrub("ShrubB", new Vector3(9f, 0.55f, 15f), new Vector3(1.2f, 1f, 1.2f), shrubMaterial);
-            CreateShrub("ShrubC", new Vector3(-22f, 0.55f, -10f), new Vector3(1.6f, 1.2f, 1.4f), shrubMaterial);
-            CreateShrub("ShrubD", new Vector3(22f, 0.55f, -14f), new Vector3(1.7f, 1.2f, 1.5f), shrubMaterial);
-
-            CreateFlower("FlowerA", new Vector3(-4f, 0.18f, 6f), flowerYellowMaterial);
-            CreateFlower("FlowerB", new Vector3(-3f, 0.18f, 6.8f), flowerPinkMaterial);
-            CreateFlower("FlowerC", new Vector3(11f, 0.18f, 14f), flowerYellowMaterial);
-            CreateFlower("FlowerD", new Vector3(12f, 0.18f, 14.7f), flowerPinkMaterial);
-
-            var pond = CreatePrimitive(
-                PrimitiveType.Cube,
-                "Pond",
-                new Vector3(-18f, -0.42f, -24f),
-                new Vector3(16f, 0.08f, 12f),
-                waterMaterial);
-            pond.transform.SetParent(_worldRoot, false);
+            BuildGridSurface(roadMaterial, plazaMaterial);
+            BuildProceduralVillage(roadMaterial);
+            BuildFountain();
+            BuildPond(waterMaterial);
+            CreatePlayer(CellToWorld(_layout.plazaCenter + new Vector2Int(0, -6)) + new Vector3(0f, 0.9f, 0f), new Color(0.16f, 0.41f, 0.95f));
+            SpawnVillagersFromLayout();
         }
 
         void BuildHud()
@@ -542,10 +478,174 @@ namespace McpTest.VoxelVillage
             return text;
         }
 
+        void BuildGridSurface(Material roadMaterial, Material plazaMaterial)
+        {
+            var tilesRoot = new GameObject("VillageTiles").transform;
+            tilesRoot.SetParent(_worldRoot, false);
+
+            for (var y = 0; y < _villageGrid.Height; y++)
+            {
+                for (var x = 0; x < _villageGrid.Width; x++)
+                {
+                    var cell = new Vector2Int(x, y);
+                    var kind = _villageGrid.GetCellKind(cell);
+                    if (kind != VillageCellKind.Road && kind != VillageCellKind.Plaza)
+                    {
+                        continue;
+                    }
+
+                    var tile = CreatePrimitive(
+                        PrimitiveType.Cube,
+                        $"{kind}_{x}_{y}",
+                        CellToWorld(cell) + new Vector3(0f, -0.42f, 0f),
+                        new Vector3(WorldCellSize * 0.98f, 0.16f, WorldCellSize * 0.98f),
+                        kind == VillageCellKind.Plaza ? plazaMaterial : roadMaterial);
+                    tile.transform.SetParent(tilesRoot, false);
+                }
+            }
+        }
+
+        void BuildProceduralVillage(Material _)
+        {
+            for (var buildingIndex = 0; buildingIndex < _layout.buildings.Length; buildingIndex++)
+            {
+                var building = _layout.buildings[buildingIndex];
+                var buildingDoor = FindDoorForBuilding(building.id);
+                var facing = buildingDoor?.facing ?? Vector2Int.down;
+                var center = CellRectCenterToWorld(building.origin, building.size);
+                var palette = GetBuildingPalette(buildingIndex);
+                var height = 3.6f + building.height * 0.45f;
+                var size = new Vector3(
+                    building.size.x * WorldCellSize * 0.96f,
+                    height,
+                    building.size.y * WorldCellSize * 0.96f);
+
+                var house = VoxelEnvironmentFactory.CreateHouse(
+                    "House_" + building.id,
+                    center + new Vector3(0f, height * 0.5f, 0f),
+                    size,
+                    YawFromDirection(facing),
+                    palette.Wall,
+                    palette.Roof,
+                    palette.Trim);
+                house.Root.transform.SetParent(_worldRoot, true);
+            }
+
+            for (var doorIndex = 0; doorIndex < _layout.doors.Length; doorIndex++)
+            {
+                CreateDoor(_layout.doors[doorIndex]);
+            }
+
+            for (var foliageIndex = 0; foliageIndex < _layout.foliage.Length; foliageIndex++)
+            {
+                CreateFoliage(_layout.foliage[foliageIndex], foliageIndex);
+            }
+        }
+
+        void BuildFountain()
+        {
+            var fountainHeight = 3.6f;
+            var fountain = VoxelEnvironmentFactory.CreateFountain(
+                "PlazaFountain",
+                CellToWorld(_layout.plazaCenter) + new Vector3(0f, fountainHeight * 0.5f, 0f),
+                new Vector3(WorldCellSize * 2.4f, fountainHeight, WorldCellSize * 2.4f),
+                0f,
+                new Color(0.76f, 0.76f, 0.79f),
+                new Color(0.33f, 0.72f, 0.9f));
+            fountain.Root.transform.SetParent(_worldRoot, true);
+        }
+
+        void BuildPond(Material waterMaterial)
+        {
+            if (!TryFindPondRect(out var pondRect))
+            {
+                return;
+            }
+
+            var pondRoot = new GameObject("Pond").transform;
+            pondRoot.SetParent(_worldRoot, false);
+
+            for (var y = pondRect.yMin; y < pondRect.yMax; y++)
+            {
+                for (var x = pondRect.xMin; x < pondRect.xMax; x++)
+                {
+                    var cell = new Vector2Int(x, y);
+                    _villageGrid.SetCellKind(cell, VillageCellKind.Foliage);
+
+                    var waterTile = CreatePrimitive(
+                        PrimitiveType.Cube,
+                        $"Pond_{x}_{y}",
+                        CellToWorld(cell) + new Vector3(0f, -0.36f, 0f),
+                        new Vector3(WorldCellSize * 0.98f, 0.22f, WorldCellSize * 0.98f),
+                        waterMaterial);
+                    waterTile.transform.SetParent(pondRoot, false);
+                }
+            }
+        }
+
+        void SpawnVillagersFromLayout()
+        {
+            var spawnCount = Mathf.Min(VillagerStyles.Length, _layout.npcSpawnPoints.Length);
+            var usedCells = new HashSet<Vector2Int>();
+            for (var index = 0; index < spawnCount; index++)
+            {
+                var style = VillagerStyles[index];
+                var spawn = _layout.npcSpawnPoints[index];
+                var spawnCell = FindUniqueSpawnCell(spawn.cell, usedCells);
+                usedCells.Add(spawnCell);
+                var groundPosition = CellToWorld(spawnCell) + new Vector3(0f, 0.9f, 0f);
+
+                CreateVillager(
+                    style.NpcId,
+                    "NPC_" + index,
+                    groundPosition,
+                    style.Color,
+                    Vector3.one * (style.HeightScale * BaseCharacterHeight),
+                    YawFromDirection(spawn.facing),
+                    Range(0.02f, 0.045f),
+                    Range(1.4f, 2.6f),
+                    Range(2.5f, 6f),
+                    Range(0.7f, 1.45f),
+                    Range(0f, Mathf.PI * 2f),
+                    style.AccessoryType,
+                    spawnCell);
+            }
+        }
+
+        Vector2Int FindUniqueSpawnCell(Vector2Int preferred, HashSet<Vector2Int> usedCells)
+        {
+            if (!usedCells.Contains(preferred))
+            {
+                return preferred;
+            }
+
+            for (var radius = 1; radius <= 8; radius++)
+            {
+                for (var y = -radius; y <= radius; y++)
+                {
+                    for (var x = -radius; x <= radius; x++)
+                    {
+                        var candidate = preferred + new Vector2Int(x, y);
+                        if (usedCells.Contains(candidate))
+                        {
+                            continue;
+                        }
+
+                        if (_villageGrid.IsWalkable(candidate, false))
+                        {
+                            return candidate;
+                        }
+                    }
+                }
+            }
+
+            return preferred;
+        }
+
         void HandleMovement()
         {
             var keyboard = Keyboard.current;
-            if (keyboard == null)
+            if (keyboard == null || _player == null)
             {
                 return;
             }
@@ -576,19 +676,77 @@ namespace McpTest.VoxelVillage
                 return;
             }
 
-            move = move.normalized * (PlayerMoveSpeed * Time.deltaTime);
+            move.Normalize();
             var currentPosition = _player.transform.position;
-            var nextPosition = currentPosition + move;
-            nextPosition.x = Mathf.Clamp(nextPosition.x, -TownHalfExtent, TownHalfExtent);
-            nextPosition.z = Mathf.Clamp(nextPosition.z, -TownHalfExtent, TownHalfExtent);
-            nextPosition = ResolveVillagerBlocking(currentPosition, nextPosition);
+            var nextPosition = MoveWithWorldCollision(currentPosition, move * (PlayerMoveSpeed * Time.deltaTime), PlayerCollisionRadius, true);
+            nextPosition = ResolveDynamicBlocking(null, currentPosition, nextPosition, PlayerCollisionRadius);
             nextPosition.y = currentPosition.y;
             _player.transform.position = nextPosition;
-            _player.transform.forward = Vector3.Lerp(_player.transform.forward, move.normalized, 16f * Time.deltaTime);
+
+            var look = nextPosition - currentPosition;
+            look.y = 0f;
+            if (look.sqrMagnitude > 0.0001f)
+            {
+                _player.transform.forward = Vector3.Lerp(_player.transform.forward, look.normalized, 16f * Time.deltaTime);
+            }
+        }
+
+        Vector3 MoveWithWorldCollision(Vector3 currentPosition, Vector3 delta, float collisionRadius, bool includeEmpty)
+        {
+            var resolved = currentPosition;
+            var xCandidate = ClampWorldPosition(resolved + new Vector3(delta.x, 0f, 0f), collisionRadius);
+            if (IsPositionWalkable(xCandidate, collisionRadius, includeEmpty))
+            {
+                resolved.x = xCandidate.x;
+            }
+
+            var zCandidate = ClampWorldPosition(resolved + new Vector3(0f, 0f, delta.z), collisionRadius);
+            if (IsPositionWalkable(zCandidate, collisionRadius, includeEmpty))
+            {
+                resolved.z = zCandidate.z;
+            }
+
+            return resolved;
+        }
+
+        bool IsPositionWalkable(Vector3 position, float collisionRadius, bool includeEmpty)
+        {
+            if (Mathf.Abs(position.x) > TownHalfExtent - collisionRadius || Mathf.Abs(position.z) > TownHalfExtent - collisionRadius)
+            {
+                return false;
+            }
+
+            var samples = new[]
+            {
+                new Vector2(position.x, position.z),
+                new Vector2(position.x + collisionRadius, position.z),
+                new Vector2(position.x - collisionRadius, position.z),
+                new Vector2(position.x, position.z + collisionRadius),
+                new Vector2(position.x, position.z - collisionRadius),
+                new Vector2(position.x + collisionRadius * 0.7f, position.z + collisionRadius * 0.7f),
+                new Vector2(position.x - collisionRadius * 0.7f, position.z - collisionRadius * 0.7f),
+                new Vector2(position.x + collisionRadius * 0.7f, position.z - collisionRadius * 0.7f),
+                new Vector2(position.x - collisionRadius * 0.7f, position.z + collisionRadius * 0.7f)
+            };
+
+            for (var index = 0; index < samples.Length; index++)
+            {
+                if (!TryWorldToCell(samples[index], out var cell) || !_villageGrid.IsWalkable(cell, includeEmpty))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         void UpdateCamera()
         {
+            if (_player == null)
+            {
+                return;
+            }
+
             var targetPosition = _player.transform.position + new Vector3(0f, CameraHeight, -CameraDistance);
             _mainCamera.transform.position = Vector3.Lerp(_mainCamera.transform.position, targetPosition, CameraFollowSpeed * Time.deltaTime);
             var lookTarget = _player.transform.position + new Vector3(0f, 1.4f, CameraLookAhead);
@@ -600,6 +758,11 @@ namespace McpTest.VoxelVillage
 
         void UpdateInteractionTarget()
         {
+            if (_player == null)
+            {
+                return;
+            }
+
             var playerPosition = _player.transform.position;
 
             if (_dialogueActive && _activeDialogueVillager != null)
@@ -614,14 +777,14 @@ namespace McpTest.VoxelVillage
                 {
                     _currentTarget = InteractionTarget.Npc;
                     _currentVillager = _activeDialogueVillager;
+                    _currentDoor = null;
                     return;
                 }
             }
 
-            var doorDistance = Vector3.Distance(playerPosition, GetDoorInteractionPoint());
-
             _currentTarget = InteractionTarget.None;
             _currentVillager = null;
+            _currentDoor = null;
             var bestDistance = InteractionDistance;
 
             for (var index = 0; index < _villagers.Count; index++)
@@ -636,10 +799,17 @@ namespace McpTest.VoxelVillage
                 }
             }
 
-            if (doorDistance <= bestDistance)
+            for (var doorIndex = 0; doorIndex < _doors.Count; doorIndex++)
             {
-                _currentTarget = InteractionTarget.Door;
-                _currentVillager = null;
+                var door = _doors[doorIndex];
+                var doorDistance = Vector3.Distance(playerPosition, door.InteractionPoint);
+                if (doorDistance <= bestDistance)
+                {
+                    _currentTarget = InteractionTarget.Door;
+                    _currentVillager = null;
+                    _currentDoor = door;
+                    bestDistance = doorDistance;
+                }
             }
         }
 
@@ -658,7 +828,11 @@ namespace McpTest.VoxelVillage
                     break;
 
                 case InteractionTarget.Door:
-                    _doorOpen = !_doorOpen;
+                    if (_currentDoor != null)
+                    {
+                        ToggleDoor(_currentDoor);
+                    }
+
                     break;
             }
         }
@@ -671,7 +845,7 @@ namespace McpTest.VoxelVillage
                 return;
             }
 
-            var lineCount = _database.GetDialogueLineCount(villager.NpcId);
+            var lineCount = _database.GetDialogueLineCount(villager.NpcId, villager.DialogueSetIndex);
             if (lineCount <= 0)
             {
                 return;
@@ -695,15 +869,64 @@ namespace McpTest.VoxelVillage
 
             _dialogueActive = false;
             _dialogueLineIndex = 0;
+            villager.DialogueSetIndex = (villager.DialogueSetIndex + 1) % Mathf.Max(1, _database.GetDialogueSetCount(villager.NpcId));
             _activeDialogueVillager = null;
             RefreshLocalizedTexts();
         }
 
+        void ToggleDoor(DoorInstance door)
+        {
+            if (door.IsOpen)
+            {
+                if (!CanCloseDoor(door))
+                {
+                    return;
+                }
+            }
+
+            door.IsOpen = !door.IsOpen;
+            _villageGrid.TrySetDoorState(door.Cell, door.IsOpen);
+
+            for (var index = 0; index < _villagers.Count; index++)
+            {
+                _villagers[index].NextPathRefreshTime = 0f;
+            }
+        }
+
+        bool CanCloseDoor(DoorInstance door)
+        {
+            var threshold = WorldCellSize * 0.9f;
+            var doorCenter = CellToWorld(door.Cell);
+            if (Vector2.Distance(
+                    new Vector2(_player.transform.position.x, _player.transform.position.z),
+                    new Vector2(doorCenter.x, doorCenter.z)) <= threshold)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < _villagers.Count; index++)
+            {
+                var villager = _villagers[index];
+                if (Vector2.Distance(
+                        new Vector2(villager.Transform.position.x, villager.Transform.position.z),
+                        new Vector2(doorCenter.x, doorCenter.z)) <= threshold)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         void UpdateDoorVisual()
         {
-            var targetYaw = _doorOpen ? -105f : 0f;
-            _doorYaw = Mathf.LerpAngle(_doorYaw, targetYaw, 10f * Time.deltaTime);
-            _doorPivot.localRotation = Quaternion.Euler(0f, _doorYaw, 0f);
+            for (var index = 0; index < _doors.Count; index++)
+            {
+                var door = _doors[index];
+                var targetYaw = door.ClosedYaw + (door.IsOpen ? door.OpenDeltaYaw : 0f);
+                door.CurrentYaw = targetYaw;
+                door.Pivot.localRotation = Quaternion.Euler(0f, door.CurrentYaw, 0f);
+            }
         }
 
         void UpdateSpeechBubble()
@@ -713,19 +936,13 @@ namespace McpTest.VoxelVillage
                 return;
             }
 
-            if (!_dialogueActive)
+            if (!_dialogueActive || _activeDialogueVillager == null)
             {
                 _bubbleRect.gameObject.SetActive(false);
                 return;
             }
 
-            if (_activeDialogueVillager == null)
-            {
-                _bubbleRect.gameObject.SetActive(false);
-                return;
-            }
-
-            var line = _database.GetDialogueLine(_activeDialogueVillager.NpcId, _dialogueLineIndex);
+            var line = _database.GetDialogueLine(_activeDialogueVillager.NpcId, _activeDialogueVillager.DialogueSetIndex, _dialogueLineIndex);
             if (line == null)
             {
                 _bubbleRect.gameObject.SetActive(false);
@@ -733,7 +950,7 @@ namespace McpTest.VoxelVillage
             }
 
             _bubbleSpeakerText.text =
-                line.speaker.Equals("npc", System.StringComparison.OrdinalIgnoreCase)
+                line.speaker.Equals("npc", StringComparison.OrdinalIgnoreCase)
                     ? _database.GetNpcHeader(_activeDialogueVillager.NpcId, _languageState.Current)
                     : _database.GetSpeakerDisplayName(line.speaker, _activeDialogueVillager.NpcId, _languageState.Current);
             _bubbleContentText.text = line.translations.Get(_languageState.Current);
@@ -779,7 +996,7 @@ namespace McpTest.VoxelVillage
                     }
 
                     var promptVillager = _activeDialogueVillager ?? _currentVillager!;
-                    var lineCount = _database.GetDialogueLineCount(promptVillager.NpcId);
+                    var lineCount = _database.GetDialogueLineCount(promptVillager.NpcId, promptVillager.DialogueSetIndex);
                     if (!_dialogueActive)
                     {
                         key = "interaction.talk";
@@ -796,7 +1013,13 @@ namespace McpTest.VoxelVillage
                     break;
 
                 case InteractionTarget.Door:
-                    key = _doorOpen ? "interaction.closeDoor" : "interaction.openDoor";
+                    if (_currentDoor == null)
+                    {
+                        _promptText.transform.parent.gameObject.SetActive(false);
+                        return;
+                    }
+
+                    key = _currentDoor.IsOpen ? "interaction.closeDoor" : "interaction.openDoor";
                     break;
 
                 default:
@@ -861,21 +1084,170 @@ namespace McpTest.VoxelVillage
             }
         }
 
-        Vector3 GetDoorInteractionPoint()
+        void UpdateVillagers()
         {
-            return _doorPivot.position + new Vector3(-0.45f, 1.1f, 0f);
+            var time = Time.time;
+            for (var index = 0; index < _villagers.Count; index++)
+            {
+                UpdateVillager(_villagers[index], time);
+            }
         }
 
-        Vector3 ResolveVillagerBlocking(Vector3 currentPosition, Vector3 desiredPosition)
+        void UpdateVillager(VillagerInstance villager, float time)
+        {
+            var currentGroundPosition = villager.Transform.position;
+            currentGroundPosition.y = villager.GroundY;
+            villager.CurrentCell = WorldToCell(currentGroundPosition);
+
+            var moving = false;
+            if (!_dialogueActive || _activeDialogueVillager != villager)
+            {
+                if (villager.WaitUntilTime <= time && (villager.Path.Count == 0 || villager.PathIndex >= villager.Path.Count || villager.NextPathRefreshTime <= time))
+                {
+                    TryAssignPatrolPath(villager, time);
+                }
+
+                if (villager.PathIndex < villager.Path.Count)
+                {
+                    moving = MoveVillagerAlongPath(villager, currentGroundPosition, time);
+                }
+            }
+
+            var bob = Mathf.Sin(time * villager.BobSpeed + villager.PhaseOffset) * villager.BobAmplitude;
+            var sway = moving
+                ? Mathf.Sin(time * villager.SwaySpeed + villager.PhaseOffset) * (villager.SwayAngle * 0.32f)
+                : Mathf.Sin(time * villager.SwaySpeed + villager.PhaseOffset) * villager.SwayAngle;
+
+            var finalPosition = villager.Transform.position;
+            finalPosition.y = villager.GroundY + bob;
+            villager.Transform.position = finalPosition;
+            villager.Transform.rotation = Quaternion.Euler(0f, villager.FacingYaw + sway, 0f);
+        }
+
+        bool MoveVillagerAlongPath(VillagerInstance villager, Vector3 currentGroundPosition, float time)
+        {
+            if (villager.PathIndex >= villager.Path.Count)
+            {
+                return false;
+            }
+
+            var nextCell = villager.Path[villager.PathIndex];
+            if (!_villageGrid.IsWalkable(nextCell))
+            {
+                villager.Path.Clear();
+                villager.PathIndex = 0;
+                villager.NextPathRefreshTime = time + Range(0.35f, 0.75f);
+                return false;
+            }
+
+            var nextWorld = CellToWorld(nextCell) + new Vector3(0f, villager.GroundY, 0f);
+            var desired = Vector3.MoveTowards(currentGroundPosition, nextWorld, VillagerMoveSpeed * Time.deltaTime);
+            desired = MoveWithWorldCollision(currentGroundPosition, desired - currentGroundPosition, VillagerCollisionRadius, false);
+            desired = ResolveDynamicBlocking(villager, currentGroundPosition, desired, VillagerCollisionRadius);
+
+            if (!IsPositionWalkable(desired, VillagerCollisionRadius, false))
+            {
+                villager.Path.Clear();
+                villager.PathIndex = 0;
+                villager.NextPathRefreshTime = time + Range(0.35f, 0.75f);
+                return false;
+            }
+
+            var movement = desired - currentGroundPosition;
+            movement.y = 0f;
+            if (movement.sqrMagnitude > 0.0001f)
+            {
+                villager.FacingYaw = Mathf.LerpAngle(villager.FacingYaw, Quaternion.LookRotation(movement.normalized, Vector3.up).eulerAngles.y, 14f * Time.deltaTime);
+            }
+
+            villager.Transform.position = new Vector3(desired.x, villager.Transform.position.y, desired.z);
+
+            var remaining = new Vector2(nextWorld.x - desired.x, nextWorld.z - desired.z);
+            if (remaining.sqrMagnitude <= 0.03f)
+            {
+                villager.Transform.position = new Vector3(nextWorld.x, villager.Transform.position.y, nextWorld.z);
+                villager.CurrentCell = nextCell;
+                villager.PathIndex++;
+
+                if (villager.PathIndex >= villager.Path.Count)
+                {
+                    villager.Path.Clear();
+                    villager.PathIndex = 0;
+                    villager.WaitUntilTime = time + Range(0.8f, 2.1f);
+                    villager.NextPathRefreshTime = villager.WaitUntilTime;
+                }
+            }
+
+            return true;
+        }
+
+        void TryAssignPatrolPath(VillagerInstance villager, float time)
+        {
+            villager.Path.Clear();
+            villager.PathIndex = 0;
+
+            var start = WorldToCell(villager.Transform.position);
+            for (var attempt = 0; attempt < 10; attempt++)
+            {
+                var destination = ChoosePatrolDestination(start, villager.HomeCell);
+                if (destination == start)
+                {
+                    continue;
+                }
+
+                if (_villageGrid.TryFindPath(start, destination, villager.Path, false) && villager.Path.Count > 1)
+                {
+                    villager.PathIndex = villager.Path[0] == start ? 1 : 0;
+                    villager.WaitUntilTime = 0f;
+                    villager.NextPathRefreshTime = time + Range(5f, 9f);
+                    return;
+                }
+            }
+
+            villager.Path.Clear();
+            villager.PathIndex = 0;
+            villager.WaitUntilTime = time + Range(0.7f, 1.8f);
+            villager.NextPathRefreshTime = villager.WaitUntilTime;
+        }
+
+        Vector2Int ChoosePatrolDestination(Vector2Int start, Vector2Int homeCell)
+        {
+            if (_patrolCells.Count == 0)
+            {
+                return homeCell;
+            }
+
+            for (var attempt = 0; attempt < 20; attempt++)
+            {
+                var candidate = _patrolCells[_worldRandom.Next(0, _patrolCells.Count)];
+                var distance = Mathf.Abs(candidate.x - homeCell.x) + Mathf.Abs(candidate.y - homeCell.y);
+                if (candidate != start && distance >= 2 && distance <= 18)
+                {
+                    return candidate;
+                }
+            }
+
+            return homeCell;
+        }
+
+        Vector3 ResolveDynamicBlocking(VillagerInstance? self, Vector3 currentPosition, Vector3 desiredPosition, float collisionRadius)
         {
             var resolved = new Vector2(desiredPosition.x, desiredPosition.z);
             var current = new Vector2(currentPosition.x, currentPosition.z);
-            var minDistance = PersonCollisionRadius * 2f;
+
+            if (self != null && _player != null)
+            {
+                resolved = PlanarPersonCollision.Resolve(
+                    current,
+                    resolved,
+                    new Vector2(_player.transform.position.x, _player.transform.position.z),
+                    collisionRadius + PlayerCollisionRadius);
+            }
 
             for (var index = 0; index < _villagers.Count; index++)
             {
-                var villager = _villagers[index];
-                if (villager == null)
+                var other = _villagers[index];
+                if (ReferenceEquals(other, self))
                 {
                     continue;
                 }
@@ -883,8 +1255,8 @@ namespace McpTest.VoxelVillage
                 resolved = PlanarPersonCollision.Resolve(
                     current,
                     resolved,
-                    new Vector2(villager.Transform.position.x, villager.Transform.position.z),
-                    minDistance);
+                    new Vector2(other.Transform.position.x, other.Transform.position.z),
+                    collisionRadius + VillagerCollisionRadius);
             }
 
             desiredPosition.x = resolved.x;
@@ -892,123 +1264,171 @@ namespace McpTest.VoxelVillage
             return desiredPosition;
         }
 
-        void UpdateVillagers()
+        void CollectPatrolCells()
         {
-            var time = Time.time;
-            for (var index = 0; index < _villagers.Count; index++)
-            {
-                var villager = _villagers[index];
-                var bob = Mathf.Sin(time * villager.BobSpeed + villager.PhaseOffset) * villager.BobAmplitude;
-                var sway = Mathf.Sin(time * villager.SwaySpeed + villager.PhaseOffset) * villager.SwayAngle;
+            var lookup = new HashSet<Vector2Int>();
 
-                villager.Transform.position = villager.BasePosition + new Vector3(0f, bob, 0f);
-                villager.Transform.rotation = Quaternion.Euler(0f, villager.BaseYaw + sway, 0f);
+            for (var roadIndex = 0; roadIndex < _layout.roads.Length; roadIndex++)
+            {
+                var road = _layout.roads[roadIndex];
+                for (var cellIndex = 0; cellIndex < road.cells.Length; cellIndex++)
+                {
+                    RegisterPatrolCell(lookup, road.cells[cellIndex]);
+                }
+            }
+
+            for (var y = -3; y <= 3; y++)
+            {
+                for (var x = -3; x <= 3; x++)
+                {
+                    RegisterPatrolCell(lookup, _layout.plazaCenter + new Vector2Int(x, y));
+                }
+            }
+
+            for (var spawnIndex = 0; spawnIndex < _layout.npcSpawnPoints.Length; spawnIndex++)
+            {
+                RegisterPatrolCell(lookup, _layout.npcSpawnPoints[spawnIndex].cell);
             }
         }
 
-        void CreateInteractiveHouse(
-            Vector3 center,
-            Vector3 houseScale,
-            Material wallMaterial,
-            Material roofMaterial,
-            Material woodMaterial,
-            Material pathMaterial)
+        void RegisterPatrolCell(HashSet<Vector2Int> lookup, Vector2Int cell)
         {
-            CreateDecorativeHouse("InteractiveHouse", center, houseScale, wallMaterial, roofMaterial);
+            if (!_villageGrid.IsWalkable(cell, false) || !lookup.Add(cell))
+            {
+                return;
+            }
 
-            var doorAnchorPosition = center + new Vector3(-(houseScale.x * 0.5f) - 0.02f, 0f, houseScale.z * 0.24f);
-            var doorFrame = CreatePrimitive(
-                PrimitiveType.Cube,
-                "DoorFrame",
-                doorAnchorPosition + new Vector3(-0.1f, 1.12f, 0f),
-                new Vector3(0.2f, 2.24f, 1.1f),
-                woodMaterial);
-            doorFrame.transform.SetParent(_worldRoot, false);
-
-            _doorPivot = new GameObject("DoorPivot").transform;
-            _doorPivot.SetParent(_worldRoot, false);
-            _doorPivot.position = doorAnchorPosition;
-
-            var doorPanel = CreatePrimitive(
-                PrimitiveType.Cube,
-                "DoorPanel",
-                new Vector3(0.45f, 1.1f, 0f),
-                new Vector3(0.9f, 2.2f, 0.12f),
-                woodMaterial);
-            doorPanel.transform.SetParent(_doorPivot, false);
-
-            var walkway = CreatePrimitive(
-                PrimitiveType.Cube,
-                "DoorWalkway",
-                doorAnchorPosition + new Vector3(-4.2f, -0.43f, 0f),
-                new Vector3(8.4f, 0.1f, 1.8f),
-                pathMaterial);
-            walkway.transform.SetParent(_worldRoot, false);
+            _patrolCells.Add(cell);
         }
 
-        void CreateDecorativeHouse(
-            string name,
-            Vector3 center,
-            Vector3 houseScale,
-            Material wallMaterial,
-            Material roofMaterial)
+        void CreateFoliage(VillageFoliagePlacement foliage, int index)
         {
-            var house = CreatePrimitive(
-                PrimitiveType.Cube,
-                name,
-                center,
-                houseScale,
-                wallMaterial);
-            house.transform.SetParent(_worldRoot, false);
+            var world = CellToWorld(foliage.cell);
+            var yaw = Range(0f, 360f);
 
-            var roof = CreatePrimitive(
-                PrimitiveType.Cube,
-                name + "_Roof",
-                center + new Vector3(0f, houseScale.y * 0.62f + 0.46f, 0f),
-                houseScale + new Vector3(0.7f, 0.8f, 0.7f),
-                roofMaterial);
-            roof.transform.SetParent(_worldRoot, false);
+            switch (foliage.kind)
+            {
+                case VillageFoliageKind.Tree:
+                {
+                    var scale = 2.2f + foliage.scale * 0.6f;
+                    var tree = VoxelEnvironmentFactory.CreateTree(
+                        "Tree_" + index,
+                        world + new Vector3(0f, scale * 0.65f, 0f),
+                        new Vector3(scale, scale * 1.35f, scale),
+                        yaw,
+                        new Color(0.47f, 0.31f, 0.16f),
+                        new Color(0.27f + 0.03f * foliage.scale, 0.58f, 0.3f));
+                    tree.Root.transform.SetParent(_worldRoot, true);
+                    break;
+                }
+
+                case VillageFoliageKind.Shrub:
+                {
+                    var shrub = VoxelEnvironmentFactory.CreateShrub(
+                        "Shrub_" + index,
+                        world + new Vector3(0f, 0.55f, 0f),
+                        new Vector3(1.2f + foliage.scale * 0.45f, 1f + foliage.scale * 0.25f, 1.2f + foliage.scale * 0.45f),
+                        yaw,
+                        new Color(0.31f, 0.58f, 0.28f));
+                    shrub.Root.transform.SetParent(_worldRoot, true);
+                    break;
+                }
+
+                case VillageFoliageKind.Flower:
+                {
+                    var flower = VoxelEnvironmentFactory.CreateFlower(
+                        "Flower_" + index,
+                        world + new Vector3(0f, 0.5f, 0f),
+                        new Vector3(0.72f + foliage.scale * 0.16f, 1.2f + foliage.scale * 0.14f, 0.72f + foliage.scale * 0.16f),
+                        yaw,
+                        GetFlowerColor(index));
+                    flower.Root.transform.SetParent(_worldRoot, true);
+                    break;
+                }
+
+                case VillageFoliageKind.Rock:
+                {
+                    var rock = VoxelEnvironmentFactory.CreateShrub(
+                        "Rock_" + index,
+                        world + new Vector3(0f, 0.42f, 0f),
+                        new Vector3(1f + foliage.scale * 0.22f, 0.8f + foliage.scale * 0.12f, 0.96f + foliage.scale * 0.22f),
+                        yaw,
+                        new Color(0.57f, 0.59f, 0.63f));
+                    rock.Root.transform.SetParent(_worldRoot, true);
+                    break;
+                }
+            }
         }
 
-        void CreateTree(string name, Vector3 basePosition, Material trunkMaterial, Material foliageMaterial)
+        void CreateDoor(VillageDoorLayout layoutDoor)
         {
-            var trunk = CreatePrimitive(
-                PrimitiveType.Cylinder,
-                name + "_Trunk",
-                basePosition + new Vector3(0f, 1.4f, 0f),
-                new Vector3(0.45f, 1.4f, 0.45f),
-                trunkMaterial);
-            trunk.transform.SetParent(_worldRoot, false);
+            var facing = DirectionToWorld(layoutDoor.facing);
+            var closedYaw = YawFromDirection(layoutDoor.facing);
+            var openDelta = layoutDoor.facing.x <= 0 && layoutDoor.facing.y >= 0 ? -DoorOpenAngle : DoorOpenAngle;
+            var doorSize = new Vector3(WorldCellSize * 0.64f, 2.45f, WorldCellSize * 0.12f);
+            var right = Quaternion.Euler(0f, closedYaw, 0f) * Vector3.right;
+            var hingeBase = CellToWorld(layoutDoor.cell) - facing * (WorldCellSize * 0.16f) - (right * (doorSize.x * 0.5f));
 
-            var crown = CreatePrimitive(
-                PrimitiveType.Sphere,
-                name + "_Crown",
-                basePosition + new Vector3(0f, 4f, 0f),
-                new Vector3(3.8f, 3.2f, 3.8f),
-                foliageMaterial);
-            crown.transform.SetParent(_worldRoot, false);
+            var pivot = new GameObject("DoorPivot_" + layoutDoor.id).transform;
+            pivot.SetParent(_worldRoot, false);
+            pivot.position = hingeBase;
+
+            var door = VoxelEnvironmentFactory.CreateDoor(
+                "Door_" + layoutDoor.id,
+                Vector3.zero,
+                doorSize,
+                0f,
+                new Color(0.53f, 0.31f, 0.17f));
+            door.Root.transform.SetParent(pivot, false);
+            door.Root.transform.localPosition = new Vector3(doorSize.x * 0.5f, doorSize.y * 0.5f, 0f);
+
+            var interactionPoint = CellToWorld(layoutDoor.cell) + new Vector3(0f, 1.1f, 0f) + facing * (WorldCellSize * 0.62f);
+            var instance = new DoorInstance(layoutDoor.id, layoutDoor.cell, pivot, interactionPoint, closedYaw, openDelta, layoutDoor.startsOpen);
+            if (layoutDoor.startsOpen)
+            {
+                instance.CurrentYaw = closedYaw + openDelta;
+                pivot.localRotation = Quaternion.Euler(0f, instance.CurrentYaw, 0f);
+            }
+
+            _doors.Add(instance);
         }
 
-        void CreateShrub(string name, Vector3 position, Vector3 scale, Material material)
+        bool TryFindPondRect(out RectInt pondRect)
         {
-            var shrub = CreatePrimitive(
-                PrimitiveType.Sphere,
-                name,
-                position,
-                scale,
-                material);
-            shrub.transform.SetParent(_worldRoot, false);
+            var size = new Vector2Int(4, 3);
+            var candidates = new[]
+            {
+                new RectInt(6, 6, size.x, size.y),
+                new RectInt(WorldGridSize - 10, 7, size.x, size.y),
+                new RectInt(7, WorldGridSize - 10, size.x, size.y),
+                new RectInt(WorldGridSize - 10, WorldGridSize - 10, size.x, size.y)
+            };
+
+            for (var index = 0; index < candidates.Length; index++)
+            {
+                if (_villageGrid.IsRectClear(candidates[index]))
+                {
+                    pondRect = candidates[index];
+                    return true;
+                }
+            }
+
+            pondRect = default;
+            return false;
         }
 
-        void CreateFlower(string name, Vector3 position, Material petalMaterial)
+        VillageDoorLayout? FindDoorForBuilding(string buildingId)
         {
-            var flower = CreatePrimitive(
-                PrimitiveType.Cylinder,
-                name,
-                position,
-                new Vector3(0.12f, 0.18f, 0.12f),
-                petalMaterial);
-            flower.transform.SetParent(_worldRoot, false);
+            for (var index = 0; index < _layout.doors.Length; index++)
+            {
+                var door = _layout.doors[index];
+                if (string.Equals(door.buildingId, buildingId, StringComparison.Ordinal))
+                {
+                    return door;
+                }
+            }
+
+            return null;
         }
 
         void CreatePlayer(Vector3 position, Color color)
@@ -1036,7 +1456,8 @@ namespace McpTest.VoxelVillage
             float swayAngle,
             float swaySpeed,
             float phaseOffset,
-            VoxelCharacterAccessoryType accessoryType)
+            VoxelCharacterAccessoryType accessoryType,
+            Vector2Int homeCell)
         {
             var character = VoxelCharacterFactory.CreateCharacter(
                 objectName,
@@ -1048,7 +1469,18 @@ namespace McpTest.VoxelVillage
             var villager = character.Root;
             villager.transform.SetParent(_worldRoot, true);
             villager.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            _villagers.Add(new VillagerInstance(npcId, villager.transform, position, yaw, bobAmplitude, bobSpeed, swayAngle, swaySpeed, phaseOffset, character.HeadOffset));
+            _villagers.Add(new VillagerInstance(
+                npcId,
+                villager.transform,
+                homeCell,
+                position.y,
+                yaw,
+                bobAmplitude,
+                bobSpeed,
+                swayAngle,
+                swaySpeed,
+                phaseOffset,
+                character.HeadOffset));
         }
 
         static GameObject CreatePrimitive(
@@ -1084,13 +1516,187 @@ namespace McpTest.VoxelVillage
             return material;
         }
 
+        static float YawFromDirection(Vector2Int direction)
+        {
+            if (direction == Vector2Int.up)
+            {
+                return 0f;
+            }
+
+            if (direction == Vector2Int.right)
+            {
+                return 90f;
+            }
+
+            if (direction == Vector2Int.left)
+            {
+                return -90f;
+            }
+
+            return 180f;
+        }
+
+        static Vector3 DirectionToWorld(Vector2Int direction)
+        {
+            return new Vector3(direction.x, 0f, direction.y);
+        }
+
+        Vector3 CellRectCenterToWorld(Vector2Int origin, Vector2Int size)
+        {
+            var x = (origin.x + size.x * 0.5f) * WorldCellSize - TownFootprint * 0.5f;
+            var z = (origin.y + size.y * 0.5f) * WorldCellSize - TownFootprint * 0.5f;
+            return new Vector3(x, 0f, z);
+        }
+
+        Vector3 CellToWorld(Vector2Int cell)
+        {
+            return new Vector3(
+                (cell.x + 0.5f) * WorldCellSize - TownFootprint * 0.5f,
+                0f,
+                (cell.y + 0.5f) * WorldCellSize - TownFootprint * 0.5f);
+        }
+
+        Vector2Int WorldToCell(Vector3 position)
+        {
+            var x = Mathf.Clamp(Mathf.FloorToInt((position.x + TownFootprint * 0.5f) / WorldCellSize), 0, WorldGridSize - 1);
+            var y = Mathf.Clamp(Mathf.FloorToInt((position.z + TownFootprint * 0.5f) / WorldCellSize), 0, WorldGridSize - 1);
+            return new Vector2Int(x, y);
+        }
+
+        bool TryWorldToCell(Vector2 position, out Vector2Int cell)
+        {
+            var x = Mathf.FloorToInt((position.x + TownFootprint * 0.5f) / WorldCellSize);
+            var y = Mathf.FloorToInt((position.y + TownFootprint * 0.5f) / WorldCellSize);
+            if (x < 0 || x >= WorldGridSize || y < 0 || y >= WorldGridSize)
+            {
+                cell = default;
+                return false;
+            }
+
+            cell = new Vector2Int(x, y);
+            return true;
+        }
+
+        Vector3 ClampWorldPosition(Vector3 position, float radius)
+        {
+            position.x = Mathf.Clamp(position.x, -TownHalfExtent + radius, TownHalfExtent - radius);
+            position.z = Mathf.Clamp(position.z, -TownHalfExtent + radius, TownHalfExtent - radius);
+            return position;
+        }
+
+        float Range(float minInclusive, float maxInclusive)
+        {
+            return Mathf.Lerp(minInclusive, maxInclusive, (float)_worldRandom.NextDouble());
+        }
+
+        static Color GetFlowerColor(int index)
+        {
+            switch (index % 4)
+            {
+                case 0:
+                    return new Color(0.95f, 0.45f, 0.59f);
+                case 1:
+                    return new Color(0.98f, 0.82f, 0.28f);
+                case 2:
+                    return new Color(0.84f, 0.54f, 0.96f);
+                default:
+                    return new Color(0.98f, 0.71f, 0.44f);
+            }
+        }
+
+        static BuildingPalette GetBuildingPalette(int index)
+        {
+            switch (index % 6)
+            {
+                case 0:
+                    return new BuildingPalette(new Color(0.85f, 0.73f, 0.55f), new Color(0.59f, 0.25f, 0.21f), new Color(0.44f, 0.31f, 0.22f));
+                case 1:
+                    return new BuildingPalette(new Color(0.77f, 0.81f, 0.63f), new Color(0.46f, 0.31f, 0.2f), new Color(0.35f, 0.27f, 0.19f));
+                case 2:
+                    return new BuildingPalette(new Color(0.79f, 0.67f, 0.76f), new Color(0.41f, 0.22f, 0.28f), new Color(0.53f, 0.41f, 0.29f));
+                case 3:
+                    return new BuildingPalette(new Color(0.7f, 0.8f, 0.84f), new Color(0.36f, 0.44f, 0.63f), new Color(0.35f, 0.3f, 0.24f));
+                case 4:
+                    return new BuildingPalette(new Color(0.87f, 0.74f, 0.66f), new Color(0.56f, 0.37f, 0.21f), new Color(0.45f, 0.33f, 0.28f));
+                default:
+                    return new BuildingPalette(new Color(0.75f, 0.82f, 0.74f), new Color(0.31f, 0.43f, 0.24f), new Color(0.34f, 0.29f, 0.21f));
+            }
+        }
+
+        readonly struct BuildingPalette
+        {
+            public BuildingPalette(Color wall, Color roof, Color trim)
+            {
+                Wall = wall;
+                Roof = roof;
+                Trim = trim;
+            }
+
+            public Color Wall { get; }
+
+            public Color Roof { get; }
+
+            public Color Trim { get; }
+        }
+
+        readonly struct VillagerStyle
+        {
+            public VillagerStyle(string npcId, Color color, VoxelCharacterAccessoryType accessoryType, float heightScale)
+            {
+                NpcId = npcId;
+                Color = color;
+                AccessoryType = accessoryType;
+                HeightScale = heightScale;
+            }
+
+            public string NpcId { get; }
+
+            public Color Color { get; }
+
+            public VoxelCharacterAccessoryType AccessoryType { get; }
+
+            public float HeightScale { get; }
+        }
+
+        sealed class DoorInstance
+        {
+            public DoorInstance(string doorId, Vector2Int cell, Transform pivot, Vector3 interactionPoint, float closedYaw, float openDeltaYaw, bool startsOpen)
+            {
+                DoorId = doorId;
+                Cell = cell;
+                Pivot = pivot;
+                InteractionPoint = interactionPoint;
+                ClosedYaw = closedYaw;
+                OpenDeltaYaw = openDeltaYaw;
+                CurrentYaw = startsOpen ? closedYaw + openDeltaYaw : closedYaw;
+                IsOpen = startsOpen;
+            }
+
+            public string DoorId { get; }
+
+            public Vector2Int Cell { get; }
+
+            public Transform Pivot { get; }
+
+            public Vector3 InteractionPoint { get; }
+
+            public float ClosedYaw { get; }
+
+            public float OpenDeltaYaw { get; }
+
+            public float CurrentYaw { get; set; }
+
+            public bool IsOpen { get; set; }
+        }
+
         sealed class VillagerInstance
         {
             public VillagerInstance(
                 string npcId,
                 Transform transform,
-                Vector3 basePosition,
-                float baseYaw,
+                Vector2Int homeCell,
+                float groundY,
+                float facingYaw,
                 float bobAmplitude,
                 float bobSpeed,
                 float swayAngle,
@@ -1100,8 +1706,10 @@ namespace McpTest.VoxelVillage
             {
                 NpcId = npcId;
                 Transform = transform;
-                BasePosition = basePosition;
-                BaseYaw = baseYaw;
+                HomeCell = homeCell;
+                CurrentCell = homeCell;
+                GroundY = groundY;
+                FacingYaw = facingYaw;
                 BobAmplitude = bobAmplitude;
                 BobSpeed = bobSpeed;
                 SwayAngle = swayAngle;
@@ -1114,9 +1722,13 @@ namespace McpTest.VoxelVillage
 
             public Transform Transform { get; }
 
-            public Vector3 BasePosition { get; }
+            public Vector2Int HomeCell { get; }
 
-            public float BaseYaw { get; }
+            public Vector2Int CurrentCell { get; set; }
+
+            public float GroundY { get; }
+
+            public float FacingYaw { get; set; }
 
             public float BobAmplitude { get; }
 
@@ -1129,6 +1741,16 @@ namespace McpTest.VoxelVillage
             public float PhaseOffset { get; }
 
             public float HeadOffset { get; }
+
+            public List<Vector2Int> Path { get; } = new List<Vector2Int>();
+
+            public int PathIndex { get; set; }
+
+            public float WaitUntilTime { get; set; }
+
+            public float NextPathRefreshTime { get; set; }
+
+            public int DialogueSetIndex { get; set; }
         }
     }
 
