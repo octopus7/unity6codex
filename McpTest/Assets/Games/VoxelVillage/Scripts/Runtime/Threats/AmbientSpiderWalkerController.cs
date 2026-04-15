@@ -14,11 +14,11 @@ namespace McpTest.VoxelVillage
         const float TurnSpeed = 5.2f;
         const float BodyBobAmplitude = 0.08f;
         const float BodyBobSpeed = 6.2f;
-        const float StepDuration = 0.22f;
+        const float StepDuration = 0.28f;
         const float StepArcHeight = 0.62f;
-        const float StepThreshold = 0.42f;
-        const float ForwardStrideDistance = 1.44f;
-        const float SqueezedForwardStrideDistance = 1.2f;
+        const float StepThreshold = 0.62f;
+        const float ForwardStrideDistance = 2.0f;
+        const float SqueezedForwardStrideDistance = 1.68f;
         const float SqueezedWidthScale = 0.78f;
         const float SqueezedStrideScale = 0.84f;
         const float EyePulseSpeed = 3.4f;
@@ -64,7 +64,6 @@ namespace McpTest.VoxelVillage
         float _currentWidthScale = 1f;
         int _pathIndex;
         int _leadGaitGroup;
-        int _nextStepGroup = 1;
         bool _navigationBound;
 
         public bool IsRigBound { get; private set; }
@@ -128,7 +127,6 @@ namespace McpTest.VoxelVillage
             _path.Clear();
             _pathIndex = 0;
             _leadGaitGroup = 0;
-            _nextStepGroup = 1;
             _waitUntilTime = Time.time + Range(0.3f, 0.75f);
             CurrentFootprint = _grid.IsWalkable(spawnCell, false, MovementFootprint.Spider2x2)
                 ? MovementFootprint.Spider2x2
@@ -361,9 +359,17 @@ namespace McpTest.VoxelVillage
                     leg.LegRootBaseLocalPosition.z);
             }
 
-            if (!IsAnyLegStepping() && DoesGroupNeedStep(_nextStepGroup))
+            if (!IsAnyLegStepping())
             {
-                StartGroupStep(_nextStepGroup);
+                var trailingGroup = 1 - _leadGaitGroup;
+                if (DoesGroupNeedStep(trailingGroup))
+                {
+                    StartGroupStep(trailingGroup);
+                }
+                else if (DoesGroupNeedStep(_leadGaitGroup))
+                {
+                    StartGroupStep(_leadGaitGroup);
+                }
             }
 
             for (var index = 0; index < _legs.Length; index++)
@@ -449,7 +455,6 @@ namespace McpTest.VoxelVillage
         void StartGroupStep(int gaitGroup)
         {
             _leadGaitGroup = gaitGroup;
-            _nextStepGroup = 1 - gaitGroup;
 
             for (var index = 0; index < _legs.Length; index++)
             {
@@ -475,21 +480,17 @@ namespace McpTest.VoxelVillage
             var strideScale = CurrentFootprint == MovementFootprint.SqueezedSpider1x1 ? SqueezedStrideScale : 1f;
             localTarget.z *= strideScale;
 
-            if (ShouldApplyStrideBias())
+            var velocity = _currentVelocity;
+            velocity.y = 0f;
+            if (velocity.sqrMagnitude > 0.0001f)
             {
-                localTarget.z += GetForwardStrideBias(leg);
+                var localMoveDirection = _locomotionRoot.InverseTransformDirection(velocity.normalized);
+                localTarget += localMoveDirection * GetForwardStrideBias(leg);
             }
 
             var world = _locomotionRoot.TransformPoint(localTarget);
             world.y = 0f;
             return world;
-        }
-
-        bool ShouldApplyStrideBias()
-        {
-            var velocity = _currentVelocity;
-            velocity.y = 0f;
-            return velocity.sqrMagnitude > 0.0001f || (_navigationBound && _pathIndex < _path.Count);
         }
 
         Vector3 ComputeKneeHintWorldPosition(SpiderLegState leg)
