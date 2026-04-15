@@ -64,6 +64,7 @@ namespace McpTest.VoxelVillage
         float _currentWidthScale = 1f;
         int _pathIndex;
         int _leadGaitGroup;
+        int _nextStepGroup = 1;
         bool _navigationBound;
 
         public bool IsRigBound { get; private set; }
@@ -127,6 +128,7 @@ namespace McpTest.VoxelVillage
             _path.Clear();
             _pathIndex = 0;
             _leadGaitGroup = 0;
+            _nextStepGroup = 1;
             _waitUntilTime = Time.time + Range(0.3f, 0.75f);
             CurrentFootprint = _grid.IsWalkable(spawnCell, false, MovementFootprint.Spider2x2)
                 ? MovementFootprint.Spider2x2
@@ -359,17 +361,9 @@ namespace McpTest.VoxelVillage
                     leg.LegRootBaseLocalPosition.z);
             }
 
-            if (!IsAnyLegStepping())
+            if (!IsAnyLegStepping() && DoesGroupNeedStep(_nextStepGroup))
             {
-                var trailingGroup = 1 - _leadGaitGroup;
-                if (DoesGroupNeedStep(trailingGroup))
-                {
-                    StartGroupStep(trailingGroup);
-                }
-                else if (DoesGroupNeedStep(_leadGaitGroup))
-                {
-                    StartGroupStep(_leadGaitGroup);
-                }
+                StartGroupStep(_nextStepGroup);
             }
 
             for (var index = 0; index < _legs.Length; index++)
@@ -455,6 +449,7 @@ namespace McpTest.VoxelVillage
         void StartGroupStep(int gaitGroup)
         {
             _leadGaitGroup = gaitGroup;
+            _nextStepGroup = 1 - gaitGroup;
 
             for (var index = 0; index < _legs.Length; index++)
             {
@@ -480,17 +475,21 @@ namespace McpTest.VoxelVillage
             var strideScale = CurrentFootprint == MovementFootprint.SqueezedSpider1x1 ? SqueezedStrideScale : 1f;
             localTarget.z *= strideScale;
 
-            var velocity = _currentVelocity;
-            velocity.y = 0f;
-            if (velocity.sqrMagnitude > 0.0001f)
+            if (ShouldApplyStrideBias())
             {
-                var localMoveDirection = _locomotionRoot.InverseTransformDirection(velocity.normalized);
-                localTarget += localMoveDirection * GetForwardStrideBias(leg);
+                localTarget.z += GetForwardStrideBias(leg);
             }
 
             var world = _locomotionRoot.TransformPoint(localTarget);
             world.y = 0f;
             return world;
+        }
+
+        bool ShouldApplyStrideBias()
+        {
+            var velocity = _currentVelocity;
+            velocity.y = 0f;
+            return velocity.sqrMagnitude > 0.0001f || (_navigationBound && _pathIndex < _path.Count);
         }
 
         Vector3 ComputeKneeHintWorldPosition(SpiderLegState leg)

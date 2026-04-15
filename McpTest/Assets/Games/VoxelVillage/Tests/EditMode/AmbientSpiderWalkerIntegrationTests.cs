@@ -75,7 +75,7 @@ namespace McpTest.VoxelVillage.Tests
         }
 
         [Test]
-        public void StartGroupStep_MakesSteppingGroupTheNewLeadGroup()
+        public void StartGroupStep_MakesSteppingGroupTheNewLeadGroupAndSchedulesOppositeGroupNext()
         {
             var controllerObject = new GameObject("AmbientSpiderWalkerController_Test");
             var locomotionRoot = new GameObject("LocomotionRoot").transform;
@@ -88,28 +88,73 @@ namespace McpTest.VoxelVillage.Tests
                 var trailingLeg = CreateLegState(locomotionRoot, "TrailingLeg", 1);
 
                 var leadGroupField = typeof(AmbientSpiderWalkerController).GetField("_leadGaitGroup", BindingFlags.Instance | BindingFlags.NonPublic);
+                var nextStepGroupField = typeof(AmbientSpiderWalkerController).GetField("_nextStepGroup", BindingFlags.Instance | BindingFlags.NonPublic);
                 var legsField = typeof(AmbientSpiderWalkerController).GetField("_legs", BindingFlags.Instance | BindingFlags.NonPublic);
                 var locomotionRootField = typeof(AmbientSpiderWalkerController).GetField("_locomotionRoot", BindingFlags.Instance | BindingFlags.NonPublic);
                 var startGroupStepMethod = typeof(AmbientSpiderWalkerController).GetMethod("StartGroupStep", BindingFlags.Instance | BindingFlags.NonPublic);
                 var strideBiasMethod = typeof(AmbientSpiderWalkerController).GetMethod("GetForwardStrideBias", BindingFlags.Instance | BindingFlags.NonPublic);
 
                 Assert.That(leadGroupField, Is.Not.Null);
+                Assert.That(nextStepGroupField, Is.Not.Null);
                 Assert.That(legsField, Is.Not.Null);
                 Assert.That(locomotionRootField, Is.Not.Null);
                 Assert.That(startGroupStepMethod, Is.Not.Null);
                 Assert.That(strideBiasMethod, Is.Not.Null);
 
                 leadGroupField!.SetValue(controller, 0);
+                nextStepGroupField!.SetValue(controller, 1);
                 legsField!.SetValue(controller, new[] { leadLeg, trailingLeg });
                 locomotionRootField!.SetValue(controller, locomotionRoot);
 
                 startGroupStepMethod!.Invoke(controller, new object[] { 1 });
 
+                var scheduledNextGroup = (int)nextStepGroupField.GetValue(controller)!;
                 var formerLeadBias = (float)strideBiasMethod!.Invoke(controller, new object[] { leadLeg })!;
                 var newLeadBias = (float)strideBiasMethod.Invoke(controller, new object[] { trailingLeg })!;
 
+                Assert.That(scheduledNextGroup, Is.EqualTo(0));
                 Assert.That(formerLeadBias, Is.LessThan(0f));
                 Assert.That(newLeadBias, Is.GreaterThan(0f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(controllerObject);
+            }
+        }
+
+        [Test]
+        public void ComputeDesiredFootPosition_UsesBodyForwardAxisForStride()
+        {
+            var controllerObject = new GameObject("AmbientSpiderWalkerController_Test");
+            var locomotionRoot = new GameObject("LocomotionRoot").transform;
+            locomotionRoot.SetParent(controllerObject.transform, false);
+            var controller = controllerObject.AddComponent<AmbientSpiderWalkerController>();
+
+            try
+            {
+                var leg = CreateLegState(locomotionRoot, "StrideLeg", 0);
+
+                var locomotionRootField = typeof(AmbientSpiderWalkerController).GetField("_locomotionRoot", BindingFlags.Instance | BindingFlags.NonPublic);
+                var currentVelocityField = typeof(AmbientSpiderWalkerController).GetField("_currentVelocity", BindingFlags.Instance | BindingFlags.NonPublic);
+                var currentWidthScaleField = typeof(AmbientSpiderWalkerController).GetField("_currentWidthScale", BindingFlags.Instance | BindingFlags.NonPublic);
+                var leadGroupField = typeof(AmbientSpiderWalkerController).GetField("_leadGaitGroup", BindingFlags.Instance | BindingFlags.NonPublic);
+                var desiredFootMethod = typeof(AmbientSpiderWalkerController).GetMethod("ComputeDesiredFootPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                Assert.That(locomotionRootField, Is.Not.Null);
+                Assert.That(currentVelocityField, Is.Not.Null);
+                Assert.That(currentWidthScaleField, Is.Not.Null);
+                Assert.That(leadGroupField, Is.Not.Null);
+                Assert.That(desiredFootMethod, Is.Not.Null);
+
+                locomotionRootField!.SetValue(controller, locomotionRoot);
+                currentVelocityField!.SetValue(controller, Vector3.right * 2f);
+                currentWidthScaleField!.SetValue(controller, 1f);
+                leadGroupField!.SetValue(controller, 0);
+
+                var desired = (Vector3)desiredFootMethod!.Invoke(controller, new object[] { leg })!;
+
+                Assert.That(desired.x, Is.EqualTo(leg.RestLocalTarget.x).Within(0.0001f));
+                Assert.That(desired.z, Is.EqualTo(leg.RestLocalTarget.z + 1.44f).Within(0.0001f));
             }
             finally
             {
