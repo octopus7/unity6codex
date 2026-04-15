@@ -54,11 +54,11 @@ namespace McpTest.VoxelVillage
         const float TrafficSignalWidth = WorldCellSize * 0.58f;
         const float TrafficSignalHeight = 3.5f;
         const float TrafficSignalDepth = WorldCellSize * 0.58f;
-        const float TrafficSignalLampSize = WorldCellSize * 0.16f;
-        const float TrafficSignalLampDepth = WorldCellSize * 0.08f;
-        const float TrafficSignalLampSpacing = 0.44f;
-        const float TrafficSignalLampCenterYOffset = 0.28f;
-        const float TrafficSignalLampForwardOffset = 0.18f;
+        const float TrafficSignalLampSize = 0.34f;
+        const float TrafficSignalLampDepth = 0.12f;
+        const float TrafficSignalLampSpacing = 0.4f;
+        const float TrafficSignalLampCenterYOffset = 0.92f;
+        const float TrafficSignalLampForwardOffset = 0.56f;
         const float TrafficSignalLampActiveEmission = 5.8f;
         const float TrafficSignalLampInactiveEmission = 0.05f;
         const int WorldGridSize = 72;
@@ -1693,19 +1693,24 @@ namespace McpTest.VoxelVillage
                 new Color(0.14f, 0.15f, 0.16f));
             signal.Root.transform.SetParent(_worldRoot, true);
 
+            var lampAnchor = new GameObject("LampAnchor").transform;
+            lampAnchor.SetParent(_worldRoot, false);
+            lampAnchor.position = signal.Root.transform.position;
+            lampAnchor.rotation = signal.Root.transform.rotation;
+
             var lampScale = new Vector3(TrafficSignalLampSize, TrafficSignalLampSize, TrafficSignalLampDepth);
             var redLamp = CreateTrafficSignalLamp(
-                signal.Root.transform,
+                lampAnchor,
                 "Lamp_Red",
                 new Vector3(0f, TrafficSignalLampCenterYOffset + TrafficSignalLampSpacing, TrafficSignalLampForwardOffset),
                 lampScale);
             var yellowLamp = CreateTrafficSignalLamp(
-                signal.Root.transform,
+                lampAnchor,
                 "Lamp_Yellow",
                 new Vector3(0f, TrafficSignalLampCenterYOffset, TrafficSignalLampForwardOffset),
                 lampScale);
             var greenLamp = CreateTrafficSignalLamp(
-                signal.Root.transform,
+                lampAnchor,
                 "Lamp_Green",
                 new Vector3(0f, TrafficSignalLampCenterYOffset - TrafficSignalLampSpacing, TrafficSignalLampForwardOffset),
                 lampScale);
