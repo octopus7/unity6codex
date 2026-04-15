@@ -17,6 +17,42 @@ namespace McpTest.VoxelVillage.Tests
             Assert.AreEqual(layout.buildings.Length, layout.doors.Length);
             Assert.Greater(layout.foliage.Length, 0);
             Assert.AreEqual(12, layout.npcSpawnPoints.Length);
+            Assert.AreEqual(4, layout.trafficSignals.Length);
+        }
+
+        [Test]
+        public void Generate_PlacesTrafficSignalsOnFourPlazaApproaches()
+        {
+            var layout = ProceduralVillageGenerator.Generate(12345, 72);
+            var grid = VillageGrid.FromLayout(layout);
+            var signalIds = new HashSet<string>();
+            var northSouthCount = 0;
+            var eastWestCount = 0;
+
+            Assert.AreEqual(4, layout.trafficSignals.Length);
+
+            for (var index = 0; index < layout.trafficSignals.Length; index++)
+            {
+                var signal = layout.trafficSignals[index];
+                var offset = signal.cell - layout.plazaCenter;
+
+                Assert.IsTrue(signalIds.Add(signal.id), $"Traffic signal {signal.id} should be unique.");
+                Assert.AreEqual(5, Mathf.Max(Mathf.Abs(offset.x), Mathf.Abs(offset.y)), $"Traffic signal {signal.id} should sit on a plaza approach.");
+                Assert.AreNotEqual(VillageCellKind.Building, grid.GetCellKind(signal.cell), $"Traffic signal {signal.id} must not overlap a building.");
+
+                if (signal.phaseGroup == VillageTrafficSignalPhaseGroup.NorthSouth)
+                {
+                    northSouthCount++;
+                    Assert.IsTrue(signal.facing == Vector2Int.up || signal.facing == Vector2Int.down, $"North/south signal {signal.id} should face along the vertical road.");
+                    continue;
+                }
+
+                eastWestCount++;
+                Assert.IsTrue(signal.facing == Vector2Int.left || signal.facing == Vector2Int.right, $"East/west signal {signal.id} should face along the horizontal road.");
+            }
+
+            Assert.AreEqual(2, northSouthCount);
+            Assert.AreEqual(2, eastWestCount);
         }
 
         [Test]

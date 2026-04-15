@@ -11,6 +11,7 @@ namespace McpTest.VoxelVillage
         House,
         Door,
         DoorOpen,
+        TrafficSignal,
         Tree,
         Shrub,
         Flower,
@@ -107,6 +108,30 @@ namespace McpTest.VoxelVillage
                     Color.Lerp(woodColor, Color.black, 0.45f),
                     new Color(0.9f, 0.8f, 0.48f),
                     new Color(0.98f, 0.94f, 0.86f)));
+        }
+
+        public static VoxelStructureBuildResult CreateTrafficSignal(
+            string name,
+            Vector3 position,
+            Vector3 targetSize,
+            float yaw,
+            Color poleColor,
+            Color housingColor)
+        {
+            return CreateStructure(
+                name,
+                VoxelStructureType.TrafficSignal,
+                position,
+                yaw,
+                targetSize,
+                false,
+                CreatePalette(
+                    poleColor,
+                    housingColor,
+                    Color.Lerp(housingColor, Color.white, 0.16f),
+                    Color.Lerp(poleColor, Color.black, 0.38f),
+                    Color.Lerp(housingColor, Color.black, 0.24f),
+                    Color.Lerp(housingColor, Color.white, 0.28f)));
         }
 
         public static VoxelStructureBuildResult CreateFence(
@@ -509,6 +534,9 @@ namespace McpTest.VoxelVillage
                 case VoxelStructureType.DoorOpen:
                     BuildDoorOpenModel(model);
                     break;
+                case VoxelStructureType.TrafficSignal:
+                    BuildTrafficSignalModel(model);
+                    break;
                 case VoxelStructureType.Tree:
                     BuildTreeModel(model);
                     break;
@@ -595,6 +623,17 @@ namespace McpTest.VoxelVillage
             model.FillBox(8, 6, 11, 24, 12, 13, LightColor);
             model.FillBox(8, 19, 11, 24, 25, 13, LightColor);
             model.FillBox(24, 15, 14, 27, 18, 16, AccentColor);
+        }
+
+        static void BuildTrafficSignalModel(VoxelModel32 model)
+        {
+            model.FillBox(10, 0, 10, 22, 3, 22, DarkColor);
+            model.FillBox(13, 0, 13, 19, 24, 19, PrimaryColor);
+            model.FillBox(11, 24, 11, 21, 26, 21, TrimColor);
+            model.FillBox(8, 16, 8, 24, 31, 20, SecondaryColor);
+            model.FillBox(7, 18, 19, 25, 32, 22, TrimColor);
+            model.FillBox(9, 17, 7, 23, 30, 8, AccentColor);
+            model.FillBox(9, 20, 20, 23, 29, 21, LightColor);
         }
 
         static void BuildTreeModel(VoxelModel32 model)

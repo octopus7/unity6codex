@@ -27,6 +27,7 @@ namespace McpTest.VoxelVillage
             readonly List<VillageFencePath> _fences = new List<VillageFencePath>();
             readonly List<VillageFoliagePlacement> _foliage = new List<VillageFoliagePlacement>();
             readonly List<VillageNpcSpawnPoint> _npcSpawns = new List<VillageNpcSpawnPoint>();
+            readonly List<VillageTrafficSignalLayout> _trafficSignals = new List<VillageTrafficSignalLayout>();
 
             public VillageLayoutBuilder(int seed, int townSize)
             {
@@ -39,6 +40,7 @@ namespace McpTest.VoxelVillage
                 };
                 _grid = new VillageGrid(townSize, townSize);
                 BuildCoreRoads();
+                PlaceTrafficSignals();
                 PlaceBuildings();
                 PlaceFences();
                 PlaceFoliage();
@@ -49,6 +51,7 @@ namespace McpTest.VoxelVillage
                 _layout.fences = _fences.ToArray();
                 _layout.foliage = _foliage.ToArray();
                 _layout.npcSpawnPoints = _npcSpawns.ToArray();
+                _layout.trafficSignals = _trafficSignals.ToArray();
                 _grid.ApplyLayout(_layout);
             }
 
@@ -66,6 +69,15 @@ namespace McpTest.VoxelVillage
                 AddRoad("road_plaza_ring_s", Line(center + new Vector2Int(-4, -4), center + new Vector2Int(4, -4)));
                 AddRoad("road_plaza_ring_w", Line(center + new Vector2Int(-4, -4), center + new Vector2Int(-4, 4)));
                 AddRoad("road_plaza_ring_e", Line(center + new Vector2Int(4, -4), center + new Vector2Int(4, 4)));
+            }
+
+            void PlaceTrafficSignals()
+            {
+                var center = _layout.plazaCenter;
+                TryAddTrafficSignal("signal_north", center + new Vector2Int(-1, 5), Vector2Int.down, VillageTrafficSignalPhaseGroup.NorthSouth);
+                TryAddTrafficSignal("signal_south", center + new Vector2Int(1, -5), Vector2Int.up, VillageTrafficSignalPhaseGroup.NorthSouth);
+                TryAddTrafficSignal("signal_east", center + new Vector2Int(5, 1), Vector2Int.left, VillageTrafficSignalPhaseGroup.EastWest);
+                TryAddTrafficSignal("signal_west", center + new Vector2Int(-5, -1), Vector2Int.right, VillageTrafficSignalPhaseGroup.EastWest);
             }
 
             void PlaceBuildings()
@@ -375,6 +387,22 @@ namespace McpTest.VoxelVillage
                 {
                     id = id,
                     cells = path.ToArray()
+                });
+            }
+
+            void TryAddTrafficSignal(string id, Vector2Int cell, Vector2Int facing, VillageTrafficSignalPhaseGroup phaseGroup)
+            {
+                if (!IsInBounds(cell))
+                {
+                    return;
+                }
+
+                _trafficSignals.Add(new VillageTrafficSignalLayout
+                {
+                    id = id,
+                    cell = cell,
+                    facing = facing,
+                    phaseGroup = phaseGroup
                 });
             }
 

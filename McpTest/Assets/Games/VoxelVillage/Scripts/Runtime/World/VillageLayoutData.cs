@@ -17,6 +17,7 @@ namespace McpTest.VoxelVillage
         public VillageFencePath[] fences = Array.Empty<VillageFencePath>();
         public VillageFoliagePlacement[] foliage = Array.Empty<VillageFoliagePlacement>();
         public VillageNpcSpawnPoint[] npcSpawnPoints = Array.Empty<VillageNpcSpawnPoint>();
+        public VillageTrafficSignalLayout[] trafficSignals = Array.Empty<VillageTrafficSignalLayout>();
     }
 
     [Serializable]
@@ -69,6 +70,21 @@ namespace McpTest.VoxelVillage
         public Vector2Int facing;
         public Vector2Int patrolCenter;
         public int patrolRadius = 8;
+    }
+
+    [Serializable]
+    public sealed class VillageTrafficSignalLayout
+    {
+        public string id = string.Empty;
+        public Vector2Int cell;
+        public Vector2Int facing;
+        public VillageTrafficSignalPhaseGroup phaseGroup;
+    }
+
+    public enum VillageTrafficSignalPhaseGroup
+    {
+        NorthSouth,
+        EastWest
     }
 
     public enum VillageFoliageKind

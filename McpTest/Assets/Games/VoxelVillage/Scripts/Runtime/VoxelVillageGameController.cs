@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
@@ -48,6 +49,18 @@ namespace McpTest.VoxelVillage
         const float DoorWallDepthRatio = 2f / 26f;
         const float DoorInteractionForwardOffset = 0.62f;
         const float RoofRevealFeather = 1.05f;
+        const float TrafficSignalGreenDuration = 9f;
+        const float TrafficSignalYellowDuration = 1.6f;
+        const float TrafficSignalWidth = WorldCellSize * 0.58f;
+        const float TrafficSignalHeight = 3.5f;
+        const float TrafficSignalDepth = WorldCellSize * 0.58f;
+        const float TrafficSignalLampSize = WorldCellSize * 0.16f;
+        const float TrafficSignalLampDepth = WorldCellSize * 0.08f;
+        const float TrafficSignalLampSpacing = 0.44f;
+        const float TrafficSignalLampCenterYOffset = 0.28f;
+        const float TrafficSignalLampForwardOffset = 0.18f;
+        const float TrafficSignalLampActiveEmission = 5.8f;
+        const float TrafficSignalLampInactiveEmission = 0.05f;
         const int WorldGridSize = 72;
         const float WorldCellSize = TownFootprint / WorldGridSize;
 
@@ -78,6 +91,21 @@ namespace McpTest.VoxelVillage
             Door
         }
 
+        enum TrafficSignalCyclePhase
+        {
+            NorthSouthGreen,
+            NorthSouthYellow,
+            EastWestGreen,
+            EastWestYellow
+        }
+
+        enum TrafficSignalLamp
+        {
+            Red,
+            Yellow,
+            Green
+        }
+
         LocalizationDatabase _database = null!;
         LanguageState _languageState = null!;
 
@@ -102,7 +130,9 @@ namespace McpTest.VoxelVillage
         readonly List<HouseInstance> _houses = new List<HouseInstance>();
         readonly List<VillagerInstance> _villagers = new List<VillagerInstance>();
         readonly List<DoorInstance> _doors = new List<DoorInstance>();
+        readonly List<TrafficSignalInstance> _trafficSignals = new List<TrafficSignalInstance>();
         System.Random _worldRandom = new System.Random();
+        Material? _trafficSignalLampMaterial;
 
         InteractionTarget _currentTarget;
         VillagerInstance? _currentVillager;
@@ -112,6 +142,8 @@ namespace McpTest.VoxelVillage
         int _dialogueLineIndex;
         bool _helpVisible;
         int _worldSeed;
+        TrafficSignalCyclePhase _trafficSignalPhase;
+        float _trafficSignalPhaseElapsed;
 
         void Awake()
         {
@@ -137,6 +169,7 @@ namespace McpTest.VoxelVillage
             UpdateInteractionTarget();
             HandleInteractionInput();
             UpdateDoorVisual();
+            UpdateTrafficSignals();
             UpdateSpeechBubble();
             RefreshPrompt();
         }
@@ -169,8 +202,12 @@ namespace McpTest.VoxelVillage
             _mainCamera.clearFlags = CameraClearFlags.SolidColor;
             _mainCamera.backgroundColor = new Color(0.77f, 0.9f, 1f);
             _mainCamera.fieldOfView = 58f;
+            _mainCamera.allowHDR = true;
             _mainCamera.nearClipPlane = 0.03f;
             _mainCamera.farClipPlane = 400f;
+
+            var additionalCameraData = _mainCamera.GetUniversalAdditionalCameraData();
+            additionalCameraData.renderPostProcessing = true;
         }
 
         void EnsureLighting()
@@ -234,12 +271,15 @@ namespace McpTest.VoxelVillage
             _houses.Clear();
             _villagers.Clear();
             _doors.Clear();
+            _trafficSignals.Clear();
             _currentTarget = InteractionTarget.None;
             _currentVillager = null;
             _currentDoor = null;
             _activeDialogueVillager = null;
             _dialogueActive = false;
             _dialogueLineIndex = 0;
+            _trafficSignalPhase = TrafficSignalCyclePhase.NorthSouthGreen;
+            _trafficSignalPhaseElapsed = 0f;
 
             _worldSeed = Environment.TickCount ^ (int)(DateTime.UtcNow.Ticks & 0x7fffffff);
             _worldRandom = new System.Random(_worldSeed);
@@ -629,6 +669,11 @@ namespace McpTest.VoxelVillage
             for (var foliageIndex = 0; foliageIndex < _layout.foliage.Length; foliageIndex++)
             {
                 CreateFoliage(_layout.foliage[foliageIndex], foliageIndex);
+            }
+
+            for (var signalIndex = 0; signalIndex < _layout.trafficSignals.Length; signalIndex++)
+            {
+                CreateTrafficSignal(_layout.trafficSignals[signalIndex]);
             }
         }
 
@@ -1635,6 +1680,191 @@ namespace McpTest.VoxelVillage
             _doors.Add(instance);
         }
 
+        void CreateTrafficSignal(VillageTrafficSignalLayout layoutSignal)
+        {
+            var size = new Vector3(TrafficSignalWidth, TrafficSignalHeight, TrafficSignalDepth);
+            var worldCenter = CellToWorld(layoutSignal.cell) + new Vector3(0f, size.y * 0.5f, 0f);
+            var signal = VoxelEnvironmentFactory.CreateTrafficSignal(
+                "TrafficSignal_" + layoutSignal.id,
+                worldCenter,
+                size,
+                YawFromDirection(layoutSignal.facing),
+                new Color(0.44f, 0.47f, 0.5f),
+                new Color(0.14f, 0.15f, 0.16f));
+            signal.Root.transform.SetParent(_worldRoot, true);
+
+            var lampScale = new Vector3(TrafficSignalLampSize, TrafficSignalLampSize, TrafficSignalLampDepth);
+            var redLamp = CreateTrafficSignalLamp(
+                signal.Root.transform,
+                "Lamp_Red",
+                new Vector3(0f, TrafficSignalLampCenterYOffset + TrafficSignalLampSpacing, TrafficSignalLampForwardOffset),
+                lampScale);
+            var yellowLamp = CreateTrafficSignalLamp(
+                signal.Root.transform,
+                "Lamp_Yellow",
+                new Vector3(0f, TrafficSignalLampCenterYOffset, TrafficSignalLampForwardOffset),
+                lampScale);
+            var greenLamp = CreateTrafficSignalLamp(
+                signal.Root.transform,
+                "Lamp_Green",
+                new Vector3(0f, TrafficSignalLampCenterYOffset - TrafficSignalLampSpacing, TrafficSignalLampForwardOffset),
+                lampScale);
+
+            var instance = new TrafficSignalInstance(
+                layoutSignal.id,
+                layoutSignal.phaseGroup,
+                signal.Root.transform,
+                redLamp,
+                yellowLamp,
+                greenLamp);
+            _trafficSignals.Add(instance);
+            ApplyTrafficSignalState(instance, ResolveTrafficSignalLamp(layoutSignal.phaseGroup), true);
+        }
+
+        Renderer CreateTrafficSignalLamp(Transform parent, string name, Vector3 localPosition, Vector3 localScale)
+        {
+            var lamp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            lamp.name = name;
+            lamp.transform.SetParent(parent, false);
+            lamp.transform.localPosition = localPosition;
+            lamp.transform.localScale = localScale;
+
+            var collider = lamp.GetComponent<Collider>();
+            if (collider != null)
+            {
+                Destroy(collider);
+            }
+
+            var renderer = lamp.GetComponent<Renderer>();
+            renderer.sharedMaterial = GetTrafficSignalLampMaterial();
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return renderer;
+        }
+
+        Material GetTrafficSignalLampMaterial()
+        {
+            if (_trafficSignalLampMaterial != null)
+            {
+                return _trafficSignalLampMaterial;
+            }
+
+            _trafficSignalLampMaterial = CreateEmissiveMaterial();
+            return _trafficSignalLampMaterial;
+        }
+
+        void UpdateTrafficSignals()
+        {
+            if (_trafficSignals.Count == 0)
+            {
+                return;
+            }
+
+            _trafficSignalPhaseElapsed += Time.deltaTime;
+            while (_trafficSignalPhaseElapsed >= GetTrafficSignalPhaseDuration(_trafficSignalPhase))
+            {
+                _trafficSignalPhaseElapsed -= GetTrafficSignalPhaseDuration(_trafficSignalPhase);
+                _trafficSignalPhase = GetNextTrafficSignalPhase(_trafficSignalPhase);
+            }
+
+            for (var index = 0; index < _trafficSignals.Count; index++)
+            {
+                var signal = _trafficSignals[index];
+                ApplyTrafficSignalState(signal, ResolveTrafficSignalLamp(signal.PhaseGroup), false);
+            }
+        }
+
+        void ApplyTrafficSignalState(TrafficSignalInstance signal, TrafficSignalLamp activeLamp, bool forceRefresh)
+        {
+            if (!forceRefresh && signal.ActiveLamp == activeLamp)
+            {
+                return;
+            }
+
+            signal.ActiveLamp = activeLamp;
+            for (var index = 0; index < signal.LampRenderers.Length; index++)
+            {
+                var isActive = index == (int)activeLamp;
+                var baseColor = GetTrafficSignalLampColor(index);
+                var lampRenderer = signal.LampRenderers[index];
+                var propertyBlock = signal.PropertyBlocks[index];
+                lampRenderer.GetPropertyBlock(propertyBlock);
+
+                var visibleColor = isActive
+                    ? Color.Lerp(baseColor, Color.white, 0.2f)
+                    : Color.Lerp(baseColor, Color.black, 0.82f);
+                var emissionIntensity = isActive ? TrafficSignalLampActiveEmission : TrafficSignalLampInactiveEmission;
+                var emissionColor = baseColor * emissionIntensity;
+
+                if (lampRenderer.sharedMaterial.HasProperty("_BaseColor"))
+                {
+                    propertyBlock.SetColor("_BaseColor", visibleColor);
+                }
+
+                if (lampRenderer.sharedMaterial.HasProperty("_Color"))
+                {
+                    propertyBlock.SetColor("_Color", visibleColor);
+                }
+
+                if (lampRenderer.sharedMaterial.HasProperty("_EmissionColor"))
+                {
+                    propertyBlock.SetColor("_EmissionColor", emissionColor);
+                }
+
+                lampRenderer.SetPropertyBlock(propertyBlock);
+            }
+        }
+
+        TrafficSignalLamp ResolveTrafficSignalLamp(VillageTrafficSignalPhaseGroup phaseGroup)
+        {
+            switch (_trafficSignalPhase)
+            {
+                case TrafficSignalCyclePhase.NorthSouthGreen:
+                    return phaseGroup == VillageTrafficSignalPhaseGroup.NorthSouth ? TrafficSignalLamp.Green : TrafficSignalLamp.Red;
+                case TrafficSignalCyclePhase.NorthSouthYellow:
+                    return phaseGroup == VillageTrafficSignalPhaseGroup.NorthSouth ? TrafficSignalLamp.Yellow : TrafficSignalLamp.Red;
+                case TrafficSignalCyclePhase.EastWestGreen:
+                    return phaseGroup == VillageTrafficSignalPhaseGroup.EastWest ? TrafficSignalLamp.Green : TrafficSignalLamp.Red;
+                default:
+                    return phaseGroup == VillageTrafficSignalPhaseGroup.EastWest ? TrafficSignalLamp.Yellow : TrafficSignalLamp.Red;
+            }
+        }
+
+        static TrafficSignalCyclePhase GetNextTrafficSignalPhase(TrafficSignalCyclePhase phase)
+        {
+            switch (phase)
+            {
+                case TrafficSignalCyclePhase.NorthSouthGreen:
+                    return TrafficSignalCyclePhase.NorthSouthYellow;
+                case TrafficSignalCyclePhase.NorthSouthYellow:
+                    return TrafficSignalCyclePhase.EastWestGreen;
+                case TrafficSignalCyclePhase.EastWestGreen:
+                    return TrafficSignalCyclePhase.EastWestYellow;
+                default:
+                    return TrafficSignalCyclePhase.NorthSouthGreen;
+            }
+        }
+
+        static float GetTrafficSignalPhaseDuration(TrafficSignalCyclePhase phase)
+        {
+            return phase == TrafficSignalCyclePhase.NorthSouthYellow || phase == TrafficSignalCyclePhase.EastWestYellow
+                ? TrafficSignalYellowDuration
+                : TrafficSignalGreenDuration;
+        }
+
+        static Color GetTrafficSignalLampColor(int index)
+        {
+            switch (index)
+            {
+                case 0:
+                    return new Color(1f, 0.18f, 0.14f);
+                case 1:
+                    return new Color(1f, 0.78f, 0.16f);
+                default:
+                    return new Color(0.2f, 0.95f, 0.28f);
+            }
+        }
+
         bool TryFindPondRect(out RectInt pondRect)
         {
             var size = new Vector2Int(4, 3);
@@ -1761,6 +1991,49 @@ namespace McpTest.VoxelVillage
                 material.SetFloat("_Smoothness", 0.08f);
             }
 
+            return material;
+        }
+
+        static Material CreateEmissiveMaterial()
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+            {
+                shader = Shader.Find("Standard");
+            }
+
+            var material = new Material(shader)
+            {
+                enableInstancing = true
+            };
+
+            if (material.HasProperty("_Smoothness"))
+            {
+                material.SetFloat("_Smoothness", 0.18f);
+            }
+
+            if (material.HasProperty("_Glossiness"))
+            {
+                material.SetFloat("_Glossiness", 0.18f);
+            }
+
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", Color.black);
+            }
+
+            if (material.HasProperty("_Color"))
+            {
+                material.SetColor("_Color", Color.black);
+            }
+
+            if (material.HasProperty("_EmissionColor"))
+            {
+                material.SetColor("_EmissionColor", Color.black);
+            }
+
+            material.EnableKeyword("_EMISSION");
+            material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
             return material;
         }
 
@@ -2127,6 +2400,42 @@ namespace McpTest.VoxelVillage
             public float CurrentYaw { get; set; }
 
             public bool IsOpen { get; set; }
+        }
+
+        sealed class TrafficSignalInstance
+        {
+            public TrafficSignalInstance(
+                string signalId,
+                VillageTrafficSignalPhaseGroup phaseGroup,
+                Transform root,
+                Renderer redLamp,
+                Renderer yellowLamp,
+                Renderer greenLamp)
+            {
+                SignalId = signalId;
+                PhaseGroup = phaseGroup;
+                Root = root;
+                LampRenderers = new[] { redLamp, yellowLamp, greenLamp };
+                PropertyBlocks = new[]
+                {
+                    new MaterialPropertyBlock(),
+                    new MaterialPropertyBlock(),
+                    new MaterialPropertyBlock()
+                };
+                ActiveLamp = TrafficSignalLamp.Red;
+            }
+
+            public string SignalId { get; }
+
+            public VillageTrafficSignalPhaseGroup PhaseGroup { get; }
+
+            public Transform Root { get; }
+
+            public Renderer[] LampRenderers { get; }
+
+            public MaterialPropertyBlock[] PropertyBlocks { get; }
+
+            public TrafficSignalLamp ActiveLamp { get; set; }
         }
 
         sealed class VillagerInstance
