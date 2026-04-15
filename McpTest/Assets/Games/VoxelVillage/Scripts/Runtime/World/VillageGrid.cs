@@ -141,6 +141,11 @@ namespace McpTest.VoxelVillage
                 SetCellKind(door.cell, doorsOpen || door.startsOpen ? VillageCellKind.DoorOpen : VillageCellKind.DoorClosed);
             }
 
+            for (var fenceIndex = 0; fenceIndex < layout.fences.Length; fenceIndex++)
+            {
+                MarkPath(layout.fences[fenceIndex].cells, VillageCellKind.Fence);
+            }
+
             for (var foliageIndex = 0; foliageIndex < layout.foliage.Length; foliageIndex++)
             {
                 SetCellKind(layout.foliage[foliageIndex].cell, VillageCellKind.Foliage);
@@ -266,7 +271,15 @@ namespace McpTest.VoxelVillage
             {
                 for (var x = building.origin.x; x < building.origin.x + building.size.x; x++)
                 {
-                    SetCellKind(new Vector2Int(x, y), VillageCellKind.Building);
+                    var isPerimeter =
+                        x == building.origin.x ||
+                        x == building.origin.x + building.size.x - 1 ||
+                        y == building.origin.y ||
+                        y == building.origin.y + building.size.y - 1;
+                    if (isPerimeter)
+                    {
+                        SetCellKind(new Vector2Int(x, y), VillageCellKind.Building);
+                    }
                 }
             }
         }

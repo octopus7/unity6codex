@@ -24,6 +24,7 @@ namespace McpTest.VoxelVillage
             readonly List<VillageRoadPath> _roads = new List<VillageRoadPath>();
             readonly List<VillageBuildingLayout> _buildings = new List<VillageBuildingLayout>();
             readonly List<VillageDoorLayout> _doors = new List<VillageDoorLayout>();
+            readonly List<VillageFencePath> _fences = new List<VillageFencePath>();
             readonly List<VillageFoliagePlacement> _foliage = new List<VillageFoliagePlacement>();
             readonly List<VillageNpcSpawnPoint> _npcSpawns = new List<VillageNpcSpawnPoint>();
 
@@ -39,11 +40,13 @@ namespace McpTest.VoxelVillage
                 _grid = new VillageGrid(townSize, townSize);
                 BuildCoreRoads();
                 PlaceBuildings();
+                PlaceFences();
                 PlaceFoliage();
                 PlaceNpcSpawns();
                 _layout.roads = _roads.ToArray();
                 _layout.buildings = _buildings.ToArray();
                 _layout.doors = _doors.ToArray();
+                _layout.fences = _fences.ToArray();
                 _layout.foliage = _foliage.ToArray();
                 _layout.npcSpawnPoints = _npcSpawns.ToArray();
                 _grid.ApplyLayout(_layout);
@@ -174,6 +177,30 @@ namespace McpTest.VoxelVillage
                 return true;
             }
 
+            void PlaceFences()
+            {
+                for (var index = 0; index < _buildings.Count; index++)
+                {
+                    var building = _buildings[index];
+                    var door = FindDoorForBuilding(building.id);
+                    if (door == null || !TryCreateFencePath(building, door, out var fenceCells))
+                    {
+                        continue;
+                    }
+
+                    _fences.Add(new VillageFencePath
+                    {
+                        id = "fence_" + building.id,
+                        cells = fenceCells
+                    });
+
+                    for (var cellIndex = 0; cellIndex < fenceCells.Length; cellIndex++)
+                    {
+                        _grid.SetCellKind(fenceCells[cellIndex], VillageCellKind.Fence);
+                    }
+                }
+            }
+
             VillageDoorLayout CreateDoorForBuilding(VillageBuildingLayout building, Vector2Int facing)
             {
                 var centerX = building.origin.x + (building.size.x / 2);
@@ -228,6 +255,65 @@ namespace McpTest.VoxelVillage
                 return cells;
             }
 
+            bool TryCreateFencePath(VillageBuildingLayout building, VillageDoorLayout door, out Vector2Int[] fenceCells)
+            {
+                var path = BuildFencePolyline(building, door.facing);
+                if (path.Count < 3)
+                {
+                    fenceCells = Array.Empty<Vector2Int>();
+                    return false;
+                }
+
+                var seen = new HashSet<Vector2Int>();
+                for (var index = 0; index < path.Count; index++)
+                {
+                    var cell = path[index];
+                    if (!IsInBounds(cell) || _grid.GetCellKind(cell) != VillageCellKind.Empty || !seen.Add(cell))
+                    {
+                        fenceCells = Array.Empty<Vector2Int>();
+                        return false;
+                    }
+                }
+
+                fenceCells = path.ToArray();
+                return true;
+            }
+
+            List<Vector2Int> BuildFencePolyline(VillageBuildingLayout building, Vector2Int facing)
+            {
+                var rect = new RectInt(building.origin.x, building.origin.y, building.size.x, building.size.y);
+                var path = new List<Vector2Int>();
+
+                if (facing == Vector2Int.down)
+                {
+                    AppendLine(path, new Vector2Int(rect.xMin - 1, rect.yMin), new Vector2Int(rect.xMin - 1, rect.yMax));
+                    AppendLine(path, new Vector2Int(rect.xMin - 1, rect.yMax), new Vector2Int(rect.xMax, rect.yMax));
+                    AppendLine(path, new Vector2Int(rect.xMax, rect.yMax), new Vector2Int(rect.xMax, rect.yMin));
+                    return path;
+                }
+
+                if (facing == Vector2Int.up)
+                {
+                    AppendLine(path, new Vector2Int(rect.xMin - 1, rect.yMax - 1), new Vector2Int(rect.xMin - 1, rect.yMin - 1));
+                    AppendLine(path, new Vector2Int(rect.xMin - 1, rect.yMin - 1), new Vector2Int(rect.xMax, rect.yMin - 1));
+                    AppendLine(path, new Vector2Int(rect.xMax, rect.yMin - 1), new Vector2Int(rect.xMax, rect.yMax - 1));
+                    return path;
+                }
+
+                if (facing == Vector2Int.left)
+                {
+                    AppendLine(path, new Vector2Int(rect.xMin, rect.yMin - 1), new Vector2Int(rect.xMax, rect.yMin - 1));
+                    AppendLine(path, new Vector2Int(rect.xMax, rect.yMin - 1), new Vector2Int(rect.xMax, rect.yMax));
+                    AppendLine(path, new Vector2Int(rect.xMax, rect.yMax), new Vector2Int(rect.xMin, rect.yMax));
+                    return path;
+                }
+
+                AppendLine(path, new Vector2Int(rect.xMax - 1, rect.yMin - 1), new Vector2Int(rect.xMin - 1, rect.yMin - 1));
+                AppendLine(path, new Vector2Int(rect.xMin - 1, rect.yMin - 1), new Vector2Int(rect.xMin - 1, rect.yMax));
+                AppendLine(path, new Vector2Int(rect.xMin - 1, rect.yMax), new Vector2Int(rect.xMax - 1, rect.yMax));
+                return path;
+            }
+
             void AddRoad(string id, IEnumerable<Vector2Int> cells)
             {
                 var path = new List<Vector2Int>();
@@ -271,6 +357,17 @@ namespace McpTest.VoxelVillage
                 }
 
                 return cells;
+            }
+
+            void AppendLine(List<Vector2Int> path, Vector2Int from, Vector2Int to)
+            {
+                foreach (var cell in Line(from, to))
+                {
+                    if (path.Count == 0 || path[path.Count - 1] != cell)
+                    {
+                        path.Add(cell);
+                    }
+                }
             }
 
             Vector2Int ResolveOrigin(BuildingSlot slot, int width, int height)
@@ -322,6 +419,20 @@ namespace McpTest.VoxelVillage
             Vector2Int RandomOffset(int radius)
             {
                 return new Vector2Int(_rng.Next(-radius, radius + 1), _rng.Next(-radius, radius + 1));
+            }
+
+            VillageDoorLayout? FindDoorForBuilding(string buildingId)
+            {
+                for (var index = 0; index < _doors.Count; index++)
+                {
+                    var door = _doors[index];
+                    if (string.Equals(door.buildingId, buildingId, StringComparison.Ordinal))
+                    {
+                        return door;
+                    }
+                }
+
+                return null;
             }
 
             bool IsInBounds(RectInt rect)

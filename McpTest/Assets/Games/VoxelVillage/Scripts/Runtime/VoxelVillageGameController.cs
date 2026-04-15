@@ -35,8 +35,19 @@ namespace McpTest.VoxelVillage
         const float PromptMaxWidth = 240f;
         const float PromptMinHeight = 44f;
         const float DoorOpenAngle = 108f;
+        const float DoorOpeningWidthRatio = 2.5f / 28f;
+        const float DoorOpeningHeightRatio = 10f / 24f;
+        const float DoorLeafClearance = 0.92f;
+        const float DoorWallDepthRatio = 2f / 26f;
+        const float RoofRevealFeather = 1.05f;
+        const float RoofRevealPatternScale = 5.5f;
         const int WorldGridSize = 72;
         const float WorldCellSize = TownFootprint / WorldGridSize;
+
+        static readonly int RevealEnabledShaderId = Shader.PropertyToID("_RevealEnabled");
+        static readonly int RevealHeightShaderId = Shader.PropertyToID("_RevealHeight");
+        static readonly int RevealFeatherShaderId = Shader.PropertyToID("_RevealFeather");
+        static readonly int RevealPatternScaleShaderId = Shader.PropertyToID("_RevealPatternScale");
 
         static readonly VillagerStyle[] VillagerStyles =
         {
@@ -82,6 +93,7 @@ namespace McpTest.VoxelVillage
         GameObject _player = null!;
         VillageLayoutData _layout = null!;
         VillageGrid _villageGrid = null!;
+        readonly List<HouseInstance> _houses = new List<HouseInstance>();
         readonly List<VillagerInstance> _villagers = new List<VillagerInstance>();
         readonly List<DoorInstance> _doors = new List<DoorInstance>();
         readonly List<Vector2Int> _patrolCells = new List<Vector2Int>();
@@ -114,6 +126,7 @@ namespace McpTest.VoxelVillage
         void Update()
         {
             HandleMovement();
+            UpdateBuildingRoofReveal();
             UpdateVillagers();
             UpdateCamera();
             UpdateInteractionTarget();
@@ -213,6 +226,7 @@ namespace McpTest.VoxelVillage
                 Destroy(_worldRoot.gameObject);
             }
 
+            _houses.Clear();
             _villagers.Clear();
             _doors.Clear();
             _patrolCells.Clear();
@@ -248,6 +262,7 @@ namespace McpTest.VoxelVillage
 
             BuildGridSurface(roadMaterial, plazaMaterial);
             BuildProceduralVillage(roadMaterial);
+            BuildGrassPatches();
             BuildFountain();
             BuildPond(waterMaterial);
             CreatePlayer(CellToWorld(_layout.plazaCenter + new Vector2Int(0, -6)) + new Vector3(0f, 0.9f, 0f), new Color(0.16f, 0.41f, 0.95f));
@@ -564,21 +579,41 @@ namespace McpTest.VoxelVillage
                 var facing = buildingDoor?.facing ?? Vector2Int.down;
                 var center = CellRectCenterToWorld(building.origin, building.size);
                 var palette = GetBuildingPalette(buildingIndex);
-                var height = 3.6f + building.height * 0.45f;
-                var size = new Vector3(
-                    building.size.x * WorldCellSize * 0.96f,
-                    height,
-                    building.size.y * WorldCellSize * 0.96f);
+                var size = GetHouseSize(building);
 
                 var house = VoxelEnvironmentFactory.CreateHouse(
                     "House_" + building.id,
-                    center + new Vector3(0f, height * 0.5f, 0f),
+                    center + new Vector3(0f, size.y * 0.5f, 0f),
                     size,
                     YawFromDirection(facing),
                     palette.Wall,
                     palette.Roof,
                     palette.Trim);
                 house.Root.transform.SetParent(_worldRoot, true);
+
+                var houseRenderer = house.Root.GetComponentInChildren<MeshRenderer>();
+                if (houseRenderer == null)
+                {
+                    throw new InvalidOperationException("House visual is missing a MeshRenderer.");
+                }
+
+                var roofRevealHeight =
+                    house.Root.transform.position.y -
+                    (house.LocalSize.y * 0.5f) +
+                    (house.LocalSize.y * VoxelEnvironmentFactory.HouseRoofRevealNormalizedHeight);
+                var houseInstance = new HouseInstance(
+                    building.id,
+                    GetBuildingInteriorRect(building),
+                    houseRenderer,
+                    roofRevealHeight,
+                    RoofRevealFeather);
+                SetHouseRoofRevealState(houseInstance, false, true);
+                _houses.Add(houseInstance);
+            }
+
+            for (var fenceIndex = 0; fenceIndex < _layout.fences.Length; fenceIndex++)
+            {
+                CreateFencePath(_layout.fences[fenceIndex], fenceIndex);
             }
 
             for (var doorIndex = 0; doorIndex < _layout.doors.Length; doorIndex++)
@@ -589,6 +624,29 @@ namespace McpTest.VoxelVillage
             for (var foliageIndex = 0; foliageIndex < _layout.foliage.Length; foliageIndex++)
             {
                 CreateFoliage(_layout.foliage[foliageIndex], foliageIndex);
+            }
+        }
+
+        void BuildGrassPatches()
+        {
+            var placements = VillageGrassScatterGenerator.Generate(_layout, _villageGrid);
+            if (placements.Length == 0)
+            {
+                return;
+            }
+
+            var hasPond = TryFindPondRect(out var pondRect);
+            var grassRoot = new GameObject("GrassPatches").transform;
+            grassRoot.SetParent(_worldRoot, false);
+
+            for (var index = 0; index < placements.Length; index++)
+            {
+                if (hasPond && pondRect.Contains(placements[index].Cell))
+                {
+                    continue;
+                }
+
+                CreateGrassPatch(grassRoot, placements[index], index);
             }
         }
 
@@ -976,7 +1034,59 @@ namespace McpTest.VoxelVillage
                 var targetYaw = door.ClosedYaw + (door.IsOpen ? door.OpenDeltaYaw : 0f);
                 door.CurrentYaw = targetYaw;
                 door.Pivot.localRotation = Quaternion.Euler(0f, door.CurrentYaw, 0f);
+                var targetMesh = door.IsOpen ? door.OpenMesh : door.ClosedMesh;
+                if (door.VisualMeshFilter.sharedMesh != targetMesh)
+                {
+                    door.VisualMeshFilter.sharedMesh = targetMesh;
+                }
+
+                if (door.Collision.enabled == door.IsOpen)
+                {
+                    door.Collision.enabled = !door.IsOpen;
+                }
             }
+        }
+
+        void UpdateBuildingRoofReveal()
+        {
+            if (_player == null || _houses.Count == 0)
+            {
+                return;
+            }
+
+            HouseInstance? activeHouse = null;
+            var playerCell = WorldToCell(_player.transform.position);
+            for (var index = 0; index < _houses.Count; index++)
+            {
+                var house = _houses[index];
+                if (house.Interior.Contains(playerCell))
+                {
+                    activeHouse = house;
+                    break;
+                }
+            }
+
+            for (var index = 0; index < _houses.Count; index++)
+            {
+                var house = _houses[index];
+                SetHouseRoofRevealState(house, ReferenceEquals(house, activeHouse));
+            }
+        }
+
+        static void SetHouseRoofRevealState(HouseInstance house, bool reveal, bool force = false)
+        {
+            if (!force && house.RevealActive == reveal)
+            {
+                return;
+            }
+
+            house.RevealActive = reveal;
+            house.PropertyBlock.Clear();
+            house.PropertyBlock.SetFloat(RevealEnabledShaderId, reveal ? 1f : 0f);
+            house.PropertyBlock.SetFloat(RevealHeightShaderId, house.RoofRevealHeight);
+            house.PropertyBlock.SetFloat(RevealFeatherShaderId, house.RoofRevealFeather);
+            house.PropertyBlock.SetFloat(RevealPatternScaleShaderId, RoofRevealPatternScale);
+            house.Renderer.SetPropertyBlock(house.PropertyBlock);
         }
 
         void UpdateSpeechBubble()
@@ -1410,12 +1520,71 @@ namespace McpTest.VoxelVillage
             }
         }
 
+        void CreateGrassPatch(Transform grassRoot, VillageGrassPlacement placement, int index)
+        {
+            var size = GetGrassSize(placement.Variant, index);
+            var palette = GetGrassPalette(placement.Variant, index);
+            var world =
+                CellToWorld(placement.Cell) +
+                new Vector3(placement.CellOffset.x * WorldCellSize, 0f, placement.CellOffset.y * WorldCellSize);
+
+            var grass = VoxelEnvironmentFactory.CreateGrass(
+                "Grass_" + index,
+                world + new Vector3(0f, size.y * 0.5f, 0f),
+                size,
+                placement.Yaw,
+                placement.Variant,
+                palette.Base,
+                palette.Tip);
+            grass.Root.transform.SetParent(grassRoot, true);
+        }
+
+        void CreateFencePath(VillageFencePath fencePath, int index)
+        {
+            if (fencePath.cells.Length == 0)
+            {
+                return;
+            }
+
+            var fenceRoot = new GameObject("Fence_" + fencePath.id).transform;
+            fenceRoot.SetParent(_worldRoot, false);
+
+            var lookup = new HashSet<Vector2Int>(fencePath.cells);
+            var height = 1.7f;
+            var size = new Vector3(WorldCellSize, height, WorldCellSize);
+            var color = GetFenceColor(index);
+
+            for (var cellIndex = 0; cellIndex < fencePath.cells.Length; cellIndex++)
+            {
+                var cell = fencePath.cells[cellIndex];
+                var fence = VoxelEnvironmentFactory.CreateFence(
+                    "FenceCell_" + cellIndex,
+                    CellToWorld(cell) + new Vector3(0f, height * 0.5f, 0f),
+                    size,
+                    lookup.Contains(cell + Vector2Int.up),
+                    lookup.Contains(cell + Vector2Int.right),
+                    lookup.Contains(cell + Vector2Int.down),
+                    lookup.Contains(cell + Vector2Int.left),
+                    color);
+                fence.Root.transform.SetParent(fenceRoot, true);
+            }
+        }
+
         void CreateDoor(VillageDoorLayout layoutDoor)
         {
             var facing = DirectionToWorld(layoutDoor.facing);
             var closedYaw = YawFromDirection(layoutDoor.facing);
             var openDelta = layoutDoor.facing.x <= 0 && layoutDoor.facing.y >= 0 ? -DoorOpenAngle : DoorOpenAngle;
-            var doorSize = new Vector3(WorldCellSize * 0.64f, 2.45f, WorldCellSize * 0.12f);
+            var building = FindBuildingLayout(layoutDoor.buildingId);
+            var houseSize = building != null
+                ? GetHouseSize(building)
+                : new Vector3(WorldCellSize * 6f, 5.4f, WorldCellSize * 6f);
+            var openingWidth = houseSize.x * DoorOpeningWidthRatio;
+            var openingHeight = houseSize.y * DoorOpeningHeightRatio;
+            var doorSize = new Vector3(
+                Mathf.Clamp(openingWidth * DoorLeafClearance, WorldCellSize * 0.58f, WorldCellSize * 1.05f),
+                Mathf.Clamp(openingHeight * DoorLeafClearance, WorldCellSize * 0.92f, WorldCellSize * 1.28f),
+                Mathf.Clamp(houseSize.z * DoorWallDepthRatio * 0.72f, WorldCellSize * 0.18f, WorldCellSize * 0.32f));
             var right = Quaternion.Euler(0f, closedYaw, 0f) * Vector3.right;
             var hingeBase = CellToWorld(layoutDoor.cell) - facing * (WorldCellSize * 0.16f) - (right * (doorSize.x * 0.5f));
 
@@ -1432,8 +1601,33 @@ namespace McpTest.VoxelVillage
             door.Root.transform.SetParent(pivot, false);
             door.Root.transform.localPosition = new Vector3(doorSize.x * 0.5f, doorSize.y * 0.5f, 0f);
 
+            var meshFilter = door.Root.GetComponentInChildren<MeshFilter>();
+            if (meshFilter == null)
+            {
+                throw new InvalidOperationException("Door visual is missing a MeshFilter.");
+            }
+
+            var closedMesh = VoxelEnvironmentFactory.GetDoorMesh(false);
+            var openMesh = VoxelEnvironmentFactory.GetDoorMesh(true);
+            var doorCollider = door.Root.AddComponent<BoxCollider>();
+            doorCollider.center = Vector3.zero;
+            doorCollider.size = closedMesh.bounds.size;
+            doorCollider.enabled = !layoutDoor.startsOpen;
+            meshFilter.sharedMesh = layoutDoor.startsOpen ? openMesh : closedMesh;
+
             var interactionPoint = CellToWorld(layoutDoor.cell) + new Vector3(0f, 1.1f, 0f) + facing * (WorldCellSize * 0.62f);
-            var instance = new DoorInstance(layoutDoor.id, layoutDoor.cell, pivot, interactionPoint, closedYaw, openDelta, layoutDoor.startsOpen);
+            var instance = new DoorInstance(
+                layoutDoor.id,
+                layoutDoor.cell,
+                pivot,
+                interactionPoint,
+                meshFilter,
+                doorCollider,
+                closedMesh,
+                openMesh,
+                closedYaw,
+                openDelta,
+                layoutDoor.startsOpen);
             if (layoutDoor.startsOpen)
             {
                 instance.CurrentYaw = closedYaw + openDelta;
@@ -1598,6 +1792,39 @@ namespace McpTest.VoxelVillage
             return new Vector3(x, 0f, z);
         }
 
+        static RectInt GetBuildingInteriorRect(VillageBuildingLayout building)
+        {
+            var paddingX = building.size.x > 2 ? 1 : 0;
+            var paddingY = building.size.y > 2 ? 1 : 0;
+            return new RectInt(
+                building.origin.x + paddingX,
+                building.origin.y + paddingY,
+                Mathf.Max(1, building.size.x - (paddingX * 2)),
+                Mathf.Max(1, building.size.y - (paddingY * 2)));
+        }
+
+        static Vector3 GetHouseSize(VillageBuildingLayout building)
+        {
+            return new Vector3(
+                building.size.x * WorldCellSize * 0.96f,
+                3.6f + building.height * 0.45f,
+                building.size.y * WorldCellSize * 0.96f);
+        }
+
+        VillageBuildingLayout? FindBuildingLayout(string buildingId)
+        {
+            for (var index = 0; index < _layout.buildings.Length; index++)
+            {
+                var building = _layout.buildings[index];
+                if (string.Equals(building.id, buildingId, StringComparison.Ordinal))
+                {
+                    return building;
+                }
+            }
+
+            return null;
+        }
+
         Vector3 CellToWorld(Vector2Int cell)
         {
             return new Vector3(
@@ -1654,6 +1881,84 @@ namespace McpTest.VoxelVillage
             }
         }
 
+        static Color GetFenceColor(int index)
+        {
+            switch (index % 4)
+            {
+                case 0:
+                    return new Color(0.6f, 0.39f, 0.22f);
+                case 1:
+                    return new Color(0.56f, 0.33f, 0.18f);
+                case 2:
+                    return new Color(0.67f, 0.45f, 0.25f);
+                default:
+                    return new Color(0.5f, 0.3f, 0.16f);
+            }
+        }
+
+        static Vector3 GetGrassSize(VillageGrassVariant variant, int index)
+        {
+            var widthJitter = Mathf.Lerp(0.92f, 1.12f, Hash01(index, 17 + ((int)variant * 11)));
+            var heightJitter = Mathf.Lerp(0.9f, 1.16f, Hash01(index, 53 + ((int)variant * 17)));
+
+            switch (variant)
+            {
+                case VillageGrassVariant.PatchA:
+                    return new Vector3(WorldCellSize * 0.38f * widthJitter, WorldCellSize * 0.62f * heightJitter, WorldCellSize * 0.38f * widthJitter);
+                case VillageGrassVariant.PatchB:
+                    return new Vector3(WorldCellSize * 0.5f * widthJitter, WorldCellSize * 0.54f * heightJitter, WorldCellSize * 0.5f * widthJitter);
+                case VillageGrassVariant.PatchC:
+                    return new Vector3(WorldCellSize * 0.32f * widthJitter, WorldCellSize * 0.88f * heightJitter, WorldCellSize * 0.32f * widthJitter);
+                default:
+                    return new Vector3(WorldCellSize * 0.56f * widthJitter, WorldCellSize * 0.68f * heightJitter, WorldCellSize * 0.56f * widthJitter);
+            }
+        }
+
+        static GrassPalette GetGrassPalette(VillageGrassVariant variant, int index)
+        {
+            var tint = Mathf.Lerp(-0.05f, 0.05f, Hash01(index, 101 + ((int)variant * 13)));
+
+            switch (variant)
+            {
+                case VillageGrassVariant.PatchA:
+                    return new GrassPalette(
+                        TintColor(new Color(0.28f, 0.55f, 0.23f), tint),
+                        TintColor(new Color(0.54f, 0.77f, 0.37f), tint * 0.65f));
+                case VillageGrassVariant.PatchB:
+                    return new GrassPalette(
+                        TintColor(new Color(0.34f, 0.58f, 0.2f), tint),
+                        TintColor(new Color(0.68f, 0.83f, 0.34f), tint * 0.55f));
+                case VillageGrassVariant.PatchC:
+                    return new GrassPalette(
+                        TintColor(new Color(0.23f, 0.47f, 0.21f), tint),
+                        TintColor(new Color(0.46f, 0.72f, 0.4f), tint * 0.75f));
+                default:
+                    return new GrassPalette(
+                        TintColor(new Color(0.27f, 0.53f, 0.28f), tint),
+                        TintColor(new Color(0.52f, 0.78f, 0.52f), tint * 0.6f));
+            }
+        }
+
+        static Color TintColor(Color color, float offset)
+        {
+            return new Color(
+                Mathf.Clamp01(color.r + offset),
+                Mathf.Clamp01(color.g + offset),
+                Mathf.Clamp01(color.b + offset * 0.6f),
+                color.a);
+        }
+
+        static float Hash01(int index, int salt)
+        {
+            var value = (uint)(index + 1);
+            value ^= (uint)(salt * 747796405);
+            value *= 2891336453u;
+            value ^= value >> 15;
+            value *= 277803737u;
+            value ^= value >> 13;
+            return (value & 0x00ffffffu) / 16777215f;
+        }
+
         static BuildingPalette GetBuildingPalette(int index)
         {
             switch (index % 6)
@@ -1689,6 +1994,51 @@ namespace McpTest.VoxelVillage
             public Color Trim { get; }
         }
 
+        readonly struct GrassPalette
+        {
+            public GrassPalette(Color @base, Color tip)
+            {
+                Base = @base;
+                Tip = tip;
+            }
+
+            public Color Base { get; }
+
+            public Color Tip { get; }
+        }
+
+        sealed class HouseInstance
+        {
+            public HouseInstance(
+                string buildingId,
+                RectInt interior,
+                MeshRenderer renderer,
+                float roofRevealHeight,
+                float roofRevealFeather)
+            {
+                BuildingId = buildingId;
+                Interior = interior;
+                Renderer = renderer;
+                RoofRevealHeight = roofRevealHeight;
+                RoofRevealFeather = roofRevealFeather;
+                PropertyBlock = new MaterialPropertyBlock();
+            }
+
+            public string BuildingId { get; }
+
+            public RectInt Interior { get; }
+
+            public MeshRenderer Renderer { get; }
+
+            public float RoofRevealHeight { get; }
+
+            public float RoofRevealFeather { get; }
+
+            public MaterialPropertyBlock PropertyBlock { get; }
+
+            public bool RevealActive { get; set; }
+        }
+
         readonly struct VillagerStyle
         {
             public VillagerStyle(string npcId, Color color, VoxelCharacterAccessoryType accessoryType, float heightScale)
@@ -1710,12 +2060,27 @@ namespace McpTest.VoxelVillage
 
         sealed class DoorInstance
         {
-            public DoorInstance(string doorId, Vector2Int cell, Transform pivot, Vector3 interactionPoint, float closedYaw, float openDeltaYaw, bool startsOpen)
+            public DoorInstance(
+                string doorId,
+                Vector2Int cell,
+                Transform pivot,
+                Vector3 interactionPoint,
+                MeshFilter visualMeshFilter,
+                Collider collision,
+                Mesh closedMesh,
+                Mesh openMesh,
+                float closedYaw,
+                float openDeltaYaw,
+                bool startsOpen)
             {
                 DoorId = doorId;
                 Cell = cell;
                 Pivot = pivot;
                 InteractionPoint = interactionPoint;
+                VisualMeshFilter = visualMeshFilter;
+                Collision = collision;
+                ClosedMesh = closedMesh;
+                OpenMesh = openMesh;
                 ClosedYaw = closedYaw;
                 OpenDeltaYaw = openDeltaYaw;
                 CurrentYaw = startsOpen ? closedYaw + openDeltaYaw : closedYaw;
@@ -1729,6 +2094,14 @@ namespace McpTest.VoxelVillage
             public Transform Pivot { get; }
 
             public Vector3 InteractionPoint { get; }
+
+            public MeshFilter VisualMeshFilter { get; }
+
+            public Collider Collision { get; }
+
+            public Mesh ClosedMesh { get; }
+
+            public Mesh OpenMesh { get; }
 
             public float ClosedYaw { get; }
 

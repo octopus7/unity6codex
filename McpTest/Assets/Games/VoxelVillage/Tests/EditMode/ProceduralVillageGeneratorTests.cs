@@ -1,6 +1,8 @@
 #nullable enable
 
+using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace McpTest.VoxelVillage.Tests
 {
@@ -55,6 +57,35 @@ namespace McpTest.VoxelVillage.Tests
         }
 
         [Test]
+        public void Generate_FencesStayOpenWithoutBranches()
+        {
+            var layout = ProceduralVillageGenerator.Generate(24680, 72);
+
+            Assert.Greater(layout.fences.Length, 0);
+
+            for (var fenceIndex = 0; fenceIndex < layout.fences.Length; fenceIndex++)
+            {
+                var fence = layout.fences[fenceIndex];
+                var lookup = new HashSet<Vector2Int>(fence.cells);
+
+                Assert.AreEqual(fence.cells.Length, lookup.Count, $"Fence {fence.id} contains duplicate cells.");
+
+                var endpoints = 0;
+                for (var cellIndex = 0; cellIndex < fence.cells.Length; cellIndex++)
+                {
+                    var neighborCount = CountFenceNeighbors(lookup, fence.cells[cellIndex]);
+                    Assert.That(neighborCount, Is.GreaterThan(0).And.LessThanOrEqualTo(2), $"Fence {fence.id} should remain a simple path.");
+                    if (neighborCount == 1)
+                    {
+                        endpoints++;
+                    }
+                }
+
+                Assert.AreEqual(2, endpoints, $"Fence {fence.id} should stay open.");
+            }
+        }
+
+        [Test]
         public void Grid_DoorStateChangesDoorCellWalkability()
         {
             var layout = ProceduralVillageGenerator.Generate(9876, 72);
@@ -66,6 +97,26 @@ namespace McpTest.VoxelVillage.Tests
             Assert.IsTrue(grid.IsWalkable(door.cell));
             Assert.IsTrue(grid.TrySetDoorState(door.cell, false));
             Assert.IsFalse(grid.IsWalkable(door.cell));
+        }
+
+        [Test]
+        public void Grid_BuildingInteriorsStayOpenForPlayerMovement()
+        {
+            var layout = ProceduralVillageGenerator.Generate(13579, 72);
+            var grid = VillageGrid.FromLayout(layout);
+
+            Assert.Greater(layout.buildings.Length, 0);
+            Assert.AreEqual(layout.buildings.Length, layout.doors.Length);
+
+            for (var index = 0; index < layout.doors.Length; index++)
+            {
+                var door = layout.doors[index];
+                var insideCell = door.cell - door.facing;
+
+                Assert.AreEqual(VillageCellKind.Empty, grid.GetCellKind(insideCell), $"Interior cell behind {door.id} should stay empty.");
+                Assert.IsTrue(grid.IsWalkable(insideCell, true), $"Player should be able to move inside {door.id} once the door opens.");
+                Assert.IsFalse(grid.IsWalkable(insideCell, false), $"NPC routing should still avoid empty interior cells for {door.id}.");
+            }
         }
 
         [Test]
@@ -91,6 +142,52 @@ namespace McpTest.VoxelVillage.Tests
 
             Assert.IsFalse(grid.IsWalkable(new UnityEngine.Vector2Int(-1, 0), true));
             Assert.IsFalse(grid.IsWalkable(new UnityEngine.Vector2Int(4, 4), true));
+        }
+
+        [Test]
+        public void Grid_FenceCellsRemainBlocked()
+        {
+            var layout = ProceduralVillageGenerator.Generate(54321, 72);
+            var grid = VillageGrid.FromLayout(layout);
+
+            Assert.Greater(layout.fences.Length, 0);
+
+            for (var fenceIndex = 0; fenceIndex < layout.fences.Length; fenceIndex++)
+            {
+                var fence = layout.fences[fenceIndex];
+                for (var cellIndex = 0; cellIndex < fence.cells.Length; cellIndex++)
+                {
+                    var cell = fence.cells[cellIndex];
+                    Assert.AreEqual(VillageCellKind.Fence, grid.GetCellKind(cell));
+                    Assert.IsFalse(grid.IsWalkable(cell), $"Fence cell {cell} in {fence.id} must block movement.");
+                }
+            }
+        }
+
+        static int CountFenceNeighbors(HashSet<Vector2Int> lookup, Vector2Int cell)
+        {
+            var count = 0;
+            if (lookup.Contains(cell + Vector2Int.up))
+            {
+                count++;
+            }
+
+            if (lookup.Contains(cell + Vector2Int.right))
+            {
+                count++;
+            }
+
+            if (lookup.Contains(cell + Vector2Int.down))
+            {
+                count++;
+            }
+
+            if (lookup.Contains(cell + Vector2Int.left))
+            {
+                count++;
+            }
+
+            return count;
         }
     }
 }

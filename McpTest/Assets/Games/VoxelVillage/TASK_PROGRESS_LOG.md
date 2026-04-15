@@ -38,3 +38,4 @@ Snapshot recorded at `2026-04-15 12:47:20 KST`.
 | 2026-04-15 13:43:26 KST | Autonomous villager pass | Done | Twelve villagers now patrol with pathfinding, pause while speaking, and keep separation against the player and one another |
 | 2026-04-15 13:43:26 KST | Voxel environment pass | Done | Houses, doors, fountain, foliage, and decorative rocks now build from voxel meshes while runtime door state updates the occupancy grid |
 | 2026-04-15 13:43:26 KST | Verification pass | Done | Added procedural layout and dialogue-set tests; `McpTest.VoxelVillage.EditModeTests` passes after the world integration changes |
+| 2026-04-15 15:31:20 KST | Open fence pass | Done | Added open U-shaped fence paths per building, connected voxel fence meshes, fence occupancy tests, and cache guards needed for stable EditMode factory tests |

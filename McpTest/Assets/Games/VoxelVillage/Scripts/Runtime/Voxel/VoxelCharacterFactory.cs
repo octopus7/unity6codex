@@ -78,7 +78,7 @@ namespace McpTest.VoxelVillage
         static Mesh GetOrCreateMesh(VoxelCharacterAccessoryType accessoryType, bool isPlayer)
         {
             var key = (isPlayer ? "player:" : "villager:") + accessoryType;
-            if (MeshCache.TryGetValue(key, out var mesh))
+            if (MeshCache.TryGetValue(key, out var mesh) && mesh != null)
             {
                 return mesh;
             }
@@ -101,7 +101,7 @@ namespace McpTest.VoxelVillage
                 ColorUtility.ToHtmlStringRGBA(palette.Accent) + "|" +
                 ColorUtility.ToHtmlStringRGBA(palette.Light);
 
-            if (MaterialCache.TryGetValue(key, out var materials))
+            if (MaterialCache.TryGetValue(key, out var materials) && AreMaterialsAlive(materials))
             {
                 return materials;
             }
@@ -118,6 +118,24 @@ namespace McpTest.VoxelVillage
 
             MaterialCache[key] = materials;
             return materials;
+        }
+
+        static bool AreMaterialsAlive(Material[] materials)
+        {
+            if (materials.Length != PaletteSize)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < materials.Length; index++)
+            {
+                if (materials[index] == null)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         static CharacterPalette CreatePalette(Color primaryColor, bool isPlayer)

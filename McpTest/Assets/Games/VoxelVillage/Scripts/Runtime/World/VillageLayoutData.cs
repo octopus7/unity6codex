@@ -14,6 +14,7 @@ namespace McpTest.VoxelVillage
         public VillageRoadPath[] roads = Array.Empty<VillageRoadPath>();
         public VillageBuildingLayout[] buildings = Array.Empty<VillageBuildingLayout>();
         public VillageDoorLayout[] doors = Array.Empty<VillageDoorLayout>();
+        public VillageFencePath[] fences = Array.Empty<VillageFencePath>();
         public VillageFoliagePlacement[] foliage = Array.Empty<VillageFoliagePlacement>();
         public VillageNpcSpawnPoint[] npcSpawnPoints = Array.Empty<VillageNpcSpawnPoint>();
     }
@@ -42,6 +43,13 @@ namespace McpTest.VoxelVillage
         public Vector2Int cell;
         public Vector2Int facing;
         public bool startsOpen;
+    }
+
+    [Serializable]
+    public sealed class VillageFencePath
+    {
+        public string id = string.Empty;
+        public Vector2Int[] cells = Array.Empty<Vector2Int>();
     }
 
     [Serializable]
@@ -77,6 +85,7 @@ namespace McpTest.VoxelVillage
         Building,
         DoorClosed,
         DoorOpen,
+        Fence,
         Foliage,
         NpcSpawn
     }
