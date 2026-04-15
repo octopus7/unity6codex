@@ -39,7 +39,8 @@ namespace McpTest.VoxelVillage
     {
         const int SectorSize = 9;
         const int MinCandidatesPerSector = 8;
-        const int MinCellSpacing = 2;
+        const int MinCellSpacing = 0;
+        const int GrassDensityMultiplier = 8;
         const int PlazaClearRadius = 6;
         const int EdgeMargin = 2;
 
@@ -66,7 +67,7 @@ namespace McpTest.VoxelVillage
             }
 
             var rng = new System.Random(layout.seed ^ 0x5F3759DF);
-            var placements = new List<VillageGrassPlacement>(grid.CellCount / 48);
+            var placements = new List<VillageGrassPlacement>(grid.CellCount / 6);
             var sectorCountX = Mathf.CeilToInt(grid.Width / (float)SectorSize);
             var sectorCountY = Mathf.CeilToInt(grid.Height / (float)SectorSize);
 
@@ -99,7 +100,7 @@ namespace McpTest.VoxelVillage
                 return;
             }
 
-            var desiredCount = candidates.Count >= 42 ? 2 : 1;
+            var desiredCount = (candidates.Count >= 42 ? 2 : 1) * GrassDensityMultiplier;
             for (var index = 0; index < desiredCount; index++)
             {
                 if (!TryTakeCandidate(candidates, placements, rng, out var cell))

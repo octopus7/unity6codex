@@ -30,6 +30,15 @@ namespace McpTest.VoxelVillage.Tests
         }
 
         [Test]
+        public void Generate_MeetsDenseScatterTarget()
+        {
+            var layout = ProceduralVillageGenerator.Generate(24680, 72);
+            var placements = VillageGrassScatterGenerator.Generate(layout);
+
+            Assert.GreaterOrEqual(placements.Length, 900);
+        }
+
+        [Test]
         public void Generate_IsDeterministicAndOnlyUsesEmptyCells()
         {
             var layout = ProceduralVillageGenerator.Generate(97531, 72);

@@ -8,7 +8,7 @@ namespace McpTest.VoxelVillage.Tests
     public sealed class VoxelEnvironmentFactoryTests
     {
         [Test]
-        public void CreateHouse_BuildsRevealReadyMaterials()
+        public void CreateHouse_BuildsOpaqueAndTransparentRevealMaterials()
         {
             var result = VoxelEnvironmentFactory.CreateHouse(
                 "HouseFactoryTest",
@@ -21,18 +21,59 @@ namespace McpTest.VoxelVillage.Tests
 
             try
             {
-                var meshRenderer = result.Root.GetComponentInChildren<MeshRenderer>();
+                var meshRenderers = result.Root.GetComponentsInChildren<MeshRenderer>();
 
-                Assert.That(meshRenderer, Is.Not.Null);
-                Assert.That(meshRenderer!.sharedMaterials.Length, Is.EqualTo(6));
+                Assert.That(meshRenderers.Length, Is.EqualTo(2));
 
-                var revealShader = Shader.Find(VoxelEnvironmentFactory.HouseRevealShaderName);
-                if (revealShader != null)
+                var opaqueShader = Shader.Find(VoxelEnvironmentFactory.HouseRevealShaderName);
+                var transparentShader = Shader.Find(VoxelEnvironmentFactory.HouseRevealTransparentShaderName);
+                var foundOpaqueRenderer = false;
+                var foundTransparentRenderer = false;
+
+                for (var rendererIndex = 0; rendererIndex < meshRenderers.Length; rendererIndex++)
                 {
-                    for (var index = 0; index < meshRenderer.sharedMaterials.Length; index++)
+                    var renderer = meshRenderers[rendererIndex];
+                    Assert.That(renderer.sharedMaterials.Length, Is.EqualTo(6));
+
+                    if (opaqueShader != null)
                     {
-                        Assert.That(meshRenderer.sharedMaterials[index].shader, Is.EqualTo(revealShader));
+                        var matchesOpaqueShader = true;
+                        for (var index = 0; index < renderer.sharedMaterials.Length; index++)
+                        {
+                            if (renderer.sharedMaterials[index].shader != opaqueShader)
+                            {
+                                matchesOpaqueShader = false;
+                                break;
+                            }
+                        }
+
+                        foundOpaqueRenderer |= matchesOpaqueShader;
                     }
+
+                    if (transparentShader != null)
+                    {
+                        var matchesTransparentShader = true;
+                        for (var index = 0; index < renderer.sharedMaterials.Length; index++)
+                        {
+                            if (renderer.sharedMaterials[index].shader != transparentShader)
+                            {
+                                matchesTransparentShader = false;
+                                break;
+                            }
+                        }
+
+                        foundTransparentRenderer |= matchesTransparentShader;
+                    }
+                }
+
+                if (opaqueShader != null)
+                {
+                    Assert.That(foundOpaqueRenderer, Is.True);
+                }
+
+                if (transparentShader != null)
+                {
+                    Assert.That(foundTransparentRenderer, Is.True);
                 }
             }
             finally
