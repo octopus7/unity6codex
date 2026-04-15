@@ -24,22 +24,13 @@ namespace McpTest.VoxelVillage
         const float CameraDistance = 20f;
         const float CameraLookAhead = 13f;
         const float PersonCollisionRadius = 0.7f;
+        const float BaseCharacterHeight = 1.8f;
 
         enum InteractionTarget
         {
             None,
             Npc,
             Door
-        }
-
-        enum AccessoryType
-        {
-            MerchantApron,
-            GardenerHat,
-            CarpenterBelt,
-            WatcherScarf,
-            LanternCape,
-            CourierPack
         }
 
         LocalizationDatabase _database = null!;
@@ -254,20 +245,20 @@ namespace McpTest.VoxelVillage
             CreateDecorativeHouse("FarWest", new Vector3(-46f, 1.6f, 8f), new Vector3(8.4f, 3.2f, 6.1f), wallCoolMaterial, roofBlueMaterial);
             CreateDecorativeHouse("FarEast", new Vector3(48f, 1.65f, 6f), new Vector3(8.6f, 3.3f, 6.1f), wallPeachMaterial, roofGreenMaterial);
 
-            _player = CreatePrimitive(
-                PrimitiveType.Capsule,
-                "Player",
-                new Vector3(-5f, 0.9f, -10f),
-                new Vector3(0.85f, 1.8f, 0.85f),
-                CreateMaterial(new Color(0.16f, 0.41f, 0.95f)));
-            _player.transform.SetParent(_worldRoot, false);
+            CreatePlayer(new Vector3(-5f, 0.9f, -10f), new Color(0.16f, 0.41f, 0.95f));
 
-            CreateVillager("villager_mina", "Npc_Mina", new Vector3(2.8f, 0.9f, 10.5f), new Color(0.92f, 0.43f, 0.35f), new Vector3(0.9f, 1.88f, 0.9f), -35f, 0.06f, 1.9f, 6f, 1.4f, 0f, AccessoryType.MerchantApron);
-            CreateVillager("villager_jisu", "Npc_Jisu", new Vector3(-7.5f, 0.82f, 8.5f), new Color(0.94f, 0.68f, 0.26f), new Vector3(0.82f, 1.68f, 0.82f), 22f, 0.04f, 1.4f, 4f, 1f, 0.7f, AccessoryType.GardenerHat);
-            CreateVillager("villager_haru", "Npc_Haru", new Vector3(8.5f, 0.96f, 2.5f), new Color(0.34f, 0.75f, 0.46f), new Vector3(0.98f, 1.98f, 0.98f), -12f, 0.03f, 1.2f, 5f, 0.8f, 1.2f, AccessoryType.CarpenterBelt);
-            CreateVillager("villager_noah", "Npc_Noah", new Vector3(-16f, 0.9f, 15f), new Color(0.32f, 0.64f, 0.92f), new Vector3(0.86f, 1.8f, 0.86f), 40f, 0.02f, 0.9f, 7f, 1.8f, 1.9f, AccessoryType.WatcherScarf);
-            CreateVillager("villager_yuna", "Npc_Yuna", new Vector3(18f, 0.9f, 13f), new Color(0.76f, 0.47f, 0.9f), new Vector3(0.88f, 1.84f, 0.88f), 148f, 0.05f, 1.6f, 4.5f, 1.2f, 2.4f, AccessoryType.LanternCape);
-            CreateVillager("villager_kai", "Npc_Kai", new Vector3(24f, 0.9f, -8f), new Color(0.9f, 0.54f, 0.28f), new Vector3(0.92f, 1.86f, 0.92f), -120f, 0.04f, 2.2f, 5.5f, 2.2f, 3.1f, AccessoryType.CourierPack);
+            CreateVillager("villager_mina", "Npc_Mina", new Vector3(2.8f, 0.9f, 10.5f), new Color(0.92f, 0.43f, 0.35f), new Vector3(0.9f, 1.88f, 0.9f), -35f, 0.06f, 1.9f, 6f, 1.4f, 0f, VoxelCharacterAccessoryType.MerchantApron);
+            CreateVillager("villager_jisu", "Npc_Jisu", new Vector3(-7.5f, 0.82f, 8.5f), new Color(0.94f, 0.68f, 0.26f), new Vector3(0.82f, 1.68f, 0.82f), 22f, 0.04f, 1.4f, 4f, 1f, 0.7f, VoxelCharacterAccessoryType.GardenerHat);
+            CreateVillager("villager_haru", "Npc_Haru", new Vector3(8.5f, 0.96f, 2.5f), new Color(0.34f, 0.75f, 0.46f), new Vector3(0.98f, 1.98f, 0.98f), -12f, 0.03f, 1.2f, 5f, 0.8f, 1.2f, VoxelCharacterAccessoryType.CarpenterBelt);
+            CreateVillager("villager_noah", "Npc_Noah", new Vector3(-16f, 0.9f, 15f), new Color(0.32f, 0.64f, 0.92f), new Vector3(0.86f, 1.8f, 0.86f), 40f, 0.02f, 0.9f, 7f, 1.8f, 1.9f, VoxelCharacterAccessoryType.WatcherScarf);
+            CreateVillager("villager_yuna", "Npc_Yuna", new Vector3(18f, 0.9f, 13f), new Color(0.76f, 0.47f, 0.9f), new Vector3(0.88f, 1.84f, 0.88f), 148f, 0.05f, 1.6f, 4.5f, 1.2f, 2.4f, VoxelCharacterAccessoryType.LanternCape);
+            CreateVillager("villager_kai", "Npc_Kai", new Vector3(24f, 0.9f, -8f), new Color(0.9f, 0.54f, 0.28f), new Vector3(0.92f, 1.86f, 0.92f), -120f, 0.04f, 2.2f, 5.5f, 2.2f, 3.1f, VoxelCharacterAccessoryType.CourierPack);
+            CreateVillager("villager_arin", "Npc_Arin", new Vector3(-24f, 0.84f, 2f), new Color(0.89f, 0.52f, 0.62f), new Vector3(0.84f, 1.72f, 0.84f), 84f, 0.03f, 1.1f, 3.5f, 0.9f, 3.8f, VoxelCharacterAccessoryType.MerchantApron);
+            CreateVillager("villager_doyun", "Npc_Doyun", new Vector3(30f, 0.95f, 16f), new Color(0.28f, 0.7f, 0.68f), new Vector3(0.96f, 1.94f, 0.96f), 166f, 0.04f, 1.5f, 6.5f, 1.1f, 4.6f, VoxelCharacterAccessoryType.CarpenterBelt);
+            CreateVillager("villager_rika", "Npc_Rika", new Vector3(12f, 0.86f, 24f), new Color(0.98f, 0.63f, 0.44f), new Vector3(0.86f, 1.76f, 0.86f), -168f, 0.05f, 1.3f, 4.8f, 1.5f, 5.1f, VoxelCharacterAccessoryType.GardenerHat);
+            CreateVillager("villager_sora", "Npc_Sora", new Vector3(-32f, 0.9f, -6f), new Color(0.45f, 0.58f, 0.93f), new Vector3(0.9f, 1.82f, 0.9f), 58f, 0.03f, 1f, 5.8f, 1.7f, 5.9f, VoxelCharacterAccessoryType.WatcherScarf);
+            CreateVillager("villager_nari", "Npc_Nari", new Vector3(6f, 0.88f, -20f), new Color(0.82f, 0.43f, 0.86f), new Vector3(0.88f, 1.8f, 0.88f), -42f, 0.04f, 1.7f, 4.2f, 1.4f, 6.6f, VoxelCharacterAccessoryType.LanternCape);
+            CreateVillager("villager_toma", "Npc_Toma", new Vector3(40f, 0.92f, -4f), new Color(0.84f, 0.72f, 0.33f), new Vector3(0.94f, 1.9f, 0.94f), -132f, 0.05f, 1.8f, 5.2f, 1.9f, 7.3f, VoxelCharacterAccessoryType.CourierPack);
 
             CreateTree("TreeNorthWest", new Vector3(-20f, 0f, 28f), trunkMaterial, foliageMaterial);
             CreateTree("TreeSouthWest", new Vector3(-34f, 0f, -28f), trunkMaterial, foliageMaterial);
@@ -915,6 +906,19 @@ namespace McpTest.VoxelVillage
             flower.transform.SetParent(_worldRoot, false);
         }
 
+        void CreatePlayer(Vector3 position, Color color)
+        {
+            var player = VoxelCharacterFactory.CreateCharacter(
+                "Player",
+                position,
+                color,
+                VoxelCharacterAccessoryType.None,
+                true);
+
+            _player = player.Root;
+            _player.transform.SetParent(_worldRoot, true);
+        }
+
         void CreateVillager(
             string npcId,
             string objectName,
@@ -927,82 +931,19 @@ namespace McpTest.VoxelVillage
             float swayAngle,
             float swaySpeed,
             float phaseOffset,
-            AccessoryType accessoryType)
+            VoxelCharacterAccessoryType accessoryType)
         {
-            var villager = CreatePrimitive(
-                PrimitiveType.Capsule,
+            var character = VoxelCharacterFactory.CreateCharacter(
                 objectName,
                 position,
-                scale,
-                CreateMaterial(color));
-            villager.transform.SetParent(_worldRoot, false);
+                color,
+                accessoryType,
+                false,
+                scale.y / BaseCharacterHeight);
+            var villager = character.Root;
+            villager.transform.SetParent(_worldRoot, true);
             villager.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            CreateVillagerAccessories(villager.transform, color, accessoryType);
-            _villagers.Add(new VillagerInstance(npcId, villager.transform, position, yaw, bobAmplitude, bobSpeed, swayAngle, swaySpeed, phaseOffset, scale.y * 0.45f));
-        }
-
-        void CreateVillagerAccessories(Transform parent, Color baseColor, AccessoryType accessoryType)
-        {
-            var darkTrim = CreateMaterial(Color.Lerp(baseColor, Color.black, 0.45f));
-            var lightTrim = CreateMaterial(Color.Lerp(baseColor, Color.white, 0.35f));
-            var accent = CreateMaterial(new Color(0.94f, 0.86f, 0.52f));
-            var cloth = CreateMaterial(new Color(0.18f, 0.18f, 0.2f));
-
-            switch (accessoryType)
-            {
-                case AccessoryType.MerchantApron:
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Apron", new Vector3(0f, 0.15f, 0.42f), new Vector3(0.7f, 1.05f, 0.08f), lightTrim);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Cap", new Vector3(0f, 1.45f, 0f), new Vector3(0.82f, 0.22f, 0.82f), accent);
-                    break;
-
-                case AccessoryType.GardenerHat:
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cylinder, "HatTop", new Vector3(0f, 1.46f, 0f), new Vector3(0.32f, 0.15f, 0.32f), accent);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cylinder, "HatBrim", new Vector3(0f, 1.31f, 0f), new Vector3(0.58f, 0.03f, 0.58f), accent);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Basket", new Vector3(0.46f, -0.02f, 0.18f), new Vector3(0.24f, 0.32f, 0.24f), darkTrim);
-                    break;
-
-                case AccessoryType.CarpenterBelt:
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Belt", new Vector3(0f, -0.08f, 0f), new Vector3(0.86f, 0.14f, 0.86f), darkTrim);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "ToolPouch", new Vector3(0.42f, -0.06f, 0.18f), new Vector3(0.18f, 0.34f, 0.12f), cloth);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "HammerHead", new Vector3(-0.52f, 0.1f, 0.24f), new Vector3(0.2f, 0.08f, 0.12f), accent);
-                    break;
-
-                case AccessoryType.WatcherScarf:
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Scarf", new Vector3(0f, 0.72f, 0f), new Vector3(0.88f, 0.16f, 0.88f), accent);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Book", new Vector3(0.48f, 0.08f, 0.24f), new Vector3(0.18f, 0.26f, 0.12f), lightTrim);
-                    break;
-
-                case AccessoryType.LanternCape:
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Cape", new Vector3(0f, 0.3f, -0.24f), new Vector3(0.76f, 1.18f, 0.08f), darkTrim);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cylinder, "Lantern", new Vector3(0.54f, -0.06f, 0.18f), new Vector3(0.12f, 0.22f, 0.12f), accent);
-                    break;
-
-                case AccessoryType.CourierPack:
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Backpack", new Vector3(0f, 0.2f, -0.28f), new Vector3(0.56f, 0.78f, 0.2f), darkTrim);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Cap", new Vector3(0f, 1.42f, 0.12f), new Vector3(0.8f, 0.18f, 0.72f), lightTrim);
-                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "ShoulderBag", new Vector3(-0.46f, -0.05f, 0.16f), new Vector3(0.2f, 0.38f, 0.16f), accent);
-                    break;
-            }
-        }
-
-        void CreateAttachmentPrimitive(
-            Transform parent,
-            PrimitiveType primitiveType,
-            string name,
-            Vector3 localPosition,
-            Vector3 localScale,
-            Material material)
-        {
-            var attachment = CreatePrimitive(primitiveType, name, parent.position, localScale, material);
-            attachment.transform.SetParent(parent, false);
-            attachment.transform.localPosition = localPosition;
-            attachment.transform.localRotation = Quaternion.identity;
-
-            var collider = attachment.GetComponent<Collider>();
-            if (collider != null)
-            {
-                collider.enabled = false;
-            }
+            _villagers.Add(new VillagerInstance(npcId, villager.transform, position, yaw, bobAmplitude, bobSpeed, swayAngle, swaySpeed, phaseOffset, character.HeadOffset));
         }
 
         static GameObject CreatePrimitive(
