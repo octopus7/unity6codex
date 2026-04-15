@@ -32,6 +32,11 @@ namespace McpTest.VoxelVillage
         const float FootForeSpreadFromHip = 0.34f;
         const float KneeHintLateralSpreadScale = 1.25f;
         const float KneeHintForeSpreadFromHip = 0.24f;
+        static readonly Vector3 BellyDomeScale = Vector3.one * 0.82f;
+        static readonly Vector3 BellySpinnerLocalPosition = new Vector3(0f, -0.58f, 0.02f);
+        const float BellySpineRadius = 0.3f;
+        const float BellySpineVerticalDrop = 0.18f;
+        const float BellySpineHeight = VoxelSize * 5f;
 
         static readonly Dictionary<SpiderWalkerModuleType, Mesh> MeshCache = new Dictionary<SpiderWalkerModuleType, Mesh>();
         static Material? SharedBodyMaterial;
@@ -71,6 +76,16 @@ namespace McpTest.VoxelVillage
                 Vector3.zero,
                 new Vector3(1.4f, 1f, 1.4f),
                 VisualAlignment.Center);
+            var bellySpinner = CreateNode(bodyPivot, "BellySpinner", BellySpinnerLocalPosition);
+            CreateVisualObject(
+                bellySpinner,
+                "BellyDome",
+                GetOrCreateMesh(SpiderWalkerModuleType.BellyDome),
+                GetOrCreateBodyMaterial(),
+                Vector3.zero,
+                BellyDomeScale,
+                VisualAlignment.CenterTop);
+            CreateBellySpines(bellySpinner);
 
             var eyeCluster = CreateNode(bodyPivot, "EyeCluster", new Vector3(EyeClusterRightOffset, 0.28f, 0.98f));
             var eyeRenderers = new List<Renderer>(8);
@@ -101,8 +116,34 @@ namespace McpTest.VoxelVillage
                 CreateLeg(locomotionRoot, "Leg_BR", new Vector3(0.84f, 0.68f, -0.82f), new Vector3(1.46f, -1.04f, -0.78f), new Vector3(1.62f, 1.78f, -1.02f), 0, 1f, -1f)
             };
 
-            controller.BindRig(locomotionRoot, bodyPivot, bodyShell.transform, eyeCluster, eyeRenderers.ToArray(), legs);
+            controller.BindRig(locomotionRoot, bodyPivot, bodyShell.transform, bellySpinner, eyeCluster, eyeRenderers.ToArray(), legs);
             return new SpiderWalkerBuildResult(root, controller);
+        }
+
+        static void CreateBellySpines(Transform bellySpinner)
+        {
+            for (var index = 0; index < 3; index++)
+            {
+                var angleDegrees = index * 120f;
+                var angleRadians = angleDegrees * Mathf.Deg2Rad;
+                var horizontalDirection = new Vector3(Mathf.Cos(angleRadians), 0f, Mathf.Sin(angleRadians));
+                var spineDirection = (horizontalDirection + Vector3.down).normalized;
+                var spineRoot = CreateNode(
+                    bellySpinner,
+                    $"BellySpine_{index + 1:00}",
+                    (horizontalDirection * BellySpineRadius) +
+                    (Vector3.down * BellySpineVerticalDrop) +
+                    (spineDirection * BellySpineHeight));
+                spineRoot.localRotation = Quaternion.FromToRotation(Vector3.up, spineDirection);
+                CreateVisualObject(
+                    spineRoot,
+                    $"BellySpineMesh_{index + 1:00}",
+                    GetOrCreateMesh(SpiderWalkerModuleType.BellySpine),
+                    GetOrCreateBodyMaterial(),
+                    Vector3.zero,
+                    Vector3.one,
+                    VisualAlignment.CenterBase);
+            }
         }
 
         static SpiderLegState CreateLeg(
@@ -226,9 +267,20 @@ namespace McpTest.VoxelVillage
         static Vector3 GetAlignmentOffset(Mesh mesh, Vector3 localScale, VisualAlignment alignment)
         {
             var bounds = mesh.bounds;
-            var pivotOffset = alignment == VisualAlignment.Center
-                ? -bounds.center
-                : new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+            Vector3 pivotOffset;
+            switch (alignment)
+            {
+                case VisualAlignment.Center:
+                    pivotOffset = -bounds.center;
+                    break;
+                case VisualAlignment.CenterTop:
+                    pivotOffset = new Vector3(-bounds.center.x, -bounds.max.y, -bounds.center.z);
+                    break;
+                default:
+                    pivotOffset = new Vector3(-bounds.center.x, -bounds.min.y, -bounds.center.z);
+                    break;
+            }
+
             return Vector3.Scale(pivotOffset, localScale);
         }
 
@@ -348,6 +400,12 @@ namespace McpTest.VoxelVillage
                     model.FillBox(11, 14, 11, 21, 22, 21, 0);
                     model.FillBox(10, 18, 10, 22, 24, 22, 0);
                     break;
+                case SpiderWalkerModuleType.BellyDome:
+                    BuildBellyDomeModel(model);
+                    break;
+                case SpiderWalkerModuleType.BellySpine:
+                    BuildBellySpineModel(model);
+                    break;
                 default:
                     model.FillBox(10, 10, 10, 22, 22, 22, 0);
                     break;
@@ -361,13 +419,61 @@ namespace McpTest.VoxelVillage
             BodyShell,
             LegUpper,
             LegLower,
+            BellyDome,
+            BellySpine,
             Eye
         }
 
         enum VisualAlignment
         {
             Center,
+            CenterTop,
             CenterBase
+        }
+
+        static void BuildBellyDomeModel(VoxelModel32 model)
+        {
+            const int center = 16;
+            const int radius = 10;
+            const int topY = 20;
+
+            for (var depth = 0; depth <= radius; depth++)
+            {
+                var layerRadius = Mathf.Sqrt((radius * radius) - (depth * depth));
+                FillDisc(model, center, topY - depth, center, layerRadius, 0);
+            }
+        }
+
+        static void BuildBellySpineModel(VoxelModel32 model)
+        {
+            const int center = 16;
+            const float radius = 2.5f;
+            const int height = 5;
+
+            for (var y = 0; y < height; y++)
+            {
+                FillDisc(model, center, y, center, radius, 0);
+            }
+        }
+
+        static void FillDisc(VoxelModel32 model, int centerX, int y, int centerZ, float radius, int colorIndex)
+        {
+            var radiusCeil = Mathf.CeilToInt(radius);
+            var radiusSquared = (radius * radius) + 0.25f;
+            for (var x = centerX - radiusCeil; x <= centerX + radiusCeil; x++)
+            {
+                for (var z = centerZ - radiusCeil; z <= centerZ + radiusCeil; z++)
+                {
+                    var deltaX = x - centerX;
+                    var deltaZ = z - centerZ;
+                    if ((deltaX * deltaX) + (deltaZ * deltaZ) > radiusSquared)
+                    {
+                        continue;
+                    }
+
+                    model.SetVoxel(x, y, z, colorIndex);
+                }
+            }
         }
     }
 }

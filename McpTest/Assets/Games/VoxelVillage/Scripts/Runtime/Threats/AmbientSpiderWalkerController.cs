@@ -23,6 +23,7 @@ namespace McpTest.VoxelVillage
         const float SqueezedStrideScale = 0.84f;
         const float EyePulseSpeed = 3.4f;
         const float AvoidanceRadius = 2.2f;
+        const float BellySpinnerDegreesPerSecond = 360f;
         const int FootTrajectorySamples = 16;
 
         static readonly int EmissionColorShaderId = Shader.PropertyToID("_EmissionColor");
@@ -39,6 +40,7 @@ namespace McpTest.VoxelVillage
         Transform _locomotionRoot = null!;
         Transform _bodyPivot = null!;
         Transform _bodyShell = null!;
+        Transform? _bellySpinner;
         Transform _eyeCluster = null!;
         Renderer[] _eyeRenderers = Array.Empty<Renderer>();
         MaterialPropertyBlock[] _eyeBlocks = Array.Empty<MaterialPropertyBlock>();
@@ -54,6 +56,7 @@ namespace McpTest.VoxelVillage
         Vector3 _bodyBaseLocalPosition;
         Quaternion _bodyBaseLocalRotation;
         Vector3 _bodyShellBaseLocalScale;
+        Quaternion _bellySpinnerBaseLocalRotation = Quaternion.identity;
         Vector3 _eyeClusterBaseLocalScale;
         Vector3 _currentVelocity;
         Vector2Int _currentCell;
@@ -85,6 +88,7 @@ namespace McpTest.VoxelVillage
             Transform locomotionRoot,
             Transform bodyPivot,
             Transform bodyShell,
+            Transform bellySpinner,
             Transform eyeCluster,
             Renderer[] eyeRenderers,
             SpiderLegState[] legs)
@@ -92,12 +96,14 @@ namespace McpTest.VoxelVillage
             _locomotionRoot = locomotionRoot;
             _bodyPivot = bodyPivot;
             _bodyShell = bodyShell;
+            _bellySpinner = bellySpinner;
             _eyeCluster = eyeCluster;
             _eyeRenderers = eyeRenderers;
             _legs = legs;
             _bodyBaseLocalPosition = bodyPivot.localPosition;
             _bodyBaseLocalRotation = bodyPivot.localRotation;
             _bodyShellBaseLocalScale = bodyShell.localScale;
+            _bellySpinnerBaseLocalRotation = bellySpinner.localRotation;
             _eyeClusterBaseLocalScale = eyeCluster.localScale;
             _eyeBlocks = new MaterialPropertyBlock[eyeRenderers.Length];
             for (var index = 0; index < eyeRenderers.Length; index++)
@@ -157,6 +163,7 @@ namespace McpTest.VoxelVillage
             }
 
             UpdateBodyPose();
+            UpdateBellySpinner();
             UpdateLegs();
             UpdateEyeEmission(0.92f + (Mathf.Sin(_clock * EyePulseSpeed) * 0.08f));
         }
@@ -348,6 +355,18 @@ namespace McpTest.VoxelVillage
                 _eyeClusterBaseLocalScale.x * _currentWidthScale,
                 _eyeClusterBaseLocalScale.y,
                 _eyeClusterBaseLocalScale.z);
+        }
+
+        void UpdateBellySpinner()
+        {
+            if (_bellySpinner == null)
+            {
+                return;
+            }
+
+            _bellySpinner.localRotation =
+                _bellySpinnerBaseLocalRotation *
+                Quaternion.AngleAxis(_clock * BellySpinnerDegreesPerSecond, Vector3.up);
         }
 
         void UpdateLegs()

@@ -22,6 +22,11 @@ namespace McpTest.VoxelVillage.Tests
                 Assert.That(result.Controller, Is.Not.Null);
                 Assert.That(result.Controller.IsRigBound, Is.True);
                 Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/BodyShell"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/BellySpinner"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/BellySpinner/BellyDome"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/BellySpinner/BellySpine_01"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/BellySpinner/BellySpine_02"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/BellySpinner/BellySpine_03"), Is.Not.Null);
                 Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/EyeCluster"), Is.Not.Null);
                 Assert.That(result.Root.transform.Find("LocomotionRoot/Leg_FL/Hip/UpperVisual/Knee/LowerVisual"), Is.Not.Null);
                 Assert.That(result.Root.transform.Find("LocomotionRoot/Leg_FL/FootTarget"), Is.Not.Null);
@@ -49,7 +54,7 @@ namespace McpTest.VoxelVillage.Tests
                 Assert.AreEqual("VV_Ambient_SpiderWalker", result.Root.name);
                 Assert.AreEqual(new Vector3(2f, 0f, -1f), result.Root.transform.position);
                 Assert.AreEqual(Vector3.one * 1.1f, result.Root.transform.localScale);
-                Assert.That(result.Root.GetComponentsInChildren<MeshFilter>().Length, Is.GreaterThanOrEqualTo(13));
+                Assert.That(result.Root.GetComponentsInChildren<MeshFilter>().Length, Is.GreaterThanOrEqualTo(17));
             }
             finally
             {
