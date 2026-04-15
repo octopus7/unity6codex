@@ -98,6 +98,12 @@ namespace McpTest.VoxelVillage
         const float SearchLegSpeed = 1.7f;
         const float PursuitLegSpeed = 2.65f;
         const float GlowPulseSpeed = 3.2f;
+        const float LegStepThreshold = 0.46f;
+        const float LegGroundProbeHeight = 5.5f;
+        const float LegGroundProbeDistance = 12f;
+        const float LegGroundOffset = 0.02f;
+        const float LegMinimumReachPadding = 0.01f;
+        const int GroundHitCapacity = 16;
 
         static readonly int EmissionColorShaderId = Shader.PropertyToID("_EmissionColor");
         static readonly Color IdleEyeEmissionColor = new Color(0.65f, 0.02f, 0.01f);
@@ -117,8 +123,10 @@ namespace McpTest.VoxelVillage
         Quaternion _bodyBaseLocalRotation;
         Quaternion _mantleBaseLocalRotation;
         Vector3 _homePosition;
+        Vector3 _previousRootPosition;
         float _clock;
         bool _initialized;
+        readonly RaycastHit[] _groundHits = new RaycastHit[GroundHitCapacity];
 
         public MukhaengTrackerPoseState PoseState { get; private set; } = MukhaengTrackerPoseState.Search;
 
@@ -129,6 +137,7 @@ namespace McpTest.VoxelVillage
         void Awake()
         {
             _homePosition = transform.position;
+            _previousRootPosition = transform.position;
         }
 
         public void Initialize(
@@ -149,11 +158,13 @@ namespace McpTest.VoxelVillage
             _bodyBaseLocalRotation = bodyPivot.localRotation;
             _mantleBaseLocalRotation = mantleRoot.localRotation;
             _homePosition = transform.position;
+            _previousRootPosition = transform.position;
 
             _legs = new LegRigState[legs.Length];
             for (var index = 0; index < legs.Length; index++)
             {
-                _legs[index] = new LegRigState(legs[index]);
+                var plantedFootWorld = ResolveGroundContact(legs[index].FootTarget.position, _homePosition.y);
+                _legs[index] = new LegRigState(legs[index], transform, plantedFootWorld);
             }
 
             _tentacles = new TentacleRigState[tentacles.Length];
@@ -182,6 +193,7 @@ namespace McpTest.VoxelVillage
         public void SetHomePosition(Vector3 homePosition)
         {
             _homePosition = homePosition;
+            _previousRootPosition = transform.position;
         }
 
         void Update()
@@ -337,35 +349,44 @@ namespace McpTest.VoxelVillage
             var threatBias = PoseState == MukhaengTrackerPoseState.Threat ? 1f : 0f;
             var dormantBias = PoseState == MukhaengTrackerPoseState.Dormant ? 1f : 0f;
             var stepSpeed = GetStepSpeed();
+            var deltaTime = Mathf.Max(Time.deltaTime, 0.0001f);
+            var worldVelocity = (transform.position - _previousRootPosition) / deltaTime;
+            var localVelocity = transform.InverseTransformDirection(worldVelocity);
+            var stepHeight = 0.24f + (pursuitBias * 0.1f) + (threatBias * 0.06f);
 
             for (var index = 0; index < _legs.Length; index++)
             {
                 var leg = _legs[index];
                 var phase = (_clock * stepSpeed) + leg.PhaseOffset;
-                var lift = Mathf.Max(0f, Mathf.Sin(phase)) * (0.14f + (pursuitBias * 0.08f) + (threatBias * 0.04f));
-                var sweep = Mathf.Cos(phase) * (8f + (pursuitBias * 5f));
-                var brace = threatBias * 9f;
+                var desiredPlantWorld = ComputeDesiredFootPlantWorld(leg, localVelocity, pursuitBias, threatBias, dormantBias);
 
-                leg.Hip.localRotation = leg.HipBaseLocalRotation * Quaternion.Euler(
-                    sweep - (threatBias * 4.5f) - (dormantBias * 2f),
-                    0f,
-                    leg.SideSign * (brace + (Mathf.Sin(phase + 0.6f) * 3.4f)));
+                if (leg.IsStepping)
+                {
+                    AdvanceLegStep(leg, stepHeight);
+                }
+                else
+                {
+                    var stepWindow = Mathf.Sin(phase) > 0.18f;
+                    var horizontalDistance = Vector2.Distance(
+                        new Vector2(leg.PlantedFootWorldPosition.x, leg.PlantedFootWorldPosition.z),
+                        new Vector2(desiredPlantWorld.x, desiredPlantWorld.z));
+                    var verticalDistance = Mathf.Abs(leg.PlantedFootWorldPosition.y - desiredPlantWorld.y);
+                    var stepThreshold = LegStepThreshold + (pursuitBias * 0.12f) + (threatBias * 0.08f) - (dormantBias * 0.12f);
 
-                leg.Knee.localRotation = leg.KneeBaseLocalRotation * Quaternion.Euler(
-                    20f + (lift * 88f) + (threatBias * 10f),
-                    0f,
-                    0f);
+                    if (stepWindow && (horizontalDistance > stepThreshold || verticalDistance > 0.14f))
+                    {
+                        BeginLegStep(leg, desiredPlantWorld, localVelocity, pursuitBias, threatBias);
+                    }
+                    else
+                    {
+                        leg.CurrentFootWorldPosition = leg.PlantedFootWorldPosition;
+                    }
+                }
 
-                leg.Ankle.localRotation = leg.AnkleBaseLocalRotation * Quaternion.Euler(
-                    -15f - (lift * 38f) - (threatBias * 6f),
-                    0f,
-                    0f);
-
-                leg.FootTarget.localPosition = leg.FootTargetBaseLocalPosition + new Vector3(
-                    leg.SideSign * (0.1f + (threatBias * 0.16f)),
-                    lift,
-                    (leg.ForeAftBias * 0.08f) + (Mathf.Cos(phase) * (0.1f + (pursuitBias * 0.05f))));
+                SolveLegPose(leg);
             }
+
+            _previousRootPosition = transform.position;
         }
 
         void UpdateTentacles()
@@ -461,9 +482,185 @@ namespace McpTest.VoxelVillage
             }
         }
 
+        Vector3 ComputeDesiredFootPlantWorld(
+            LegRigState leg,
+            Vector3 localVelocity,
+            float pursuitBias,
+            float threatBias,
+            float dormantBias)
+        {
+            var strideVelocity = new Vector3(
+                Mathf.Clamp(localVelocity.x, -1.4f, 1.4f) * 0.12f,
+                0f,
+                Mathf.Clamp(localVelocity.z, -1.6f, 1.6f) * 0.18f);
+            var stanceOffset = new Vector3(
+                leg.SideSign * ((threatBias * 0.22f) + (strideVelocity.x * 0.35f)),
+                0f,
+                (leg.ForeAftBias * (0.08f + (pursuitBias * 0.14f) + (threatBias * 0.05f))) +
+                strideVelocity.z -
+                (dormantBias * 0.05f));
+            var idealFootWorld = transform.TransformPoint(leg.RestFootLocalPosition + stanceOffset);
+            return ResolveGroundContact(idealFootWorld, leg.PlantedFootWorldPosition.y);
+        }
+
+        void BeginLegStep(
+            LegRigState leg,
+            Vector3 desiredPlantWorld,
+            Vector3 localVelocity,
+            float pursuitBias,
+            float threatBias)
+        {
+            leg.IsStepping = true;
+            leg.StepElapsed = 0f;
+            leg.StepDuration = Mathf.Lerp(0.28f, 0.17f, Mathf.Clamp01(pursuitBias + (threatBias * 0.35f)));
+            leg.StepStartWorldPosition = leg.CurrentFootWorldPosition;
+
+            var leadWorldOffset = transform.TransformDirection(new Vector3(
+                Mathf.Clamp(localVelocity.x, -1.2f, 1.2f) * 0.08f,
+                0f,
+                Mathf.Clamp(localVelocity.z, -1.4f, 1.4f) * (0.12f + (pursuitBias * 0.05f))));
+            var spreadWorldOffset = transform.right * (leg.SideSign * threatBias * 0.08f);
+            leg.StepEndWorldPosition = ResolveGroundContact(desiredPlantWorld + leadWorldOffset + spreadWorldOffset, desiredPlantWorld.y);
+        }
+
+        void AdvanceLegStep(LegRigState leg, float stepHeight)
+        {
+            leg.StepElapsed += Time.deltaTime;
+            var normalizedTime = Mathf.Clamp01(leg.StepElapsed / Mathf.Max(leg.StepDuration, 0.0001f));
+            var easedTime = normalizedTime * normalizedTime * (3f - (2f * normalizedTime));
+            var steppedWorldPosition = Vector3.Lerp(leg.StepStartWorldPosition, leg.StepEndWorldPosition, easedTime);
+            steppedWorldPosition.y += Mathf.Sin(normalizedTime * Mathf.PI) * stepHeight;
+            leg.CurrentFootWorldPosition = steppedWorldPosition;
+
+            if (normalizedTime < 1f)
+            {
+                return;
+            }
+
+            leg.IsStepping = false;
+            leg.PlantedFootWorldPosition = leg.StepEndWorldPosition;
+            leg.CurrentFootWorldPosition = leg.PlantedFootWorldPosition;
+        }
+
+        void SolveLegPose(LegRigState leg)
+        {
+            var hipPosition = leg.Hip.position;
+            var desiredFootPosition = leg.CurrentFootWorldPosition;
+            var toFoot = desiredFootPosition - hipPosition;
+            if (toFoot.sqrMagnitude <= 0.0001f)
+            {
+                toFoot = (transform.right * leg.SideSign * 0.25f) + Vector3.down;
+            }
+
+            var upperLength = leg.UpperLength;
+            var lowerCombinedLength = leg.LowerCombinedLength;
+            var distanceToFoot = toFoot.magnitude;
+            var clampedDistance = Mathf.Clamp(
+                distanceToFoot,
+                Mathf.Abs(upperLength - lowerCombinedLength) + LegMinimumReachPadding,
+                upperLength + lowerCombinedLength - LegMinimumReachPadding);
+            var clampedFootPosition = hipPosition + (toFoot.normalized * clampedDistance);
+            var kneePosition = SolveKneePosition(
+                hipPosition,
+                clampedFootPosition,
+                upperLength,
+                lowerCombinedLength,
+                ComputePoleWorldPosition(leg));
+            var kneeToFoot = clampedFootPosition - kneePosition;
+            if (kneeToFoot.sqrMagnitude <= 0.0001f)
+            {
+                kneeToFoot = (clampedFootPosition - hipPosition).normalized;
+            }
+
+            var anklePosition = kneePosition + (kneeToFoot.normalized * leg.LowerLength);
+
+            ApplyJointDirection(leg.Hip, leg.Hip.parent, kneePosition - hipPosition);
+            ApplyJointDirection(leg.Knee, leg.Knee.parent, anklePosition - kneePosition);
+            ApplyJointDirection(leg.Ankle, leg.Ankle.parent, clampedFootPosition - anklePosition);
+        }
+
+        Vector3 ComputePoleWorldPosition(LegRigState leg)
+        {
+            return leg.Hip.position +
+                (transform.right * leg.SideSign * 3.2f) +
+                (transform.forward * leg.ForeAftBias * 0.6f) +
+                (Vector3.up * 1.2f);
+        }
+
+        Vector3 ResolveGroundContact(Vector3 desiredFootWorld, float fallbackY)
+        {
+            var rayOrigin = desiredFootWorld + (Vector3.up * LegGroundProbeHeight);
+            var hitCount = Physics.RaycastNonAlloc(
+                rayOrigin,
+                Vector3.down,
+                _groundHits,
+                LegGroundProbeDistance,
+                ~0,
+                QueryTriggerInteraction.Ignore);
+            var bestY = float.NegativeInfinity;
+            var found = false;
+
+            for (var index = 0; index < hitCount; index++)
+            {
+                var collider = _groundHits[index].collider;
+                if (collider == null || collider.transform.IsChildOf(transform))
+                {
+                    continue;
+                }
+
+                if (_groundHits[index].point.y <= bestY)
+                {
+                    continue;
+                }
+
+                bestY = _groundHits[index].point.y;
+                found = true;
+            }
+
+            desiredFootWorld.y = (found ? bestY : fallbackY) + LegGroundOffset;
+            return desiredFootWorld;
+        }
+
+        static Vector3 SolveKneePosition(
+            Vector3 hipPosition,
+            Vector3 footPosition,
+            float upperLength,
+            float lowerCombinedLength,
+            Vector3 poleWorldPosition)
+        {
+            var toFoot = footPosition - hipPosition;
+            var distance = Mathf.Max(toFoot.magnitude, 0.0001f);
+            var forward = toFoot / distance;
+            var projectedPole = Vector3.ProjectOnPlane(poleWorldPosition - hipPosition, forward);
+            if (projectedPole.sqrMagnitude <= 0.0001f)
+            {
+                projectedPole = Vector3.Cross(forward, Vector3.right);
+                if (projectedPole.sqrMagnitude <= 0.0001f)
+                {
+                    projectedPole = Vector3.Cross(forward, Vector3.forward);
+                }
+            }
+
+            var bendDirection = projectedPole.normalized;
+            var x = ((upperLength * upperLength) - (lowerCombinedLength * lowerCombinedLength) + (distance * distance)) / (2f * distance);
+            var y = Mathf.Sqrt(Mathf.Max((upperLength * upperLength) - (x * x), 0f));
+            return hipPosition + (forward * x) + (bendDirection * y);
+        }
+
+        static void ApplyJointDirection(Transform joint, Transform? parent, Vector3 worldDirection)
+        {
+            if (parent == null || worldDirection.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            var localDirection = parent.InverseTransformDirection(worldDirection.normalized);
+            joint.localRotation = Quaternion.FromToRotation(Vector3.up, localDirection);
+        }
+
         sealed class LegRigState
         {
-            public LegRigState(MukhaengTrackerLegRig rig)
+            public LegRigState(MukhaengTrackerLegRig rig, Transform root, Vector3 plantedFootWorldPosition)
             {
                 Hip = rig.Hip;
                 Knee = rig.Knee;
@@ -472,10 +669,14 @@ namespace McpTest.VoxelVillage
                 PhaseOffset = rig.PhaseOffset;
                 SideSign = rig.SideSign;
                 ForeAftBias = rig.ForeAftBias;
-                HipBaseLocalRotation = rig.Hip.localRotation;
-                KneeBaseLocalRotation = rig.Knee.localRotation;
-                AnkleBaseLocalRotation = rig.Ankle.localRotation;
-                FootTargetBaseLocalPosition = rig.FootTarget.localPosition;
+                UpperLength = Vector3.Distance(rig.Hip.position, rig.Knee.position);
+                LowerLength = Vector3.Distance(rig.Knee.position, rig.Ankle.position);
+                TipLength = Vector3.Distance(rig.Ankle.position, rig.FootTarget.position);
+                RestFootLocalPosition = root.InverseTransformPoint(rig.FootTarget.position);
+                PlantedFootWorldPosition = plantedFootWorldPosition;
+                CurrentFootWorldPosition = plantedFootWorldPosition;
+                StepStartWorldPosition = plantedFootWorldPosition;
+                StepEndWorldPosition = plantedFootWorldPosition;
             }
 
             public Transform Hip { get; }
@@ -492,13 +693,29 @@ namespace McpTest.VoxelVillage
 
             public float ForeAftBias { get; }
 
-            public Quaternion HipBaseLocalRotation { get; }
+            public float UpperLength { get; }
 
-            public Quaternion KneeBaseLocalRotation { get; }
+            public float LowerLength { get; }
 
-            public Quaternion AnkleBaseLocalRotation { get; }
+            public float TipLength { get; }
 
-            public Vector3 FootTargetBaseLocalPosition { get; }
+            public float LowerCombinedLength => LowerLength + TipLength;
+
+            public Vector3 RestFootLocalPosition { get; }
+
+            public Vector3 PlantedFootWorldPosition { get; set; }
+
+            public Vector3 CurrentFootWorldPosition { get; set; }
+
+            public Vector3 StepStartWorldPosition { get; set; }
+
+            public Vector3 StepEndWorldPosition { get; set; }
+
+            public float StepElapsed { get; set; }
+
+            public float StepDuration { get; set; }
+
+            public bool IsStepping { get; set; }
         }
 
         sealed class TentacleRigState
