@@ -18,6 +18,14 @@ namespace McpTest.VoxelVillage.Tests
       }
     },
     {
+      ""key"": ""hud.controls.show"",
+      ""translations"": {
+        ""ko"": ""Controls ko"",
+        ""en"": ""Controls"",
+        ""ja"": ""Controls ja""
+      }
+    },
+    {
       ""key"": ""speaker.player"",
       ""translations"": {
         ""ko"": ""Player ko"",
@@ -127,9 +135,10 @@ namespace McpTest.VoxelVillage.Tests
             var database = LocalizationDatabase.FromJson(UiJson, NpcJson, DialogueJson);
 
             Assert.AreEqual("F Talk", database.GetUiText("interaction.talk", LanguageCode.En));
+            Assert.AreEqual("Controls", database.GetUiText("hud.controls.show", LanguageCode.En));
             Assert.AreEqual("Mina ko", database.GetNpcDisplayName("villager_mina", LanguageCode.Ko));
             Assert.AreEqual("Merchant", database.GetNpcRoleName("villager_mina", LanguageCode.En));
-            Assert.AreEqual("Mina · Merchant", database.GetNpcHeader("villager_mina", LanguageCode.En));
+            Assert.AreEqual("Mina - Merchant", database.GetNpcHeader("villager_mina", LanguageCode.En));
             Assert.AreEqual("You", database.GetSpeakerDisplayName("player", "villager_mina", LanguageCode.En));
             Assert.AreEqual(2, database.GetDialogueLineCount("villager_mina"));
             Assert.AreEqual("Mina line ja", database.GetDialogueLine("villager_mina", 0)!.translations.Get(LanguageCode.Ja));

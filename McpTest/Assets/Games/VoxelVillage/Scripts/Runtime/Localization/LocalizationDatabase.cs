@@ -115,7 +115,7 @@ namespace McpTest.VoxelVillage
         {
             var name = GetNpcDisplayName(npcId, language);
             var role = GetNpcRoleName(npcId, language);
-            return string.IsNullOrWhiteSpace(role) ? name : name + " · " + role;
+            return string.IsNullOrWhiteSpace(role) ? name : name + " - " + role;
         }
 
         public DialogueSetDefinition? GetFirstDialogueSet(string npcId)

@@ -8,9 +8,9 @@
         "ja": "ミナ"
       },
       "roleName": {
-        "ko": "빵 장수",
+        "ko": "빵집 주인",
         "en": "Bread Seller",
-        "ja": "パン売り"
+        "ja": "パン屋"
       },
       "paletteId": "npc_red",
       "dialogueSetIds": [
@@ -42,7 +42,7 @@
         "ja": "ハル"
       },
       "roleName": {
-        "ko": "목공",
+        "ko": "목수",
         "en": "Carpenter",
         "ja": "大工"
       },
@@ -59,9 +59,9 @@
         "ja": "ノア"
       },
       "roleName": {
-        "ko": "광장 소식꾼",
+        "ko": "광장 감시인",
         "en": "Plaza Watcher",
-        "ja": "広場の見張り役"
+        "ja": "広場の見回り役"
       },
       "paletteId": "npc_blue",
       "dialogueSetIds": [
@@ -78,7 +78,7 @@
       "roleName": {
         "ko": "등불지기",
         "en": "Lamplighter",
-        "ja": "灯守"
+        "ja": "点灯係"
       },
       "paletteId": "npc_violet",
       "dialogueSetIds": [
@@ -93,13 +93,115 @@
         "ja": "カイ"
       },
       "roleName": {
-        "ko": "배달꾼",
+        "ko": "배달부",
         "en": "Courier",
         "ja": "配達人"
       },
       "paletteId": "npc_orange",
       "dialogueSetIds": [
         "kai_delivery_chat"
+      ]
+    },
+    {
+      "npcId": "villager_arin",
+      "displayName": {
+        "ko": "아린",
+        "en": "Arin",
+        "ja": "アリン"
+      },
+      "roleName": {
+        "ko": "찻집 주인",
+        "en": "Tea Brewer",
+        "ja": "茶店主"
+      },
+      "paletteId": "npc_rose",
+      "dialogueSetIds": [
+        "arin_tea_chat"
+      ]
+    },
+    {
+      "npcId": "villager_doyun",
+      "displayName": {
+        "ko": "도윤",
+        "en": "Doyun",
+        "ja": "ドユン"
+      },
+      "roleName": {
+        "ko": "석공",
+        "en": "Mason",
+        "ja": "石工"
+      },
+      "paletteId": "npc_teal",
+      "dialogueSetIds": [
+        "doyun_stone_chat"
+      ]
+    },
+    {
+      "npcId": "villager_rika",
+      "displayName": {
+        "ko": "리카",
+        "en": "Rika",
+        "ja": "リカ"
+      },
+      "roleName": {
+        "ko": "꽃집 주인",
+        "en": "Florist",
+        "ja": "花屋"
+      },
+      "paletteId": "npc_coral",
+      "dialogueSetIds": [
+        "rika_flower_chat"
+      ]
+    },
+    {
+      "npcId": "villager_sora",
+      "displayName": {
+        "ko": "소라",
+        "en": "Sora",
+        "ja": "ソラ"
+      },
+      "roleName": {
+        "ko": "기록 보관인",
+        "en": "Archivist",
+        "ja": "記録係"
+      },
+      "paletteId": "npc_navy",
+      "dialogueSetIds": [
+        "sora_archive_chat"
+      ]
+    },
+    {
+      "npcId": "villager_nari",
+      "displayName": {
+        "ko": "나리",
+        "en": "Nari",
+        "ja": "ナリ"
+      },
+      "roleName": {
+        "ko": "직물 장인",
+        "en": "Weaver",
+        "ja": "織物職人"
+      },
+      "paletteId": "npc_magenta",
+      "dialogueSetIds": [
+        "nari_cloth_chat"
+      ]
+    },
+    {
+      "npcId": "villager_toma",
+      "displayName": {
+        "ko": "토마",
+        "en": "Toma",
+        "ja": "トマ"
+      },
+      "roleName": {
+        "ko": "생선 장수",
+        "en": "Fishmonger",
+        "ja": "魚売り"
+      },
+      "paletteId": "npc_amber",
+      "dialogueSetIds": [
+        "toma_fish_chat"
       ]
     }
   ]

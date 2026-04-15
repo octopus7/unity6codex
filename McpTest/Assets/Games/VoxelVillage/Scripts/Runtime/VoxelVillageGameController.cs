@@ -25,6 +25,11 @@ namespace McpTest.VoxelVillage
         const float CameraLookAhead = 13f;
         const float PersonCollisionRadius = 0.7f;
         const float BaseCharacterHeight = 1.8f;
+        const float PromptHorizontalPadding = 14f;
+        const float PromptVerticalPadding = 9f;
+        const float PromptMinWidth = 104f;
+        const float PromptMaxWidth = 240f;
+        const float PromptMinHeight = 44f;
 
         enum InteractionTarget
         {
@@ -40,9 +45,11 @@ namespace McpTest.VoxelVillage
         Light _mainLight = null!;
         Canvas _canvas = null!;
 
+        GameObject _helpPanel = null!;
         Text _helpText = null!;
         Text _promptText = null!;
         Text _languageButtonText = null!;
+        Text _controlsButtonText = null!;
         RectTransform _bubbleRect = null!;
         Text _bubbleSpeakerText = null!;
         Text _bubbleContentText = null!;
@@ -58,6 +65,7 @@ namespace McpTest.VoxelVillage
         bool _dialogueActive;
         int _dialogueLineIndex;
         bool _doorOpen;
+        bool _helpVisible;
         float _doorYaw;
 
         void Awake()
@@ -298,7 +306,7 @@ namespace McpTest.VoxelVillage
                 canvasObject.AddComponent<GraphicRaycaster>();
             }
 
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var font = LoadUiFont();
 
             _helpText = CreatePanelText(
                 "HelpPanel",
@@ -311,7 +319,8 @@ namespace McpTest.VoxelVillage
                 new Color(0.94f, 0.97f, 1f),
                 true);
 
-            var helpRect = _helpText.rectTransform;
+            _helpPanel = _helpText.transform.parent.gameObject;
+            var helpRect = (RectTransform)_helpPanel.transform;
             helpRect.anchorMin = new Vector2(0f, 0f);
             helpRect.anchorMax = new Vector2(0f, 0f);
             helpRect.pivot = new Vector2(0f, 0f);
@@ -320,21 +329,32 @@ namespace McpTest.VoxelVillage
             _promptText = CreatePanelText(
                 "PromptPanel",
                 new Vector2(0f, 110f),
-                new Vector2(320f, 64f),
+                new Vector2(160f, PromptMinHeight),
                 font,
                 22,
                 TextAnchor.MiddleCenter,
                 new Color(0.09f, 0.13f, 0.2f, 0.82f),
                 new Color(1f, 0.97f, 0.92f));
+            _promptText.fontStyle = FontStyle.Bold;
+            _promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _promptText.verticalOverflow = VerticalWrapMode.Overflow;
 
-            var promptRect = _promptText.rectTransform;
+            var promptTextRect = _promptText.rectTransform;
+            promptTextRect.offsetMin = new Vector2(PromptHorizontalPadding, PromptVerticalPadding);
+            promptTextRect.offsetMax = new Vector2(-PromptHorizontalPadding, -PromptVerticalPadding);
+
+            var promptRect = (RectTransform)_promptText.transform.parent;
             promptRect.anchorMin = new Vector2(0.5f, 0f);
             promptRect.anchorMax = new Vector2(0.5f, 0f);
             promptRect.pivot = new Vector2(0.5f, 0f);
             promptRect.anchoredPosition = new Vector2(0f, 110f);
 
             CreateLanguageButton(font);
+            CreateControlsButton(font);
             CreateSpeechBubble(font);
+
+            _helpVisible = false;
+            _helpPanel.SetActive(false);
         }
 
         void CreateLanguageButton(Font font)
@@ -374,6 +394,45 @@ namespace McpTest.VoxelVillage
             _languageButtonText.fontSize = 19;
             _languageButtonText.alignment = TextAnchor.MiddleCenter;
             _languageButtonText.color = new Color(0.14f, 0.11f, 0.08f);
+        }
+
+        void CreateControlsButton(Font font)
+        {
+            var buttonObject = new GameObject("ControlsButton", typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(_canvas.transform, false);
+
+            var rectTransform = buttonObject.GetComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(1f, 1f);
+            rectTransform.anchorMax = new Vector2(1f, 1f);
+            rectTransform.pivot = new Vector2(1f, 1f);
+            rectTransform.anchoredPosition = new Vector2(-252f, -16f);
+            rectTransform.sizeDelta = new Vector2(170f, 56f);
+
+            var image = buttonObject.GetComponent<Image>();
+            image.color = new Color(0.86f, 0.91f, 0.96f, 0.96f);
+
+            var button = buttonObject.GetComponent<Button>();
+            var colors = button.colors;
+            colors.normalColor = image.color;
+            colors.highlightedColor = new Color(0.93f, 0.96f, 1f, 1f);
+            colors.pressedColor = new Color(0.74f, 0.82f, 0.9f, 1f);
+            colors.selectedColor = colors.highlightedColor;
+            button.colors = colors;
+            button.onClick.AddListener(OnControlsButtonClicked);
+
+            var textObject = new GameObject("ControlsButton_Text", typeof(RectTransform), typeof(Text));
+            textObject.transform.SetParent(buttonObject.transform, false);
+            var textRect = textObject.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = Vector2.zero;
+            textRect.offsetMax = Vector2.zero;
+
+            _controlsButtonText = textObject.GetComponent<Text>();
+            _controlsButtonText.font = font;
+            _controlsButtonText.fontSize = 18;
+            _controlsButtonText.alignment = TextAnchor.MiddleCenter;
+            _controlsButtonText.color = new Color(0.14f, 0.2f, 0.26f);
         }
 
         void CreateSpeechBubble(Font font)
@@ -694,6 +753,9 @@ namespace McpTest.VoxelVillage
             _languageButtonText.text = string.Format(
                 _database.GetUiText("hud.language.label", _languageState.Current),
                 _database.GetUiText("language.name." + _languageState.Current.ToCode(), _languageState.Current));
+            _controlsButtonText.text = _database.GetUiText(
+                _helpVisible ? "hud.controls.hide" : "hud.controls.show",
+                _languageState.Current);
 
             RefreshPrompt();
             UpdateSpeechBubble();
@@ -744,6 +806,18 @@ namespace McpTest.VoxelVillage
 
             _promptText.transform.parent.gameObject.SetActive(true);
             _promptText.text = _database.GetUiText(key, _languageState.Current);
+            ResizePromptPanel();
+        }
+
+        void ResizePromptPanel()
+        {
+            var promptRect = (RectTransform)_promptText.transform.parent;
+            var preferredWidth = _promptText.preferredWidth + (PromptHorizontalPadding * 2f);
+            var preferredHeight = _promptText.preferredHeight + (PromptVerticalPadding * 2f);
+
+            promptRect.sizeDelta = new Vector2(
+                Mathf.Clamp(preferredWidth, PromptMinWidth, PromptMaxWidth),
+                Mathf.Max(PromptMinHeight, preferredHeight));
         }
 
         void OnLanguageButtonClicked()
@@ -751,9 +825,40 @@ namespace McpTest.VoxelVillage
             _languageState.CycleNext();
         }
 
+        void OnControlsButtonClicked()
+        {
+            _helpVisible = !_helpVisible;
+            _helpPanel.SetActive(_helpVisible);
+            _controlsButtonText.text = _database.GetUiText(
+                _helpVisible ? "hud.controls.hide" : "hud.controls.show",
+                _languageState.Current);
+        }
+
         void OnLanguageChanged(LanguageCode _)
         {
             RefreshLocalizedTexts();
+        }
+
+        static Font LoadUiFont()
+        {
+            try
+            {
+                return Font.CreateDynamicFontFromOSFont(
+                    new[]
+                    {
+                        "Malgun Gothic",
+                        "Yu Gothic UI",
+                        "Meiryo",
+                        "Segoe UI",
+                        "Arial Unicode MS",
+                        "Arial"
+                    },
+                    20);
+            }
+            catch
+            {
+                return Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            }
         }
 
         Vector3 GetDoorInteractionPoint()

@@ -6,15 +6,31 @@
       "translations": {
         "ko": "복셀 마을 언어 데모",
         "en": "Voxel Village Language Demo",
-        "ja": "ボクセル村 言語デモ"
+        "ja": "ボクセル村の言語デモ"
       }
     },
     {
       "key": "hud.instructions",
       "translations": {
-        "ko": "WASD 로 이동\\n주민 6명 중 가까운 사람에게 F 로 대화\\n문 근처에서 F 로 열기/닫기\\n우측 상단 버튼으로 언어 전환",
-        "en": "Move with WASD\\nPress F near any of the 6 villagers to talk\\nPress F near the door to open or close it\\nUse the top-right button to change language",
-        "ja": "WASD で移動\\n6人の住民の近くで F を押すと会話\\nドアの近くで F を押すと開閉\\n右上のボタンで言語を切り替え"
+        "ko": "WASD로 이동\n주민 12명 중 가까운 사람에게 F로 대화\n문 근처에서 F로 열기/닫기\n우측 상단 버튼으로 언어 전환",
+        "en": "Move with WASD\nPress F near any of the 12 villagers to talk\nPress F near the door to open or close it\nUse the top-right button to change language",
+        "ja": "WASDで移動\n12人の住民の近くでFを押して会話\nドアの近くでFを押して開閉\n右上のボタンで言語を切り替え"
+      }
+    },
+    {
+      "key": "hud.controls.show",
+      "translations": {
+        "ko": "조작법",
+        "en": "Controls",
+        "ja": "操作方法"
+      }
+    },
+    {
+      "key": "hud.controls.hide",
+      "translations": {
+        "ko": "조작법 닫기",
+        "en": "Hide Controls",
+        "ja": "操作を閉じる"
       }
     },
     {
@@ -54,7 +70,7 @@
       "translations": {
         "ko": "F 대화하기",
         "en": "F Talk",
-        "ja": "F 話す"
+        "ja": "F 会話"
       }
     },
     {
@@ -62,7 +78,7 @@
       "translations": {
         "ko": "F 다음 대사",
         "en": "F Next Line",
-        "ja": "F 次のセリフ"
+        "ja": "F 次の台詞"
       }
     },
     {
