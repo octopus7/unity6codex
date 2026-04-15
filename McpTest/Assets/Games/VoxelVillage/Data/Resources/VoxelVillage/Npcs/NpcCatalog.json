@@ -1,0 +1,16 @@
+{
+  "npcs": [
+    {
+      "npcId": "villager_mina",
+      "displayName": {
+        "ko": "미나",
+        "en": "Mina",
+        "ja": "ミナ"
+      },
+      "paletteId": "npc_red",
+      "dialogueSetIds": [
+        "greeting_common"
+      ]
+    }
+  ]
+}

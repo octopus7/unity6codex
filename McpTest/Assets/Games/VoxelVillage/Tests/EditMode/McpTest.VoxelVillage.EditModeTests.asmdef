@@ -1,0 +1,21 @@
+{
+    "name": "McpTest.VoxelVillage.EditModeTests",
+    "rootNamespace": "McpTest.VoxelVillage.Tests",
+    "references": [
+        "McpTest.VoxelVillage"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

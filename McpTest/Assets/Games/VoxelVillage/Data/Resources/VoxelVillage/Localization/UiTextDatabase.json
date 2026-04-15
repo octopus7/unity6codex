@@ -1,0 +1,101 @@
+{
+  "languageOrder": ["ko", "en", "ja"],
+  "entries": [
+    {
+      "key": "hud.title",
+      "translations": {
+        "ko": "복셀 마을 언어 데모",
+        "en": "Voxel Village Language Demo",
+        "ja": "ボクセル村 言語デモ"
+      }
+    },
+    {
+      "key": "hud.instructions",
+      "translations": {
+        "ko": "WASD 로 이동\\nMina 근처에서 F 로 대화 진행\\n문 근처에서 F 로 열기/닫기\\n우측 상단 버튼으로 언어 전환",
+        "en": "Move with WASD\\nPress F near Mina to advance dialogue\\nPress F near the door to open or close it\\nUse the top-right button to change language",
+        "ja": "WASD で移動\\nMina の近くで F を押すと会話が進行\\nドアの近くで F を押すと開閉\\n右上のボタンで言語を切り替え"
+      }
+    },
+    {
+      "key": "hud.language.label",
+      "translations": {
+        "ko": "언어: {0}",
+        "en": "Language: {0}",
+        "ja": "言語: {0}"
+      }
+    },
+    {
+      "key": "language.name.ko",
+      "translations": {
+        "ko": "한국어",
+        "en": "Korean",
+        "ja": "韓国語"
+      }
+    },
+    {
+      "key": "language.name.en",
+      "translations": {
+        "ko": "영어",
+        "en": "English",
+        "ja": "英語"
+      }
+    },
+    {
+      "key": "language.name.ja",
+      "translations": {
+        "ko": "일본어",
+        "en": "Japanese",
+        "ja": "日本語"
+      }
+    },
+    {
+      "key": "interaction.talk",
+      "translations": {
+        "ko": "F 대화하기",
+        "en": "F Talk",
+        "ja": "F 話す"
+      }
+    },
+    {
+      "key": "interaction.nextLine",
+      "translations": {
+        "ko": "F 다음 대사",
+        "en": "F Next Line",
+        "ja": "F 次のセリフ"
+      }
+    },
+    {
+      "key": "interaction.closeDialogue",
+      "translations": {
+        "ko": "F 대화 종료",
+        "en": "F End Talk",
+        "ja": "F 会話終了"
+      }
+    },
+    {
+      "key": "interaction.openDoor",
+      "translations": {
+        "ko": "F 문 열기",
+        "en": "F Open Door",
+        "ja": "F ドアを開く"
+      }
+    },
+    {
+      "key": "interaction.closeDoor",
+      "translations": {
+        "ko": "F 문 닫기",
+        "en": "F Close Door",
+        "ja": "F ドアを閉じる"
+      }
+    },
+    {
+      "key": "speaker.player",
+      "translations": {
+        "ko": "나",
+        "en": "You",
+        "ja": "あなた"
+      }
+    }
+  ]
+}

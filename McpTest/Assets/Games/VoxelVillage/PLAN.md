@@ -246,17 +246,17 @@
 
 ### 파일 분리
 
-- `Assets/Games/VoxelVillage/Data/Localization/UiTextDatabase.json`
-- `Assets/Games/VoxelVillage/Data/Npcs/NpcCatalog.json`
-- `Assets/Games/VoxelVillage/Data/Dialogue/DialogueDatabase.json`
+- `Assets/Games/VoxelVillage/Data/Resources/VoxelVillage/Localization/UiTextDatabase.json`
+- `Assets/Games/VoxelVillage/Data/Resources/VoxelVillage/Npcs/NpcCatalog.json`
+- `Assets/Games/VoxelVillage/Data/Resources/VoxelVillage/Dialogue/DialogueDatabase.json`
 
 ## Dialogue Data Plan
 
 ### 파일 분리
 
-- `Assets/Games/VoxelVillage/Data/Localization/UiTextDatabase.json`
-- `Assets/Games/VoxelVillage/Data/Npcs/NpcCatalog.json`
-- `Assets/Games/VoxelVillage/Data/Dialogue/DialogueDatabase.json`
+- `Assets/Games/VoxelVillage/Data/Resources/VoxelVillage/Localization/UiTextDatabase.json`
+- `Assets/Games/VoxelVillage/Data/Resources/VoxelVillage/Npcs/NpcCatalog.json`
+- `Assets/Games/VoxelVillage/Data/Resources/VoxelVillage/Dialogue/DialogueDatabase.json`
 
 ### 구조 의도
 
@@ -422,9 +422,17 @@
 - 시스템 분해 완료
 - 파일 경로와 데이터 구조 초안 확정
 
+### Implemented Prototype
+
+- `VoxelVillage` 씬 생성 완료
+- 언어 순환 버튼과 전역 언어 상태 구현 완료
+- 한국어 / 영어 / 일본어 UI 번역 JSON 로드 완료
+- NPC 대화와 문 프롬프트의 다국어 반영 확인 완료
+- 편집 모드 로컬라이제이션 테스트 추가 완료
+
 ### Not Started
 
-- 씬 생성
-- 스크립트 구현
-- 데이터 파일 작성
-- 테스트 추가
+- 복셀 `32^3` 캐릭터 메시 생성
+- 마을 랜덤 생성
+- 주민 자율 이동
+- 실제 문/건물/자연물 시스템 확장

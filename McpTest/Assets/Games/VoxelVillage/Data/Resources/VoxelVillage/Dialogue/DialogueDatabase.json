@@ -1,0 +1,34 @@
+{
+  "dialogueSets": [
+    {
+      "id": "greeting_common",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "오늘은 장터가 꽤 붐비네.",
+            "en": "The market is pretty busy today.",
+            "ja": "今日は市場がかなりにぎやかだね。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "그쪽부터 둘러봐야겠네요.",
+            "en": "I should start looking around there.",
+            "ja": "まずはあちらから見て回ろうかな。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "언어 버튼을 눌러도 지금 대사가 바로 바뀌는지 봐.",
+            "en": "Try pressing the language button and see this line update immediately.",
+            "ja": "言語ボタンを押して、このセリフがすぐ切り替わるか見てみて。"
+          }
+        }
+      ]
+    }
+  ]
+}

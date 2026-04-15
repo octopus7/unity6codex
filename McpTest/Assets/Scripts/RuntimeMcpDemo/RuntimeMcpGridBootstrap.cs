@@ -20,6 +20,7 @@ namespace McpTest.RuntimeMcpDemo
         const string TokenEnvVar = "UNITY_MCP_TOKEN";
         const string AllowEditorConfigEnvVar = "UNITY_MCP_RUNTIME_ALLOW_EDITOR_CONFIG";
         const string BowlingScenePath = "Assets/Games/Bowling/Scenes/BowlingGame.unity";
+        const string VoxelVillageScenePath = "Assets/Games/VoxelVillage/Scenes/VoxelVillage.unity";
 
         static bool _initialized;
 
@@ -33,7 +34,8 @@ namespace McpTest.RuntimeMcpDemo
 
             _initialized = true;
 
-            if (SceneManager.GetActiveScene().path == BowlingScenePath)
+            var activeScenePath = SceneManager.GetActiveScene().path;
+            if (activeScenePath == BowlingScenePath || activeScenePath == VoxelVillageScenePath)
             {
                 return;
             }
