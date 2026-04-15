@@ -67,6 +67,7 @@ namespace McpTest.VoxelVillage
         Camera _mainCamera = null!;
         Light _mainLight = null!;
         Canvas _canvas = null!;
+        ReflectionProbe _globalReflectionProbe = null!;
 
         GameObject _helpPanel = null!;
         Text _helpText = null!;
@@ -172,14 +173,24 @@ namespace McpTest.VoxelVillage
             _mainLight.shadowBias = 0.08f;
             _mainLight.shadowNormalBias = 0.4f;
             _mainLight.shadowNearPlane = 0.2f;
+            _mainLight.bounceIntensity = 1.2f;
             RenderSettings.sun = _mainLight;
 
-            RenderSettings.ambientMode = AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.34f, 0.38f, 0.44f);
+            RenderSettings.ambientMode = AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.46f, 0.53f, 0.62f);
+            RenderSettings.ambientEquatorColor = new Color(0.29f, 0.3f, 0.29f);
+            RenderSettings.ambientGroundColor = new Color(0.21f, 0.28f, 0.2f);
+            RenderSettings.reflectionIntensity = 1.05f;
+            DynamicGI.UpdateEnvironment();
 
             if (QualitySettings.shadowDistance < 85f)
             {
                 QualitySettings.shadowDistance = 85f;
+            }
+
+            if (!QualitySettings.realtimeReflectionProbes)
+            {
+                QualitySettings.realtimeReflectionProbes = true;
             }
         }
 
@@ -241,6 +252,32 @@ namespace McpTest.VoxelVillage
             BuildPond(waterMaterial);
             CreatePlayer(CellToWorld(_layout.plazaCenter + new Vector2Int(0, -6)) + new Vector3(0f, 0.9f, 0f), new Color(0.16f, 0.41f, 0.95f));
             SpawnVillagersFromLayout();
+            EnsureGlobalIlluminationProbe();
+        }
+
+        void EnsureGlobalIlluminationProbe()
+        {
+            if (_globalReflectionProbe == null)
+            {
+                var probeObject = new GameObject("VoxelVillage Reflection Probe");
+                probeObject.transform.SetParent(transform, false);
+                _globalReflectionProbe = probeObject.AddComponent<ReflectionProbe>();
+            }
+
+            _globalReflectionProbe.transform.position = new Vector3(0f, 9f, 0f);
+            _globalReflectionProbe.mode = ReflectionProbeMode.Realtime;
+            _globalReflectionProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
+            _globalReflectionProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.NoTimeSlicing;
+            _globalReflectionProbe.clearFlags = ReflectionProbeClearFlags.Skybox;
+            _globalReflectionProbe.boxProjection = true;
+            _globalReflectionProbe.size = new Vector3(TownFootprint, 18f, TownFootprint);
+            _globalReflectionProbe.center = new Vector3(0f, 2f, 0f);
+            _globalReflectionProbe.nearClipPlane = 0.3f;
+            _globalReflectionProbe.farClipPlane = TownFootprint * 1.5f;
+            _globalReflectionProbe.intensity = 1.1f;
+            _globalReflectionProbe.resolution = 256;
+            _globalReflectionProbe.cullingMask = ~0;
+            _globalReflectionProbe.RenderProbe();
         }
 
         void BuildHud()
