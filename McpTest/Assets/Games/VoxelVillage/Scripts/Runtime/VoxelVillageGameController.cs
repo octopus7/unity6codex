@@ -34,20 +34,26 @@ namespace McpTest.VoxelVillage
         const float PromptMinWidth = 104f;
         const float PromptMaxWidth = 240f;
         const float PromptMinHeight = 44f;
+        const float TopButtonInset = 16f;
+        const float TopButtonGap = 12f;
+        const float TopButtonHeight = 42f;
+        const float TopButtonTextHorizontalPadding = 12f;
+        const float LanguageButtonWidth = 196f;
+        const float ControlsButtonWidth = 124f;
+        const float GrassScaleMultiplier = 0.5f;
         const float DoorOpenAngle = 108f;
         const float DoorOpeningWidthRatio = 2.5f / 28f;
         const float DoorOpeningHeightRatio = 10f / 24f;
         const float DoorLeafClearance = 0.92f;
         const float DoorWallDepthRatio = 2f / 26f;
+        const float DoorInteractionForwardOffset = 0.62f;
         const float RoofRevealFeather = 1.05f;
-        const float RoofRevealPatternScale = 5.5f;
         const int WorldGridSize = 72;
         const float WorldCellSize = TownFootprint / WorldGridSize;
 
         static readonly int RevealEnabledShaderId = Shader.PropertyToID("_RevealEnabled");
         static readonly int RevealHeightShaderId = Shader.PropertyToID("_RevealHeight");
         static readonly int RevealFeatherShaderId = Shader.PropertyToID("_RevealFeather");
-        static readonly int RevealPatternScaleShaderId = Shader.PropertyToID("_RevealPatternScale");
 
         static readonly VillagerStyle[] VillagerStyles =
         {
@@ -367,8 +373,8 @@ namespace McpTest.VoxelVillage
             rectTransform.anchorMin = new Vector2(1f, 1f);
             rectTransform.anchorMax = new Vector2(1f, 1f);
             rectTransform.pivot = new Vector2(1f, 1f);
-            rectTransform.anchoredPosition = new Vector2(-16f, -16f);
-            rectTransform.sizeDelta = new Vector2(220f, 56f);
+            rectTransform.anchoredPosition = new Vector2(-TopButtonInset, -TopButtonInset);
+            rectTransform.sizeDelta = new Vector2(LanguageButtonWidth, TopButtonHeight);
 
             var image = buttonObject.GetComponent<Image>();
             image.color = new Color(0.96f, 0.75f, 0.26f, 0.95f);
@@ -387,12 +393,12 @@ namespace McpTest.VoxelVillage
             var textRect = textObject.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
+            textRect.offsetMin = new Vector2(TopButtonTextHorizontalPadding, 0f);
+            textRect.offsetMax = new Vector2(-TopButtonTextHorizontalPadding, 0f);
 
             _languageButtonText = textObject.GetComponent<Text>();
             _languageButtonText.font = font;
-            _languageButtonText.fontSize = 19;
+            _languageButtonText.fontSize = 17;
             _languageButtonText.alignment = TextAnchor.MiddleCenter;
             _languageButtonText.color = new Color(0.14f, 0.11f, 0.08f);
         }
@@ -406,8 +412,10 @@ namespace McpTest.VoxelVillage
             rectTransform.anchorMin = new Vector2(1f, 1f);
             rectTransform.anchorMax = new Vector2(1f, 1f);
             rectTransform.pivot = new Vector2(1f, 1f);
-            rectTransform.anchoredPosition = new Vector2(-252f, -16f);
-            rectTransform.sizeDelta = new Vector2(170f, 56f);
+            rectTransform.anchoredPosition = new Vector2(
+                -(TopButtonInset + LanguageButtonWidth + TopButtonGap),
+                -TopButtonInset);
+            rectTransform.sizeDelta = new Vector2(ControlsButtonWidth, TopButtonHeight);
 
             var image = buttonObject.GetComponent<Image>();
             image.color = new Color(0.86f, 0.91f, 0.96f, 0.96f);
@@ -426,12 +434,12 @@ namespace McpTest.VoxelVillage
             var textRect = textObject.GetComponent<RectTransform>();
             textRect.anchorMin = Vector2.zero;
             textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = Vector2.zero;
-            textRect.offsetMax = Vector2.zero;
+            textRect.offsetMin = new Vector2(TopButtonTextHorizontalPadding, 0f);
+            textRect.offsetMax = new Vector2(-TopButtonTextHorizontalPadding, 0f);
 
             _controlsButtonText = textObject.GetComponent<Text>();
             _controlsButtonText.font = font;
-            _controlsButtonText.fontSize = 18;
+            _controlsButtonText.fontSize = 16;
             _controlsButtonText.alignment = TextAnchor.MiddleCenter;
             _controlsButtonText.color = new Color(0.14f, 0.2f, 0.26f);
         }
@@ -579,7 +587,7 @@ namespace McpTest.VoxelVillage
                 var facing = buildingDoor?.facing ?? Vector2Int.down;
                 var center = CellRectCenterToWorld(building.origin, building.size);
                 var palette = GetBuildingPalette(buildingIndex);
-                var size = GetHouseSize(building);
+                var size = GetHouseSize(building, facing);
 
                 var house = VoxelEnvironmentFactory.CreateHouse(
                     "House_" + building.id,
@@ -591,8 +599,8 @@ namespace McpTest.VoxelVillage
                     palette.Trim);
                 house.Root.transform.SetParent(_worldRoot, true);
 
-                var houseRenderer = house.Root.GetComponentInChildren<MeshRenderer>();
-                if (houseRenderer == null)
+                var houseRenderers = house.Root.GetComponentsInChildren<MeshRenderer>();
+                if (houseRenderers.Length == 0)
                 {
                     throw new InvalidOperationException("House visual is missing a MeshRenderer.");
                 }
@@ -604,7 +612,7 @@ namespace McpTest.VoxelVillage
                 var houseInstance = new HouseInstance(
                     building.id,
                     GetBuildingInteriorRect(building),
-                    houseRenderer,
+                    houseRenderers,
                     roofRevealHeight,
                     RoofRevealFeather);
                 SetHouseRoofRevealState(houseInstance, false, true);
@@ -648,6 +656,14 @@ namespace McpTest.VoxelVillage
 
                 CreateGrassPatch(grassRoot, placements[index], index);
             }
+
+            if (grassRoot.childCount == 0)
+            {
+                Destroy(grassRoot.gameObject);
+                return;
+            }
+
+            StaticBatchingUtility.Combine(grassRoot.gameObject);
         }
 
         void BuildFountain()
@@ -1004,10 +1020,9 @@ namespace McpTest.VoxelVillage
         bool CanCloseDoor(DoorInstance door)
         {
             var threshold = WorldCellSize * 0.9f;
-            var doorCenter = CellToWorld(door.Cell);
             if (Vector2.Distance(
                     new Vector2(_player.transform.position.x, _player.transform.position.z),
-                    new Vector2(doorCenter.x, doorCenter.z)) <= threshold)
+                    new Vector2(door.ClosedCenter.x, door.ClosedCenter.z)) <= threshold)
             {
                 return false;
             }
@@ -1017,7 +1032,7 @@ namespace McpTest.VoxelVillage
                 var villager = _villagers[index];
                 if (Vector2.Distance(
                         new Vector2(villager.Transform.position.x, villager.Transform.position.z),
-                        new Vector2(doorCenter.x, doorCenter.z)) <= threshold)
+                        new Vector2(door.ClosedCenter.x, door.ClosedCenter.z)) <= threshold)
                 {
                     return false;
                 }
@@ -1085,8 +1100,10 @@ namespace McpTest.VoxelVillage
             house.PropertyBlock.SetFloat(RevealEnabledShaderId, reveal ? 1f : 0f);
             house.PropertyBlock.SetFloat(RevealHeightShaderId, house.RoofRevealHeight);
             house.PropertyBlock.SetFloat(RevealFeatherShaderId, house.RoofRevealFeather);
-            house.PropertyBlock.SetFloat(RevealPatternScaleShaderId, RoofRevealPatternScale);
-            house.Renderer.SetPropertyBlock(house.PropertyBlock);
+            for (var index = 0; index < house.Renderers.Length; index++)
+            {
+                house.Renderers[index].SetPropertyBlock(house.PropertyBlock);
+            }
         }
 
         void UpdateSpeechBubble()
@@ -1523,7 +1540,7 @@ namespace McpTest.VoxelVillage
         void CreateGrassPatch(Transform grassRoot, VillageGrassPlacement placement, int index)
         {
             var size = GetGrassSize(placement.Variant, index);
-            var palette = GetGrassPalette(placement.Variant, index);
+            var palette = GetGrassPalette(placement.Variant);
             var world =
                 CellToWorld(placement.Cell) +
                 new Vector3(placement.CellOffset.x * WorldCellSize, 0f, placement.CellOffset.y * WorldCellSize);
@@ -1577,7 +1594,7 @@ namespace McpTest.VoxelVillage
             var openDelta = layoutDoor.facing.x <= 0 && layoutDoor.facing.y >= 0 ? -DoorOpenAngle : DoorOpenAngle;
             var building = FindBuildingLayout(layoutDoor.buildingId);
             var houseSize = building != null
-                ? GetHouseSize(building)
+                ? GetHouseSize(building, layoutDoor.facing)
                 : new Vector3(WorldCellSize * 6f, 5.4f, WorldCellSize * 6f);
             var openingWidth = houseSize.x * DoorOpeningWidthRatio;
             var openingHeight = houseSize.y * DoorOpeningHeightRatio;
@@ -1586,7 +1603,8 @@ namespace McpTest.VoxelVillage
                 Mathf.Clamp(openingHeight * DoorLeafClearance, WorldCellSize * 0.92f, WorldCellSize * 1.28f),
                 Mathf.Clamp(houseSize.z * DoorWallDepthRatio * 0.72f, WorldCellSize * 0.18f, WorldCellSize * 0.32f));
             var right = Quaternion.Euler(0f, closedYaw, 0f) * Vector3.right;
-            var hingeBase = CellToWorld(layoutDoor.cell) - facing * (WorldCellSize * 0.16f) - (right * (doorSize.x * 0.5f));
+            var closedCenter = GetClosedDoorCenter(layoutDoor, building, houseSize, doorSize.z, facing);
+            var hingeBase = closedCenter - (right * (doorSize.x * 0.5f));
 
             var pivot = new GameObject("DoorPivot_" + layoutDoor.id).transform;
             pivot.SetParent(_worldRoot, false);
@@ -1599,7 +1617,10 @@ namespace McpTest.VoxelVillage
                 0f,
                 new Color(0.53f, 0.31f, 0.17f));
             door.Root.transform.SetParent(pivot, false);
-            door.Root.transform.localPosition = new Vector3(doorSize.x * 0.5f, doorSize.y * 0.5f, 0f);
+            door.Root.transform.localPosition = new Vector3(
+                doorSize.x * 0.5f,
+                (houseSize.y * VoxelEnvironmentFactory.HouseDoorSillNormalizedHeight) + (doorSize.y * 0.5f),
+                0f);
 
             var meshFilter = door.Root.GetComponentInChildren<MeshFilter>();
             if (meshFilter == null)
@@ -1615,11 +1636,12 @@ namespace McpTest.VoxelVillage
             doorCollider.enabled = !layoutDoor.startsOpen;
             meshFilter.sharedMesh = layoutDoor.startsOpen ? openMesh : closedMesh;
 
-            var interactionPoint = CellToWorld(layoutDoor.cell) + new Vector3(0f, 1.1f, 0f) + facing * (WorldCellSize * 0.62f);
+            var interactionPoint = closedCenter + new Vector3(0f, 1.1f, 0f) + (facing * (WorldCellSize * DoorInteractionForwardOffset));
             var instance = new DoorInstance(
                 layoutDoor.id,
                 layoutDoor.cell,
                 pivot,
+                closedCenter,
                 interactionPoint,
                 meshFilter,
                 doorCollider,
@@ -1785,6 +1807,23 @@ namespace McpTest.VoxelVillage
             return new Vector3(direction.x, 0f, direction.y);
         }
 
+        Vector3 GetClosedDoorCenter(
+            VillageDoorLayout layoutDoor,
+            VillageBuildingLayout? building,
+            Vector3 houseSize,
+            float doorDepth,
+            Vector3 facing)
+        {
+            if (building == null)
+            {
+                return CellToWorld(layoutDoor.cell) - (facing * (WorldCellSize * 0.16f));
+            }
+
+            var buildingCenter = CellRectCenterToWorld(building.origin, building.size);
+            var frontFaceOffset = (houseSize.z * VoxelEnvironmentFactory.HouseDoorFrontFaceNormalizedDepth) - (doorDepth * 0.5f);
+            return buildingCenter + (facing * frontFaceOffset);
+        }
+
         Vector3 CellRectCenterToWorld(Vector2Int origin, Vector2Int size)
         {
             var x = (origin.x + size.x * 0.5f) * WorldCellSize - TownFootprint * 0.5f;
@@ -1803,12 +1842,14 @@ namespace McpTest.VoxelVillage
                 Mathf.Max(1, building.size.y - (paddingY * 2)));
         }
 
-        static Vector3 GetHouseSize(VillageBuildingLayout building)
+        static Vector3 GetHouseSize(VillageBuildingLayout building, Vector2Int facing)
         {
+            var facadeWidthCells = facing.x != 0 ? building.size.y : building.size.x;
+            var facadeDepthCells = facing.x != 0 ? building.size.x : building.size.y;
             return new Vector3(
-                building.size.x * WorldCellSize * 0.96f,
+                facadeWidthCells * WorldCellSize * 0.96f,
                 3.6f + building.height * 0.45f,
-                building.size.y * WorldCellSize * 0.96f);
+                facadeDepthCells * WorldCellSize * 0.96f);
         }
 
         VillageBuildingLayout? FindBuildingLayout(string buildingId)
@@ -1904,48 +1945,38 @@ namespace McpTest.VoxelVillage
             switch (variant)
             {
                 case VillageGrassVariant.PatchA:
-                    return new Vector3(WorldCellSize * 0.38f * widthJitter, WorldCellSize * 0.62f * heightJitter, WorldCellSize * 0.38f * widthJitter);
+                    return new Vector3(WorldCellSize * 0.38f * widthJitter, WorldCellSize * 0.62f * heightJitter, WorldCellSize * 0.38f * widthJitter) * GrassScaleMultiplier;
                 case VillageGrassVariant.PatchB:
-                    return new Vector3(WorldCellSize * 0.5f * widthJitter, WorldCellSize * 0.54f * heightJitter, WorldCellSize * 0.5f * widthJitter);
+                    return new Vector3(WorldCellSize * 0.5f * widthJitter, WorldCellSize * 0.54f * heightJitter, WorldCellSize * 0.5f * widthJitter) * GrassScaleMultiplier;
                 case VillageGrassVariant.PatchC:
-                    return new Vector3(WorldCellSize * 0.32f * widthJitter, WorldCellSize * 0.88f * heightJitter, WorldCellSize * 0.32f * widthJitter);
+                    return new Vector3(WorldCellSize * 0.32f * widthJitter, WorldCellSize * 0.88f * heightJitter, WorldCellSize * 0.32f * widthJitter) * GrassScaleMultiplier;
                 default:
-                    return new Vector3(WorldCellSize * 0.56f * widthJitter, WorldCellSize * 0.68f * heightJitter, WorldCellSize * 0.56f * widthJitter);
+                    return new Vector3(WorldCellSize * 0.56f * widthJitter, WorldCellSize * 0.68f * heightJitter, WorldCellSize * 0.56f * widthJitter) * GrassScaleMultiplier;
             }
         }
 
-        static GrassPalette GetGrassPalette(VillageGrassVariant variant, int index)
+        static GrassPalette GetGrassPalette(VillageGrassVariant variant)
         {
-            var tint = Mathf.Lerp(-0.05f, 0.05f, Hash01(index, 101 + ((int)variant * 13)));
-
+            // Share grass materials per variant so runtime static combine can collapse them.
             switch (variant)
             {
                 case VillageGrassVariant.PatchA:
                     return new GrassPalette(
-                        TintColor(new Color(0.28f, 0.55f, 0.23f), tint),
-                        TintColor(new Color(0.54f, 0.77f, 0.37f), tint * 0.65f));
+                        new Color(0.28f, 0.55f, 0.23f),
+                        new Color(0.54f, 0.77f, 0.37f));
                 case VillageGrassVariant.PatchB:
                     return new GrassPalette(
-                        TintColor(new Color(0.34f, 0.58f, 0.2f), tint),
-                        TintColor(new Color(0.68f, 0.83f, 0.34f), tint * 0.55f));
+                        new Color(0.34f, 0.58f, 0.2f),
+                        new Color(0.68f, 0.83f, 0.34f));
                 case VillageGrassVariant.PatchC:
                     return new GrassPalette(
-                        TintColor(new Color(0.23f, 0.47f, 0.21f), tint),
-                        TintColor(new Color(0.46f, 0.72f, 0.4f), tint * 0.75f));
+                        new Color(0.23f, 0.47f, 0.21f),
+                        new Color(0.46f, 0.72f, 0.4f));
                 default:
                     return new GrassPalette(
-                        TintColor(new Color(0.27f, 0.53f, 0.28f), tint),
-                        TintColor(new Color(0.52f, 0.78f, 0.52f), tint * 0.6f));
+                        new Color(0.27f, 0.53f, 0.28f),
+                        new Color(0.52f, 0.78f, 0.52f));
             }
-        }
-
-        static Color TintColor(Color color, float offset)
-        {
-            return new Color(
-                Mathf.Clamp01(color.r + offset),
-                Mathf.Clamp01(color.g + offset),
-                Mathf.Clamp01(color.b + offset * 0.6f),
-                color.a);
         }
 
         static float Hash01(int index, int salt)
@@ -2012,13 +2043,13 @@ namespace McpTest.VoxelVillage
             public HouseInstance(
                 string buildingId,
                 RectInt interior,
-                MeshRenderer renderer,
+                MeshRenderer[] renderers,
                 float roofRevealHeight,
                 float roofRevealFeather)
             {
                 BuildingId = buildingId;
                 Interior = interior;
-                Renderer = renderer;
+                Renderers = renderers;
                 RoofRevealHeight = roofRevealHeight;
                 RoofRevealFeather = roofRevealFeather;
                 PropertyBlock = new MaterialPropertyBlock();
@@ -2028,7 +2059,7 @@ namespace McpTest.VoxelVillage
 
             public RectInt Interior { get; }
 
-            public MeshRenderer Renderer { get; }
+            public MeshRenderer[] Renderers { get; }
 
             public float RoofRevealHeight { get; }
 
@@ -2064,6 +2095,7 @@ namespace McpTest.VoxelVillage
                 string doorId,
                 Vector2Int cell,
                 Transform pivot,
+                Vector3 closedCenter,
                 Vector3 interactionPoint,
                 MeshFilter visualMeshFilter,
                 Collider collision,
@@ -2076,6 +2108,7 @@ namespace McpTest.VoxelVillage
                 DoorId = doorId;
                 Cell = cell;
                 Pivot = pivot;
+                ClosedCenter = closedCenter;
                 InteractionPoint = interactionPoint;
                 VisualMeshFilter = visualMeshFilter;
                 Collision = collision;
@@ -2092,6 +2125,8 @@ namespace McpTest.VoxelVillage
             public Vector2Int Cell { get; }
 
             public Transform Pivot { get; }
+
+            public Vector3 ClosedCenter { get; }
 
             public Vector3 InteractionPoint { get; }
 

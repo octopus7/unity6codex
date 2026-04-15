@@ -39,6 +39,7 @@ namespace McpTest.VoxelVillage
         const int PaletteSize = 6;
         const float BaseVoxelSize = 0.25f;
         const string HouseRevealMaterialKeyPrefix = "house|";
+        const string HouseRevealTransparentMaterialKeyPrefix = "house-transparent|";
         const string DefaultMaterialKeyPrefix = "default|";
 
         const int PrimaryColor = 0;
@@ -57,6 +58,9 @@ namespace McpTest.VoxelVillage
         static readonly Dictionary<string, Material[]> MaterialCache = new Dictionary<string, Material[]>();
 
         public const string HouseRevealShaderName = "McpTest/VoxelVillage/HouseReveal";
+        public const string HouseRevealTransparentShaderName = "McpTest/VoxelVillage/HouseRevealTransparent";
+        public const float HouseDoorSillNormalizedHeight = 1f / 24f;
+        public const float HouseDoorFrontFaceNormalizedDepth = 12f / 26f;
         public const float HouseRoofRevealNormalizedHeight = 12f / 24f;
 
         public static VoxelStructureBuildResult CreateHouse(
@@ -68,13 +72,11 @@ namespace McpTest.VoxelVillage
             Color roofColor,
             Color trimColor)
         {
-            return CreateStructure(
+            return CreateHouseStructure(
                 name,
-                VoxelStructureType.House,
                 position,
                 yaw,
                 targetSize,
-                true,
                 CreatePalette(
                     wallColor,
                     roofColor,
@@ -278,6 +280,45 @@ namespace McpTest.VoxelVillage
                     Color.Lerp(tipColor, Color.white, 0.34f)));
         }
 
+        static VoxelStructureBuildResult CreateHouseStructure(
+            string name,
+            Vector3 position,
+            float yaw,
+            Vector3 targetSize,
+            StructurePalette palette)
+        {
+            var mesh = GetOrCreateMesh(VoxelStructureType.House);
+            var root = new GameObject(name);
+            root.transform.position = position;
+            root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+            var opaqueVisual = CreateVisual(
+                root.transform,
+                "OpaqueVisual",
+                mesh,
+                GetOrCreateMaterials(palette, true),
+                ShadowCastingMode.On,
+                true);
+            opaqueVisual.sortingOrder = 0;
+
+            var revealVisual = CreateVisual(
+                root.transform,
+                "RevealVisual",
+                mesh,
+                GetOrCreateHouseRevealTransparentMaterials(palette),
+                ShadowCastingMode.Off,
+                true);
+            revealVisual.sortingOrder = 1;
+
+            var meshSize = mesh.bounds.size;
+            root.transform.localScale = new Vector3(
+                meshSize.x <= 0.001f ? 1f : targetSize.x / meshSize.x,
+                meshSize.y <= 0.001f ? 1f : targetSize.y / meshSize.y,
+                meshSize.z <= 0.001f ? 1f : targetSize.z / meshSize.z);
+
+            return new VoxelStructureBuildResult(root, targetSize);
+        }
+
         static VoxelStructureBuildResult CreateStructure(
             string name,
             VoxelStructureType structureType,
@@ -310,18 +351,13 @@ namespace McpTest.VoxelVillage
             root.transform.position = position;
             root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
 
-            var visual = new GameObject("Visual", typeof(MeshFilter), typeof(MeshRenderer));
-            visual.transform.SetParent(root.transform, false);
-
-            visual.transform.localPosition = -mesh.bounds.center;
-
-            var meshFilter = visual.GetComponent<MeshFilter>();
-            meshFilter.sharedMesh = mesh;
-
-            var meshRenderer = visual.GetComponent<MeshRenderer>();
-            meshRenderer.sharedMaterials = GetOrCreateMaterials(palette, useHouseRevealShader);
-            meshRenderer.shadowCastingMode = ShadowCastingMode.On;
-            meshRenderer.receiveShadows = true;
+            CreateVisual(
+                root.transform,
+                "Visual",
+                mesh,
+                GetOrCreateMaterials(palette, useHouseRevealShader),
+                ShadowCastingMode.On,
+                true);
 
             var meshSize = mesh.bounds.size;
             root.transform.localScale = new Vector3(
@@ -342,6 +378,28 @@ namespace McpTest.VoxelVillage
             mesh = VoxelMeshBuilder.Build(CreateModel(structureType), BaseVoxelSize, PaletteSize, "VoxelStructure_" + structureType);
             MeshCache[structureType] = mesh;
             return mesh;
+        }
+
+        static MeshRenderer CreateVisual(
+            Transform parent,
+            string name,
+            Mesh mesh,
+            Material[] materials,
+            ShadowCastingMode shadowCastingMode,
+            bool receiveShadows)
+        {
+            var visual = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            visual.transform.SetParent(parent, false);
+            visual.transform.localPosition = -mesh.bounds.center;
+
+            var meshFilter = visual.GetComponent<MeshFilter>();
+            meshFilter.sharedMesh = mesh;
+
+            var meshRenderer = visual.GetComponent<MeshRenderer>();
+            meshRenderer.sharedMaterials = materials;
+            meshRenderer.shadowCastingMode = shadowCastingMode;
+            meshRenderer.receiveShadows = receiveShadows;
+            return meshRenderer;
         }
 
         static Mesh GetOrCreateFenceMesh(int connectionMask)
@@ -383,6 +441,36 @@ namespace McpTest.VoxelVillage
                 CreateMaterial(palette.Dark, useHouseRevealShader),
                 CreateMaterial(palette.Accent, useHouseRevealShader),
                 CreateMaterial(palette.Light, useHouseRevealShader)
+            };
+
+            MaterialCache[key] = materials;
+            return materials;
+        }
+
+        static Material[] GetOrCreateHouseRevealTransparentMaterials(StructurePalette palette)
+        {
+            var key =
+                HouseRevealTransparentMaterialKeyPrefix +
+                ColorUtility.ToHtmlStringRGBA(palette.Primary) + "|" +
+                ColorUtility.ToHtmlStringRGBA(palette.Secondary) + "|" +
+                ColorUtility.ToHtmlStringRGBA(palette.Trim) + "|" +
+                ColorUtility.ToHtmlStringRGBA(palette.Dark) + "|" +
+                ColorUtility.ToHtmlStringRGBA(palette.Accent) + "|" +
+                ColorUtility.ToHtmlStringRGBA(palette.Light);
+
+            if (MaterialCache.TryGetValue(key, out var materials) && AreMaterialsAlive(materials))
+            {
+                return materials;
+            }
+
+            materials = new[]
+            {
+                CreateMaterial(palette.Primary, HouseRevealTransparentShaderName),
+                CreateMaterial(palette.Secondary, HouseRevealTransparentShaderName),
+                CreateMaterial(palette.Trim, HouseRevealTransparentShaderName),
+                CreateMaterial(palette.Dark, HouseRevealTransparentShaderName),
+                CreateMaterial(palette.Accent, HouseRevealTransparentShaderName),
+                CreateMaterial(palette.Light, HouseRevealTransparentShaderName)
             };
 
             MaterialCache[key] = materials;
@@ -622,9 +710,14 @@ namespace McpTest.VoxelVillage
 
         static Material CreateMaterial(Color color, bool useHouseRevealShader)
         {
-            var shader = useHouseRevealShader
-                ? Shader.Find(HouseRevealShaderName)
-                : null;
+            return CreateMaterial(color, useHouseRevealShader ? HouseRevealShaderName : null);
+        }
+
+        static Material CreateMaterial(Color color, string? preferredShaderName)
+        {
+            var shader = preferredShaderName == null
+                ? null
+                : Shader.Find(preferredShaderName);
             if (shader == null)
             {
                 shader = Shader.Find("Universal Render Pipeline/Lit");
