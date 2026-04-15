@@ -1,0 +1,364 @@
+{
+  "dialogueSets": [
+    {
+      "id": "preview_mina_bakery_tease",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "우리 마을은 빵 굽는 냄새도 사람 눈빛의 단추를 한 칸쯤 풀어놔. 골목만 돌면 허기보다 상상이 먼저 달아오르거든.",
+            "en": "In this town, even the smell of baking bread feels like it loosens a button in a person's gaze. Turn one corner and imagination heats up before hunger does.",
+            "ja": "この町じゃ、焼きたてのパンの香りだけで人のまなざしのボタンがひとつ外れるみたい。路地をひとつ曲がるだけで、空腹より先に想像が熱を帯びるの。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "아침부터 상상력이 발효되는 건 점포 책임 맞죠? 이 정도면 유혹성 진열인데.",
+            "en": "If my imagination starts proofing before breakfast, surely that's the bakery's liability. At this point the display itself is flirting.",
+            "ja": "朝から想像力が発酵し始めるなら、さすがに店の責任ですよね。ここまで来ると陳列そのものが口説いてます。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "그 정도는 생활 서비스지. 대신 눈웃음은 넉넉하게, 혀는 얌전하게. 그게 이 동네 예의야.",
+            "en": "That much is practically a public service. Around here we keep the smiling eyes generous and the tongue polite. That's the town's manners.",
+            "ja": "それくらいは生活サービスよ。この町じゃ、目元の笑みはたっぷりでも舌は上品に。それが礼儀なの。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_jisu_garden_wink",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "여긴 꽃도 얌전한 척 못 해. 볕만 받으면 제일 먼저 어깨 펴고 유혹하잖아.",
+            "en": "Even the flowers here can't pretend to be modest. Give them some sun and they start charming the street with their shoulders back.",
+            "ja": "ここの花だって、おとなしいふりはできない。日を浴びたら真っ先に背筋を伸ばして、道ゆく人を誘惑するの。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "그래서 화단 앞에만 서면 다들 자세를 고치나 봐요.",
+            "en": "That must be why everyone fixes their posture in front of the flower beds.",
+            "ja": "だから花壇の前に立つと、みんな姿勢を直すんですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "그렇지. 이 마을에선 단정함도 은근히 자신감 있는 쪽이 더 예쁘거든.",
+            "en": "Exactly. In this town, neatness looks best when it carries a little quiet confidence.",
+            "ja": "そう。この町じゃ、きちんとしていても少し自信がにじむほうがずっときれいなの。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_haru_workshop_banter",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "새 문짝 달아놓으면 꼭 누가 이 문 뒤 공기는 좀 위험해 보인다고 웃더라. 여기선 문보다 상상이 먼저 열려.",
+            "en": "Whenever I hang a new door, someone laughs and says the air behind it looks a little dangerous. Around here, imagination opens before the door does.",
+            "ja": "新しい扉を付けると、決まって誰かが『この扉の向こうの空気、ちょっと危なそうだね』って笑うんだ。この町は扉より想像のほうが先に開く。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "하루 씨 작업장은 경첩보다 농담이 더 잘 돌아가네요.",
+            "en": "Your workshop runs on jokes even better than hinges.",
+            "ja": "ハルさんの工房は、蝶番より冗談のほうがよく回りますね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "살짝 뜨거운 정도는 괜찮지. 끈적하게만 안 가면 다들 웃으면서 받아쳐.",
+            "en": "A little heat is fine. As long as it never turns sticky, everyone throws the joke back with a grin.",
+            "ja": "少しくらい熱いのは構わないさ。でもべたつくところまで行かなければ、みんな笑って冗談を返してくる。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_noah_plaza_whisper",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "분수 옆 벤치는 조심해야 해. 둘이 앉으면 괜히 무릎 간격이랑 숨소리 템포부터 의식하게 되거든.",
+            "en": "You have to be careful with the bench by the fountain. Sit there with someone and you suddenly notice the distance between your knees and the rhythm of your breathing.",
+            "ja": "噴水の横のベンチは気をつけたほうがいい。二人で座ると、なぜか膝の距離と呼吸のテンポから意識してしまうんだ。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "광장 한복판인데도요?",
+            "en": "Even in the middle of the plaza?",
+            "ja": "広場のど真ん中なのにですか？"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "그래서 더 짜릿하지. 대놓고 다 보이는 데서도 말은 점잖은데 공기만 살짝 발칙해지거든.",
+            "en": "That's what makes it thrilling. Even in plain view, the words stay proper while only the air turns a little wicked.",
+            "ja": "だからこそぞくっとするんだ。人目のある場所でも、言葉は上品なままなのに空気だけが少し小悪魔っぽくなる。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_yuna_lantern_glow",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "해 지고 등이 켜지면 다들 표정이 살짝 물러져. 낮엔 점잖던 사람도 목소리에 꿀 바르고 시선은 반 박자쯤 더 머물러.",
+            "en": "Once the lamps come on, everyone's expression softens a little. Even the proper ones start coating their voices in honey and letting their gaze linger half a beat longer.",
+            "ja": "日が落ちて灯りがつくと、みんなの表情が少しほどける。昼はきちんとしている人まで、声に蜜を塗って視線を半拍ぶん長く留めるんだ。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "등불이 분위기 메이커였네요.",
+            "en": "So the lanterns are the real mood-makers.",
+            "ja": "じゃあ、雰囲気を作ってるのは灯りなんですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "밝히는 건 길만이 아니지. 여기선 시선이 목선 따라 조금 오래 흘러도 손끝만 얌전하면 다들 어른스럽게 웃어넘겨.",
+            "en": "They brighten more than roads. Around here, even if a gaze drifts along someone's neckline a little too long, people take it in stride as long as the hands stay polite.",
+            "ja": "照らすのは道だけじゃないさ。この町では、視線が首元を少し長めになぞっても、手つきさえ上品ならみんな大人っぽく笑って流すんだ。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_kai_delivery_nuance",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "이 마을 편지는 봉인보다 뉘앙스가 먼저 도착해. 글씨 한 줄에 이미 웃음기가 묻어 있거든.",
+            "en": "In this town, the nuance arrives before the seal does. A single line of handwriting already carries a grin.",
+            "ja": "この町の手紙は、封より先にニュアンスが届く。一行の字に、もう笑い気がにじんでるんだ。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "배달부가 제일 먼저 남의 설렘을 읽겠네요.",
+            "en": "Then the courier gets the first look at everyone's fluttering hearts.",
+            "ja": "じゃあ配達人が、みんなのときめきをいちばん先に読むんですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "읽는 척만 해. 진짜 품위는 아는 척 안 해주는 데서 나오니까.",
+            "en": "I only pretend to. Real class is knowing something and not acting like you do.",
+            "ja": "読んだふりしかしないよ。本当の品って、知っていても知らない顔をしてやれるところに出るから。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_arin_tea_line",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "찻집 커튼은 얇게 쳐놔. 하나도 안 보이면 다들 누가 누구랑 눈 맞추고 입꼬리부터 녹였는지 멋대로 상상하잖아.",
+            "en": "I keep the tea shop curtains light. If people can't see a thing, they start inventing who locked eyes with whom and whose smile melted first.",
+            "ja": "茶屋のカーテンは薄めにしてある。何も見えないと、誰が誰と目を合わせて、どっちの口元が先にほどけたかまで勝手に想像しはじめるからね。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "적당히 보여줘야 상상도 덜 달아오른다는 거군요.",
+            "en": "So showing just enough keeps the imagination from running too hot.",
+            "ja": "ほどよく見せたほうが、想像も熱くなりすぎずに済むってことですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "맞아. 이 마을은 숨기기보다 멀쩡한 얼굴로 위험한 농담 하나 얹는 쪽이 취향이야.",
+            "en": "Exactly. This town prefers wearing a perfectly calm face while laying down one dangerous joke instead of hiding everything.",
+            "ja": "そう。この町は全部隠すより、平然とした顔で少し危ない冗談をひとつ乗せるほうが性に合ってる。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_stonemason_stone_advice",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "돌담은 너무 빽빽하면 답답해 보여. 틈이 조금 있어야 바람도 농담도 드나들지.",
+            "en": "A stone wall looks suffocating if it's packed too tight. Leave a little space and both the breeze and the jokes can pass through.",
+            "ja": "石垣は詰めすぎると息苦しく見える。少し隙間があってこそ、風も冗談も通れるんだ。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "석공님 말은 자꾸 건축 상담인지 연애 상담인지 헷갈려요.",
+            "en": "The way you talk, I can't tell if this is building advice or relationship advice.",
+            "ja": "石工さんの話、建築相談なのか恋愛相談なのか、だんだん分からなくなりますね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "둘 다 비슷해. 오래 가려면 단단함보다 숨 쉴 틈이 먼저야.",
+            "en": "They're not so different. If you want something to last, breathing room matters before stiffness.",
+            "ja": "どっちも似たようなもんだ。長持ちさせたいなら、硬さより先に息のできる余白がいる。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_rika_flower_style",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "꽃다발은 색을 너무 얌전히 섞으면 심심해. 한 송이는 꼭 '나 오늘 건드리면 곤란해질걸' 하는 표정이어야 예쁘거든.",
+            "en": "A bouquet gets dull if the colors behave too politely. One bloom has to look like it's saying, 'Touch me today and things may get complicated,' or it doesn't shine.",
+            "ja": "花束は色をおとなしく混ぜすぎると退屈になる。一本くらいは『今日は触れたら少し厄介よ』って顔をしていてこそ、きれいなの。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "이 마을 사람들이 옷 입는 방식이랑 닮았네요. 단추 한 칸쯤은 일부러 느슨하게 두는 감각이랄까.",
+            "en": "That sounds a lot like the way people dress in this town. Like leaving one button just a little loose on purpose.",
+            "ja": "この町の人たちの着こなしにも似てますね。ボタンをひとつだけ、わざと少しゆるくしておく感じというか。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "맞아. 시선 끄는 건 죄가 아니지. 목선이든 손목이든, 어디 한 군데쯤 상상 들어올 틈을 남기는 게 멋이야.",
+            "en": "Exactly. Catching the eye isn't a crime. Whether it's the neckline or the wrist, style is leaving a small opening somewhere for imagination to slip in.",
+            "ja": "その通り。目を引くことは罪じゃない。首元でも手首でも、どこか一か所に想像が入り込む隙を残すのがおしゃれなんだ。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_sora_archive_blush",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "연애 편지는 보관 안 해도, 다들 어떤 문장에서 볼이 붉어졌는지는 기록이 남더라.",
+            "en": "Even when we don't archive love letters, the record still remembers which sentence made someone's cheeks turn red.",
+            "ja": "恋文そのものは保管しなくても、どの一文で誰の頬が赤くなったかって記録は残るものだよ。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "기록관이 제일 위험한 비밀 창고네요.",
+            "en": "That makes the archive the most dangerous secret vault in town.",
+            "ja": "それじゃ資料館が、この町でいちばん危ない秘密の金庫ですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "비밀은 지켜. 대신 표현이 재밌었던 문장들은 혼자 감탄하지.",
+            "en": "I keep the secrets. I just allow myself to admire a particularly good turn of phrase in private.",
+            "ja": "秘密は守るさ。ただ、言い回しが見事だった一文には、ひとりで感心するだけ。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_nari_cloth_flow",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "천은 너무 꽉 당기면 무늬가 죽어. 살짝 느슨해야 몸선도 마음선도 예쁘게 흐르지.",
+            "en": "Pull cloth too tight and the pattern dies. Leave it a little loose and both the body's line and the heart's line flow better.",
+            "ja": "布は張りすぎると柄が死ぬ。少しだけゆるいほうが、体の線も心の線もきれいに流れるの。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "나리 씨 가게엔 꼭 한마디씩 더 놓고 가게 되더라고요.",
+            "en": "I always end up leaving one extra line behind when I stop by your shop.",
+            "ja": "ナリさんの店に寄ると、つい一言多く置いていってしまうんですよね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "그게 좋은 직물의 힘이야. 사람도 숨 쉬게 해주면 목소리부터 먼저 부드러워지거든.",
+            "en": "That's the power of good fabric. Give people room to breathe and even their voices soften first.",
+            "ja": "それがいい布の力よ。人も息ができるようにしてあげれば、まず声から先にやわらかくなるの。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "preview_toma_river_salt",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "새벽 강바람 맞고 오면 농담이 좀 짭짤해져. 괜히 혀가 먼저 선 넘기 직전까지 장난을 치거든.",
+            "en": "After a dawn run by the river, my jokes come back a little saltier. Maybe it's just that my tongue starts playing right up to the edge of the line.",
+            "ja": "夜明けの川風を浴びてくると、冗談が少し塩気を帯びるんだ。たぶん先に舌のほうが、線を越える寸前までいたずらを始めるせいだな。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "토마 씨는 생선보다 말 손질이 더 능숙한데요.",
+            "en": "You're even better at dressing words than fish.",
+            "ja": "トマさん、魚をさばくより言葉をさばくほうがうまいですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "비린내만 빼면 다들 잘 들어. 이 마을은 재치 있는 한마디에 잘 낚이거든. 살짝 발칙하면 더 빨리 물고.",
+            "en": "Take the stink out and people listen just fine. This town bites easily on a clever line, and it bites faster if the line is a little wicked.",
+            "ja": "生臭さえ抜けば、みんなちゃんと聞いてくれる。この町は気の利いたひと言に案外よく食いつくし、少し小悪魔っぽいほうがもっと早く食いつくんだ。"
+          }
+        }
+      ]
+    }
+  ]
+}
