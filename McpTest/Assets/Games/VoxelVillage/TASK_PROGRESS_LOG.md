@@ -40,3 +40,5 @@ Snapshot recorded at `2026-04-15 12:47:20 KST`.
 | 2026-04-15 13:43:26 KST | Verification pass | Done | Added procedural layout and dialogue-set tests; `McpTest.VoxelVillage.EditModeTests` passes after the world integration changes |
 | 2026-04-15 15:31:20 KST | Open fence pass | Done | Added open U-shaped fence paths per building, connected voxel fence meshes, fence occupancy tests, and cache guards needed for stable EditMode factory tests |
 | 2026-04-15 16:58:08 KST | Monster invader visual spec | Done | Added `MONSTER_INVADER_VISUAL_SPEC.md` to lock the squid-type village pursuer silhouette, scale ratios, module split, and runtime prefab hierarchy before implementation |
+| 2026-04-15 17:15:45 KST | Monster invader prototype pass | Done | Added the first `MukhaengTracker` runtime slice with modular voxel meshes, procedural pose controller, pond-side prototype spawn, and focused EditMode factory coverage |
+| 2026-04-15 17:17:14 KST | Monster eye bloom pass | Done | Split `EyeCluster` onto a dedicated red emissive material set and raised runtime emission so the tracker eyes hit HDR bloom much harder without retinting the rest of the body |

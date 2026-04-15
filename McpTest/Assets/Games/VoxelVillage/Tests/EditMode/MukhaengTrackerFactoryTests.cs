@@ -1,0 +1,69 @@
+#nullable enable
+
+using NUnit.Framework;
+using UnityEngine;
+
+namespace McpTest.VoxelVillage.Tests
+{
+    public sealed class MukhaengTrackerFactoryTests
+    {
+        [Test]
+        public void CreateTracker_BuildsExpectedHierarchyAndController()
+        {
+            var result = MukhaengTrackerFactory.CreateTracker("TrackerTest", new Vector3(2f, 0f, -3f), 1.1f);
+
+            try
+            {
+                Assert.That(result.Root, Is.Not.Null);
+                Assert.That(result.Controller, Is.Not.Null);
+                Assert.AreEqual(new Vector3(2f, 0f, -3f), result.Root.transform.position);
+                Assert.AreEqual(Vector3.one * 1.1f, result.Root.transform.localScale);
+
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/MantleRoot/MantleCoreVisual"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/LegRing/Leg_FL/Leg_FL_Hip/Leg_FL_UpperVisual/Leg_FL_Knee/Leg_FL_LowerVisual/Leg_FL_Ankle/Leg_FL_TipVisual/Leg_FL_FootTarget"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("LocomotionRoot/BodyPivot/AttackTentacles/Tentacle_Attack_L/Tentacle_Attack_L_Base/Tentacle_Attack_L_Mid/Tentacle_Attack_L_Tip/Tentacle_Attack_L_HitOrigin"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("Sensors/ThreatCenter"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("Gameplay/BodyBlocker"), Is.Not.Null);
+                Assert.That(result.Root.transform.Find("FX/EyeGlow_L"), Is.Not.Null);
+
+                var renderers = result.Root.GetComponentsInChildren<MeshRenderer>();
+                Assert.That(renderers.Length, Is.GreaterThanOrEqualTo(12));
+
+                var colliders = result.Root.GetComponentsInChildren<Collider>();
+                Assert.That(colliders.Length, Is.EqualTo(4));
+            }
+            finally
+            {
+                Object.DestroyImmediate(result.Root);
+            }
+        }
+
+        [Test]
+        public void CreateTracker_InitializesControllerThreatCenter()
+        {
+            var result = MukhaengTrackerFactory.CreateTracker("TrackerTest", Vector3.zero);
+
+            try
+            {
+                Assert.AreEqual(MukhaengTrackerPoseState.Search, result.Controller.PoseState);
+                Assert.That(result.Controller.ThreatCenter, Is.Not.Null);
+                Assert.AreEqual("ThreatCenter", result.Controller.ThreatCenter.name);
+
+                var targetObject = new GameObject("Target");
+                try
+                {
+                    result.Controller.SetTarget(targetObject.transform);
+                    Assert.AreSame(targetObject.transform, result.Controller.Target);
+                }
+                finally
+                {
+                    Object.DestroyImmediate(targetObject);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(result.Root);
+            }
+        }
+    }
+}

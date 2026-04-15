@@ -310,6 +310,7 @@ namespace McpTest.VoxelVillage
             BuildPond(waterMaterial);
             CreatePlayer(CellToWorld(_layout.plazaCenter + new Vector2Int(0, -6)) + new Vector3(0f, 0.9f, 0f), new Color(0.16f, 0.41f, 0.95f));
             SpawnVillagersFromLayout();
+            CreateInvaderPrototype();
             EnsureGlobalIlluminationProbe();
         }
 
@@ -778,6 +779,33 @@ namespace McpTest.VoxelVillage
                     spawn.patrolCenter,
                     spawn.patrolRadius);
             }
+        }
+
+        void CreateInvaderPrototype()
+        {
+            var tracker = MukhaengTrackerFactory.CreateTracker(
+                "ThreatPrototype_MukhaengTracker",
+                GetInvaderPrototypeSpawnPosition());
+            tracker.Root.transform.SetParent(_worldRoot, true);
+            tracker.Controller.SetHomePosition(tracker.Root.transform.position);
+            if (_player != null)
+            {
+                tracker.Controller.SetTarget(_player.transform);
+            }
+        }
+
+        Vector3 GetInvaderPrototypeSpawnPosition()
+        {
+            if (TryFindPondRect(out var pondRect))
+            {
+                var centerY = pondRect.yMin + (pondRect.height / 2);
+                var spawnCell = pondRect.xMin < WorldGridSize * 0.5f
+                    ? new Vector2Int(Mathf.Min(WorldGridSize - 1, pondRect.xMax + 2), centerY)
+                    : new Vector2Int(Mathf.Max(0, pondRect.xMin - 3), centerY);
+                return CellToWorld(spawnCell);
+            }
+
+            return new Vector3(-TownHalfExtent + 6f, 0f, -TownHalfExtent + 6f);
         }
 
         Vector2Int FindUniqueSpawnCell(Vector2Int preferred, HashSet<Vector2Int> usedCells)
