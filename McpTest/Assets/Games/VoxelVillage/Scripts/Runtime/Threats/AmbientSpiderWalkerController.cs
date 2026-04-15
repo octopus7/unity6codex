@@ -17,14 +17,24 @@ namespace McpTest.VoxelVillage
         const float StepDuration = 0.22f;
         const float StepArcHeight = 0.62f;
         const float StepThreshold = 0.42f;
-        const float ForwardStrideDistance = 0.48f;
-        const float SqueezedForwardStrideDistance = 0.4f;
+        const float ForwardStrideDistance = 1.44f;
+        const float SqueezedForwardStrideDistance = 1.2f;
         const float SqueezedWidthScale = 0.78f;
         const float SqueezedStrideScale = 0.84f;
         const float EyePulseSpeed = 3.4f;
         const float AvoidanceRadius = 2.2f;
+        const int FootTrajectorySamples = 16;
 
         static readonly int EmissionColorShaderId = Shader.PropertyToID("_EmissionColor");
+        static readonly Color GroupAColor = new Color(0.22f, 0.9f, 1f, 0.95f);
+        static readonly Color GroupBColor = new Color(1f, 0.67f, 0.22f, 0.95f);
+        static readonly Color PlantedColor = new Color(0.2f, 1f, 0.35f, 0.95f);
+        static readonly Color DesiredColor = new Color(1f, 0.35f, 0.25f, 0.95f);
+        static readonly Color HintColor = new Color(0.75f, 0.3f, 1f, 0.65f);
+        static readonly Color VisualTipColor = new Color(0.28f, 0.95f, 1f, 0.9f);
+
+        [SerializeField] bool _drawFootTrajectoryGizmos = true;
+        [SerializeField] float _gizmoPointRadius = 0.08f;
 
         Transform _locomotionRoot = null!;
         Transform _bodyPivot = null!;
@@ -53,12 +63,22 @@ namespace McpTest.VoxelVillage
         float _waitUntilTime;
         float _currentWidthScale = 1f;
         int _pathIndex;
-        int _activeGaitGroup;
+        int _leadGaitGroup;
         bool _navigationBound;
 
         public bool IsRigBound { get; private set; }
 
         public MovementFootprint CurrentFootprint { get; private set; } = MovementFootprint.Spider2x2;
+
+        void OnDrawGizmosSelected()
+        {
+            if (!_drawFootTrajectoryGizmos || !IsRigBound || _legs.Length == 0)
+            {
+                return;
+            }
+
+            DrawFootTrajectoryGizmos();
+        }
 
         public void BindRig(
             Transform locomotionRoot,
@@ -106,7 +126,7 @@ namespace McpTest.VoxelVillage
             _random = new System.Random((spawnCell.x * 397) ^ (spawnCell.y * 7919) ^ GetInstanceID());
             _path.Clear();
             _pathIndex = 0;
-            _activeGaitGroup = 0;
+            _leadGaitGroup = 0;
             _waitUntilTime = Time.time + Range(0.3f, 0.75f);
             CurrentFootprint = _grid.IsWalkable(spawnCell, false, MovementFootprint.Spider2x2)
                 ? MovementFootprint.Spider2x2
@@ -339,16 +359,16 @@ namespace McpTest.VoxelVillage
                     leg.LegRootBaseLocalPosition.z);
             }
 
-            if (!IsGroupStepping(_activeGaitGroup))
+            if (!IsAnyLegStepping())
             {
-                if (DoesGroupNeedStep(_activeGaitGroup))
+                var trailingGroup = 1 - _leadGaitGroup;
+                if (DoesGroupNeedStep(trailingGroup))
                 {
-                    StartGroupStep(_activeGaitGroup);
+                    StartGroupStep(trailingGroup);
                 }
-                else if (DoesGroupNeedStep(1 - _activeGaitGroup))
+                else if (DoesGroupNeedStep(_leadGaitGroup))
                 {
-                    _activeGaitGroup = 1 - _activeGaitGroup;
-                    StartGroupStep(_activeGaitGroup);
+                    StartGroupStep(_leadGaitGroup);
                 }
             }
 
@@ -399,6 +419,19 @@ namespace McpTest.VoxelVillage
             return false;
         }
 
+        bool IsAnyLegStepping()
+        {
+            for (var index = 0; index < _legs.Length; index++)
+            {
+                if (_legs[index].IsStepping)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         bool DoesGroupNeedStep(int gaitGroup)
         {
             for (var index = 0; index < _legs.Length; index++)
@@ -421,6 +454,8 @@ namespace McpTest.VoxelVillage
 
         void StartGroupStep(int gaitGroup)
         {
+            _leadGaitGroup = gaitGroup;
+
             for (var index = 0; index < _legs.Length; index++)
             {
                 var leg = _legs[index];
@@ -435,8 +470,6 @@ namespace McpTest.VoxelVillage
                 leg.StepProgress = 0f;
                 leg.IsStepping = true;
             }
-
-            _activeGaitGroup = 1 - gaitGroup;
         }
 
         Vector3 ComputeDesiredFootPosition(SpiderLegState leg)
@@ -451,7 +484,8 @@ namespace McpTest.VoxelVillage
             velocity.y = 0f;
             if (velocity.sqrMagnitude > 0.0001f)
             {
-                localTarget += _locomotionRoot.InverseTransformDirection(velocity.normalized) * GetForwardStrideDistance();
+                var localMoveDirection = _locomotionRoot.InverseTransformDirection(velocity.normalized);
+                localTarget += localMoveDirection * GetForwardStrideBias(leg);
             }
 
             var world = _locomotionRoot.TransformPoint(localTarget);
@@ -461,12 +495,15 @@ namespace McpTest.VoxelVillage
 
         Vector3 ComputeKneeHintWorldPosition(SpiderLegState leg)
         {
-            var localHint = leg.KneeHintLocal;
-            localHint.x *= _currentWidthScale;
-
+            var localHintOffset = leg.KneeHintLocal - leg.LegRootBaseLocalPosition;
             var strideScale = CurrentFootprint == MovementFootprint.SqueezedSpider1x1 ? SqueezedStrideScale : 1f;
-            localHint.z *= strideScale;
-            return _locomotionRoot.TransformPoint(localHint);
+
+            // Force the pole vector to stay outside the body and above the hip,
+            // so the leg keeps the intended M silhouette even while the body narrows.
+            var outwardOffset = _locomotionRoot.right * (leg.SideSign * Mathf.Abs(localHintOffset.x) * _currentWidthScale);
+            var upwardOffset = _locomotionRoot.up * Mathf.Max(0.24f, localHintOffset.y);
+            var foreOffset = _locomotionRoot.forward * (leg.ForeSign * Mathf.Abs(localHintOffset.z) * strideScale);
+            return leg.Hip.position + outwardOffset + upwardOffset + foreOffset;
         }
 
         float GetStepArcHeight()
@@ -481,6 +518,14 @@ namespace McpTest.VoxelVillage
             return CurrentFootprint == MovementFootprint.SqueezedSpider1x1
                 ? SqueezedForwardStrideDistance
                 : ForwardStrideDistance;
+        }
+
+        float GetForwardStrideBias(SpiderLegState leg)
+        {
+            // One gait group stays forward while the opposite group trails behind.
+            // When the trailing group begins a step, it becomes the new lead group.
+            var phaseSign = leg.GaitGroup == _leadGaitGroup ? 0.5f : -0.5f;
+            return GetForwardStrideDistance() * phaseSign;
         }
 
         void SnapFeetToRestPose()
@@ -554,6 +599,82 @@ namespace McpTest.VoxelVillage
         float Range(float minInclusive, float maxInclusive)
         {
             return Mathf.Lerp(minInclusive, maxInclusive, (float)_random.NextDouble());
+        }
+
+        void DrawFootTrajectoryGizmos()
+        {
+            for (var index = 0; index < _legs.Length; index++)
+            {
+                var leg = _legs[index];
+                var baseColor = leg.GaitGroup == 0 ? GroupAColor : GroupBColor;
+                var start = leg.IsStepping ? leg.StepStartWorldPosition : leg.PlantedWorldPosition;
+                var end = leg.IsStepping ? leg.StepTargetWorldPosition : leg.DesiredWorldPosition;
+                var kneeHint = ComputeKneeHintWorldPosition(leg);
+
+                Gizmos.color = new Color(HintColor.r, HintColor.g, HintColor.b, HintColor.a);
+                Gizmos.DrawLine(leg.Hip.position, kneeHint);
+                Gizmos.DrawWireSphere(kneeHint, _gizmoPointRadius * 0.8f);
+
+                Gizmos.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0.85f);
+                DrawTrajectoryArc(start, end, GetStepArcHeight());
+
+                Gizmos.color = PlantedColor;
+                Gizmos.DrawSphere(leg.PlantedWorldPosition, _gizmoPointRadius);
+
+                Gizmos.color = DesiredColor;
+                Gizmos.DrawWireSphere(leg.DesiredWorldPosition, _gizmoPointRadius * 1.25f);
+
+                Gizmos.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0.5f);
+                Gizmos.DrawLine(leg.Hip.position, leg.PlantedWorldPosition);
+
+                if (TryGetFootVisualTipWorldPosition(leg, out var visualTip))
+                {
+                    Gizmos.color = VisualTipColor;
+                    Gizmos.DrawWireSphere(visualTip, _gizmoPointRadius);
+                    Gizmos.DrawLine(visualTip, leg.PlantedWorldPosition);
+                }
+
+                if (leg.IsStepping)
+                {
+                    Gizmos.color = new Color(baseColor.r, baseColor.g, baseColor.b, 0.35f);
+                    Gizmos.DrawWireSphere(leg.StepStartWorldPosition, _gizmoPointRadius * 0.9f);
+                    Gizmos.DrawWireSphere(leg.StepTargetWorldPosition, _gizmoPointRadius * 0.9f);
+                }
+            }
+        }
+
+        void DrawTrajectoryArc(Vector3 start, Vector3 end, float arcHeight)
+        {
+            var previous = start;
+            for (var sampleIndex = 1; sampleIndex <= FootTrajectorySamples; sampleIndex++)
+            {
+                var t = sampleIndex / (float)FootTrajectorySamples;
+                var point = Vector3.Lerp(start, end, t);
+                point.y += Mathf.Sin(t * Mathf.PI) * arcHeight;
+                Gizmos.DrawLine(previous, point);
+                previous = point;
+            }
+        }
+
+        static bool TryGetFootVisualTipWorldPosition(SpiderLegState leg, out Vector3 worldPosition)
+        {
+            var lowerVisual = leg.Knee.Find("LowerVisual");
+            if (lowerVisual == null)
+            {
+                worldPosition = leg.Knee.position;
+                return false;
+            }
+
+            var meshFilter = lowerVisual.GetComponentInChildren<MeshFilter>();
+            if (meshFilter == null || meshFilter.sharedMesh == null)
+            {
+                worldPosition = lowerVisual.position;
+                return false;
+            }
+
+            var tipLocalPosition = new Vector3(0f, meshFilter.sharedMesh.bounds.size.y * meshFilter.transform.localScale.y, 0f);
+            worldPosition = lowerVisual.TransformPoint(tipLocalPosition);
+            return true;
         }
     }
 }

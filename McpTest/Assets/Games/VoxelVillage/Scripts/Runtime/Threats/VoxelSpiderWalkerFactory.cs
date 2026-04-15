@@ -24,12 +24,14 @@ namespace McpTest.VoxelVillage
         const float VoxelSize = 0.08f;
         const int PaletteSize = 1;
         static readonly Vector3 EyeScale = Vector3.one * 0.25f;
-        static readonly Vector3 LegThicknessScale = new Vector3(0.5f, 1f, 0.5f);
+        static readonly Vector3 LegThicknessScale = Vector3.one;
         const float EyeColumnSpacing = 0.44f;
         const float EyeRowSpacing = 0.28f;
         const float EyeClusterRightOffset = -EyeColumnSpacing * 2f;
         const float FootLateralSpreadScale = 1.85f;
+        const float FootForeSpreadFromHip = 0.34f;
         const float KneeHintLateralSpreadScale = 1.25f;
+        const float KneeHintForeSpreadFromHip = 0.24f;
 
         static readonly Dictionary<SpiderWalkerModuleType, Mesh> MeshCache = new Dictionary<SpiderWalkerModuleType, Mesh>();
         static Material? SharedBodyMaterial;
@@ -115,32 +117,42 @@ namespace McpTest.VoxelVillage
         {
             var legRoot = CreateNode(parent, name, rootLocalPosition);
             var hip = CreateNode(legRoot, "Hip", Vector3.zero);
-            var adjustedFootLocalPosition = ScaleLateral(footLocalPosition, FootLateralSpreadScale);
-            var adjustedKneeHintLocalPosition = ScaleLateral(kneeHintLocalPosition, KneeHintLateralSpreadScale);
-            var upperVisual = CreateVisualObject(
-                hip,
-                "UpperVisual",
+            var adjustedFootLocalPosition = EnforceForeSpreadFromHip(
+                ScaleLateral(footLocalPosition, FootLateralSpreadScale),
+                rootLocalPosition,
+                foreSign,
+                FootForeSpreadFromHip);
+            var adjustedKneeHintLocalPosition = EnforceForeSpreadFromHip(
+                ScaleLateral(kneeHintLocalPosition, KneeHintLateralSpreadScale),
+                rootLocalPosition,
+                foreSign,
+                KneeHintForeSpreadFromHip);
+            var upperVisual = CreateNode(hip, "UpperVisual", Vector3.zero);
+            var upperMesh = CreateVisualObject(
+                upperVisual,
+                "UpperVisualMesh",
                 GetOrCreateMesh(SpiderWalkerModuleType.LegUpper),
                 GetOrCreateLegMaterial(),
                 Vector3.zero,
                 LegThicknessScale,
                 VisualAlignment.CenterBase);
-            var upperLength = upperVisual.GetComponent<MeshFilter>().sharedMesh!.bounds.size.y * upperVisual.transform.localScale.y;
+            var upperLength = upperMesh.GetComponent<MeshFilter>().sharedMesh!.bounds.size.y * upperMesh.transform.localScale.y;
 
             var knee = CreateNode(
-                upperVisual.transform,
+                upperVisual,
                 "Knee",
-                GetTopCenterLocalPosition(upperVisual.GetComponent<MeshFilter>().sharedMesh!, upperVisual.transform.localScale));
+                GetTopCenterLocalPosition(upperMesh.GetComponent<MeshFilter>().sharedMesh!, upperMesh.transform.localScale));
 
-            var lowerVisual = CreateVisualObject(
-                knee,
-                "LowerVisual",
+            var lowerVisual = CreateNode(knee, "LowerVisual", Vector3.zero);
+            var lowerMesh = CreateVisualObject(
+                lowerVisual,
+                "LowerVisualMesh",
                 GetOrCreateMesh(SpiderWalkerModuleType.LegLower),
                 GetOrCreateLegMaterial(),
                 Vector3.zero,
                 LegThicknessScale,
                 VisualAlignment.CenterBase);
-            var lowerLength = lowerVisual.GetComponent<MeshFilter>().sharedMesh!.bounds.size.y * lowerVisual.transform.localScale.y;
+            var lowerLength = lowerMesh.GetComponent<MeshFilter>().sharedMesh!.bounds.size.y * lowerMesh.transform.localScale.y;
 
             var footTarget = CreateNode(legRoot, "FootTarget", adjustedFootLocalPosition - rootLocalPosition);
 
@@ -168,6 +180,14 @@ namespace McpTest.VoxelVillage
         static Vector3 ScaleLateral(Vector3 value, float scale)
         {
             value.x *= scale;
+            return value;
+        }
+
+        static Vector3 EnforceForeSpreadFromHip(Vector3 value, Vector3 rootLocalPosition, float foreSign, float minimumOffset)
+        {
+            var signedOffset = value.z - rootLocalPosition.z;
+            var offsetMagnitude = Mathf.Max(minimumOffset, Mathf.Abs(signedOffset));
+            value.z = rootLocalPosition.z + (foreSign * offsetMagnitude);
             return value;
         }
 
@@ -216,9 +236,9 @@ namespace McpTest.VoxelVillage
         {
             var bounds = mesh.bounds;
             return new Vector3(
-                bounds.center.x * localScale.x,
+                0f,
                 bounds.size.y * localScale.y,
-                bounds.center.z * localScale.z);
+                0f);
         }
 
         static Mesh GetOrCreateMesh(SpiderWalkerModuleType moduleType)
