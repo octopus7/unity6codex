@@ -41,6 +41,9 @@ namespace McpTest.VoxelVillage
         const float TopButtonTextHorizontalPadding = 12f;
         const float LanguageButtonWidth = 196f;
         const float ControlsButtonWidth = 124f;
+        const float CoinHoverHeight = 1.2f;
+        const float CoinCounterWidth = 128f;
+        const float CoinCounterHeight = 48f;
         const float GrassScaleMultiplier = 0.5f;
         const float DoorOpenAngle = 108f;
         const float DoorOpeningWidthRatio = 2.5f / 28f;
@@ -61,8 +64,10 @@ namespace McpTest.VoxelVillage
         const float TrafficSignalLampForwardOffset = 0.56f;
         const float TrafficSignalLampActiveEmission = 5.8f;
         const float TrafficSignalLampInactiveEmission = 0.05f;
+        const int CoinSpawnCount = 12;
         const int WorldGridSize = 72;
         const float WorldCellSize = TownFootprint / WorldGridSize;
+        const string CoinPrefabResourcePath = "VoxelVillage/Pickups/VV_Coin";
 
         static readonly int RevealEnabledShaderId = Shader.PropertyToID("_RevealEnabled");
         static readonly int RevealHeightShaderId = Shader.PropertyToID("_RevealHeight");
@@ -117,6 +122,7 @@ namespace McpTest.VoxelVillage
         GameObject _helpPanel = null!;
         Text _helpText = null!;
         Text _promptText = null!;
+        Text _coinCountText = null!;
         Text _languageButtonText = null!;
         Text _controlsButtonText = null!;
         RectTransform _bubbleRect = null!;
@@ -131,8 +137,11 @@ namespace McpTest.VoxelVillage
         readonly List<VillagerInstance> _villagers = new List<VillagerInstance>();
         readonly List<DoorInstance> _doors = new List<DoorInstance>();
         readonly List<TrafficSignalInstance> _trafficSignals = new List<TrafficSignalInstance>();
+        readonly List<AmbientSpiderWalkerController> _ambientSpiders = new List<AmbientSpiderWalkerController>();
+        readonly List<CoinInstance> _coins = new List<CoinInstance>();
         System.Random _worldRandom = new System.Random();
         Material? _trafficSignalLampMaterial;
+        GameObject? _coinPrefab;
 
         InteractionTarget _currentTarget;
         VillagerInstance? _currentVillager;
@@ -141,6 +150,7 @@ namespace McpTest.VoxelVillage
         bool _dialogueActive;
         int _dialogueLineIndex;
         bool _helpVisible;
+        int _coinsCollected;
         int _worldSeed;
         TrafficSignalCyclePhase _trafficSignalPhase;
         float _trafficSignalPhaseElapsed;
@@ -163,6 +173,7 @@ namespace McpTest.VoxelVillage
         void Update()
         {
             HandleMovement();
+            UpdateCoins();
             UpdateBuildingRoofReveal();
             UpdateVillagers();
             UpdateCamera();
@@ -272,6 +283,8 @@ namespace McpTest.VoxelVillage
             _villagers.Clear();
             _doors.Clear();
             _trafficSignals.Clear();
+            _ambientSpiders.Clear();
+            _coins.Clear();
             _currentTarget = InteractionTarget.None;
             _currentVillager = null;
             _currentDoor = null;
@@ -280,6 +293,7 @@ namespace McpTest.VoxelVillage
             _dialogueLineIndex = 0;
             _trafficSignalPhase = TrafficSignalCyclePhase.NorthSouthGreen;
             _trafficSignalPhaseElapsed = 0f;
+            _coinsCollected = 0;
 
             _worldSeed = Environment.TickCount ^ (int)(DateTime.UtcNow.Ticks & 0x7fffffff);
             _worldRandom = new System.Random(_worldSeed);
@@ -309,9 +323,176 @@ namespace McpTest.VoxelVillage
             BuildFountain();
             BuildPond(waterMaterial);
             CreatePlayer(CellToWorld(_layout.plazaCenter + new Vector2Int(0, -6)) + new Vector3(0f, 0.9f, 0f), new Color(0.16f, 0.41f, 0.95f));
+            SpawnCoins();
             SpawnVillagersFromLayout();
-            CreateInvaderPrototype();
+            SpawnAmbientSpiderWalker();
             EnsureGlobalIlluminationProbe();
+            RefreshCoinCountText();
+        }
+
+        void SpawnCoins()
+        {
+            _coins.Clear();
+
+            var coinPrefab = LoadCoinPrefab();
+            if (coinPrefab == null || _player == null)
+            {
+                return;
+            }
+
+            var playerCell = WorldToCell(_player.transform.position);
+            var spawnCells = BuildCoinSpawnCells(_layout, _villageGrid, playerCell, CoinSpawnCount);
+            for (var index = 0; index < spawnCells.Count; index++)
+            {
+                var cell = spawnCells[index];
+                var position = CellToWorld(cell) + new Vector3(0f, CoinHoverHeight, 0f);
+                var coinObject = Instantiate(coinPrefab, position, Quaternion.identity, _worldRoot);
+                coinObject.name = $"Coin_{index + 1:00}";
+
+                var pickup = coinObject.GetComponent<VoxelVillageCoinPickup>();
+                if (pickup != null)
+                {
+                    pickup.SetBaseHeight(position.y);
+                }
+
+                _coins.Add(new CoinInstance(
+                    coinObject.transform,
+                    pickup != null ? pickup.PickupRadius : 0.95f));
+            }
+        }
+
+        GameObject? LoadCoinPrefab()
+        {
+            if (_coinPrefab != null)
+            {
+                return _coinPrefab;
+            }
+
+            _coinPrefab = Resources.Load<GameObject>(CoinPrefabResourcePath);
+            if (_coinPrefab == null)
+            {
+                Debug.LogWarning("Voxel Village coin prefab is missing at Resources/" + CoinPrefabResourcePath + ".prefab");
+            }
+
+            return _coinPrefab;
+        }
+
+        static List<Vector2Int> BuildCoinSpawnCells(
+            VillageLayoutData layout,
+            VillageGrid grid,
+            Vector2Int playerCell,
+            int maxCount)
+        {
+            var selected = new List<Vector2Int>(Mathf.Max(0, maxCount));
+            if (maxCount <= 0)
+            {
+                return selected;
+            }
+
+            var candidates = new List<Vector2Int>();
+            for (var y = 0; y < grid.Height; y++)
+            {
+                for (var x = 0; x < grid.Width; x++)
+                {
+                    var cell = new Vector2Int(x, y);
+                    var kind = grid.GetCellKind(cell);
+                    if (kind == VillageCellKind.Road || kind == VillageCellKind.Plaza)
+                    {
+                        candidates.Add(cell);
+                    }
+                }
+            }
+
+            candidates.Sort((left, right) => GetCoinPlacementScore(left, layout.seed).CompareTo(GetCoinPlacementScore(right, layout.seed)));
+
+            var spacingPasses = new[] { 6, 4, 2 };
+            for (var passIndex = 0; passIndex < spacingPasses.Length && selected.Count < maxCount; passIndex++)
+            {
+                var minimumCoinSpacing = spacingPasses[passIndex];
+                for (var index = 0; index < candidates.Count && selected.Count < maxCount; index++)
+                {
+                    var candidate = candidates[index];
+                    if (selected.Contains(candidate))
+                    {
+                        continue;
+                    }
+
+                    if (!IsCoinSpawnCandidate(candidate, selected, layout, playerCell, minimumCoinSpacing))
+                    {
+                        continue;
+                    }
+
+                    selected.Add(candidate);
+                }
+            }
+
+            return selected;
+        }
+
+        static bool IsCoinSpawnCandidate(
+            Vector2Int candidate,
+            List<Vector2Int> selected,
+            VillageLayoutData layout,
+            Vector2Int playerCell,
+            int minimumCoinSpacing)
+        {
+            if (ManhattanDistance(candidate, playerCell) <= 3)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < layout.npcSpawnPoints.Length; index++)
+            {
+                if (ManhattanDistance(candidate, layout.npcSpawnPoints[index].cell) <= 2)
+                {
+                    return false;
+                }
+            }
+
+            for (var index = 0; index < layout.doors.Length; index++)
+            {
+                if (ManhattanDistance(candidate, layout.doors[index].cell) <= 1)
+                {
+                    return false;
+                }
+            }
+
+            for (var index = 0; index < layout.trafficSignals.Length; index++)
+            {
+                if (ManhattanDistance(candidate, layout.trafficSignals[index].cell) <= 1)
+                {
+                    return false;
+                }
+            }
+
+            for (var index = 0; index < selected.Count; index++)
+            {
+                if (ManhattanDistance(candidate, selected[index]) < minimumCoinSpacing)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        static int GetCoinPlacementScore(Vector2Int cell, int seed)
+        {
+            unchecked
+            {
+                var hash = (uint)seed;
+                hash ^= (uint)(cell.x + 1) * 73856093u;
+                hash ^= (uint)(cell.y + 1) * 19349663u;
+                hash ^= hash >> 13;
+                hash *= 83492791u;
+                hash ^= hash >> 16;
+                return (int)(hash & 0x7fffffff);
+            }
+        }
+
+        static int ManhattanDistance(Vector2Int left, Vector2Int right)
+        {
+            return Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
         }
 
         void EnsureGlobalIlluminationProbe()
@@ -394,12 +575,28 @@ namespace McpTest.VoxelVillage
             promptRect.pivot = new Vector2(0.5f, 0f);
             promptRect.anchoredPosition = new Vector2(0f, 110f);
 
+            CreateCoinCounter(font);
             CreateLanguageButton(font);
             CreateControlsButton(font);
             CreateSpeechBubble(font);
 
             _helpVisible = false;
             _helpPanel.SetActive(false);
+        }
+
+        void CreateCoinCounter(Font font)
+        {
+            _coinCountText = CreatePanelText(
+                "CoinCounterPanel",
+                new Vector2(16f, -16f),
+                new Vector2(CoinCounterWidth, CoinCounterHeight),
+                font,
+                24,
+                TextAnchor.MiddleCenter,
+                new Color(0.98f, 0.84f, 0.24f, 0.92f),
+                new Color(0.2f, 0.14f, 0.04f));
+            _coinCountText.fontStyle = FontStyle.Bold;
+            RefreshCoinCountText();
         }
 
         void CreateLanguageButton(Font font)
@@ -781,6 +978,130 @@ namespace McpTest.VoxelVillage
             }
         }
 
+        void SpawnAmbientSpiderWalker()
+        {
+            if (!TryChooseAmbientSpiderSpawnCell(out var spawnCell))
+            {
+                return;
+            }
+
+            var spawnPosition = CellToWorld(spawnCell);
+            var resourcePrefab = Resources.Load<GameObject>("VoxelVillage/Threats/VV_Ambient_SpiderWalker");
+            GameObject spiderRoot;
+
+            if (resourcePrefab != null)
+            {
+                spiderRoot = Instantiate(resourcePrefab, spawnPosition, Quaternion.identity, _worldRoot);
+            }
+            else
+            {
+                spiderRoot = VoxelSpiderWalkerFactory.CreateInstance("VV_Ambient_SpiderWalker", spawnPosition).Root;
+                spiderRoot.transform.SetParent(_worldRoot, true);
+            }
+
+            var spider = VoxelSpiderWalkerFactory.EnsureInstance(spiderRoot).Controller;
+            spider.BindNavigation(
+                _villageGrid,
+                _layout.threatAnchors,
+                spawnCell,
+                WorldCellSize,
+                TownFootprint,
+                BuildSpiderAvoidanceTargets());
+            _ambientSpiders.Add(spider);
+        }
+
+        bool TryChooseAmbientSpiderSpawnCell(out Vector2Int spawnCell)
+        {
+            for (var index = 0; index < _layout.threatAnchors.Length; index++)
+            {
+                var anchor = _layout.threatAnchors[(_worldRandom.Next(0, _layout.threatAnchors.Length) + index) % _layout.threatAnchors.Length];
+                if (IsValidSpiderSpawnCell(anchor.cell))
+                {
+                    spawnCell = anchor.cell;
+                    return true;
+                }
+            }
+
+            var fallbackCells = new[]
+            {
+                _layout.plazaCenter + new Vector2Int(-4, 4),
+                _layout.plazaCenter + new Vector2Int(4, 4),
+                _layout.plazaCenter + new Vector2Int(-4, -4),
+                _layout.plazaCenter + new Vector2Int(4, -4),
+                _layout.plazaCenter + new Vector2Int(0, 6),
+                _layout.plazaCenter + new Vector2Int(0, -6),
+                _layout.plazaCenter + new Vector2Int(-6, 0),
+                _layout.plazaCenter + new Vector2Int(6, 0)
+            };
+
+            for (var index = 0; index < fallbackCells.Length; index++)
+            {
+                if (IsValidSpiderSpawnCell(fallbackCells[index]))
+                {
+                    spawnCell = fallbackCells[index];
+                    return true;
+                }
+            }
+
+            spawnCell = default;
+            return false;
+        }
+
+        bool IsValidSpiderSpawnCell(Vector2Int cell)
+        {
+            if (!_villageGrid.IsWalkable(cell, false, MovementFootprint.SqueezedSpider1x1))
+            {
+                return false;
+            }
+
+            if (_player != null && Mathf.Abs(WorldToCell(_player.transform.position).x - cell.x) + Mathf.Abs(WorldToCell(_player.transform.position).y - cell.y) < 8)
+            {
+                return false;
+            }
+
+            for (var index = 0; index < _layout.npcSpawnPoints.Length; index++)
+            {
+                if (Mathf.Abs(_layout.npcSpawnPoints[index].cell.x - cell.x) + Mathf.Abs(_layout.npcSpawnPoints[index].cell.y - cell.y) < 3)
+                {
+                    return false;
+                }
+            }
+
+            for (var index = 0; index < _layout.doors.Length; index++)
+            {
+                if (Mathf.Abs(_layout.doors[index].cell.x - cell.x) + Mathf.Abs(_layout.doors[index].cell.y - cell.y) < 3)
+                {
+                    return false;
+                }
+            }
+
+            for (var index = 0; index < _layout.trafficSignals.Length; index++)
+            {
+                if (_layout.trafficSignals[index].cell == cell)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        Transform[] BuildSpiderAvoidanceTargets()
+        {
+            var targets = new List<Transform>(_villagers.Count + 1);
+            if (_player != null)
+            {
+                targets.Add(_player.transform);
+            }
+
+            for (var index = 0; index < _villagers.Count; index++)
+            {
+                targets.Add(_villagers[index].Transform);
+            }
+
+            return targets.ToArray();
+        }
+
         void CreateInvaderPrototype()
         {
             var tracker = MukhaengTrackerFactory.CreateTracker(
@@ -885,6 +1206,45 @@ namespace McpTest.VoxelVillage
             {
                 _player.transform.forward = Vector3.Lerp(_player.transform.forward, look.normalized, 16f * Time.deltaTime);
             }
+        }
+
+        void UpdateCoins()
+        {
+            if (_player == null || _coins.Count == 0)
+            {
+                return;
+            }
+
+            var playerPosition = _player.transform.position;
+            for (var index = _coins.Count - 1; index >= 0; index--)
+            {
+                var coin = _coins[index];
+                if (coin.Transform == null)
+                {
+                    _coins.RemoveAt(index);
+                    continue;
+                }
+
+                var delta = coin.Transform.position - playerPosition;
+                delta.y = 0f;
+                if (delta.sqrMagnitude <= coin.PickupRadius * coin.PickupRadius)
+                {
+                    CollectCoin(index);
+                }
+            }
+        }
+
+        void CollectCoin(int coinIndex)
+        {
+            var coin = _coins[coinIndex];
+            if (coin.Transform != null)
+            {
+                Destroy(coin.Transform.gameObject);
+            }
+
+            _coins.RemoveAt(coinIndex);
+            _coinsCollected++;
+            RefreshCoinCountText();
         }
 
         Vector3 MoveWithWorldCollision(Vector3 currentPosition, Vector3 delta, float collisionRadius, bool includeEmpty)
@@ -1223,8 +1583,24 @@ namespace McpTest.VoxelVillage
                 _helpVisible ? "hud.controls.hide" : "hud.controls.show",
                 _languageState.Current);
 
+            RefreshCoinCountText();
             RefreshPrompt();
             UpdateSpeechBubble();
+        }
+
+        void RefreshCoinCountText()
+        {
+            if (_coinCountText == null)
+            {
+                return;
+            }
+
+            _coinCountText.text = FormatCoinCount(_coinsCollected);
+        }
+
+        static string FormatCoinCount(int coinCount)
+        {
+            return "x " + Mathf.Max(0, coinCount);
         }
 
         void RefreshPrompt()
@@ -1765,7 +2141,14 @@ namespace McpTest.VoxelVillage
             var collider = lamp.GetComponent<Collider>();
             if (collider != null)
             {
-                Destroy(collider);
+                if (Application.isPlaying)
+                {
+                    Destroy(collider);
+                }
+                else
+                {
+                    DestroyImmediate(collider);
+                }
             }
 
             var renderer = lamp.GetComponent<Renderer>();
@@ -2469,6 +2852,19 @@ namespace McpTest.VoxelVillage
             public MaterialPropertyBlock[] PropertyBlocks { get; }
 
             public TrafficSignalLamp ActiveLamp { get; set; }
+        }
+
+        sealed class CoinInstance
+        {
+            public CoinInstance(Transform transform, float pickupRadius)
+            {
+                Transform = transform;
+                PickupRadius = Mathf.Max(0.1f, pickupRadius);
+            }
+
+            public Transform Transform { get; }
+
+            public float PickupRadius { get; }
         }
 
         sealed class VillagerInstance
