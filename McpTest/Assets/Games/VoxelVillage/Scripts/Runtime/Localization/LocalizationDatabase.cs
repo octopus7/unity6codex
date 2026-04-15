@@ -101,6 +101,23 @@ namespace McpTest.VoxelVillage
             return npcId;
         }
 
+        public string GetNpcRoleName(string npcId, LanguageCode language)
+        {
+            if (_npcs.TryGetValue(npcId, out var npc))
+            {
+                return npc.roleName.Get(language);
+            }
+
+            return string.Empty;
+        }
+
+        public string GetNpcHeader(string npcId, LanguageCode language)
+        {
+            var name = GetNpcDisplayName(npcId, language);
+            var role = GetNpcRoleName(npcId, language);
+            return string.IsNullOrWhiteSpace(role) ? name : name + " · " + role;
+        }
+
         public DialogueSetDefinition? GetFirstDialogueSet(string npcId)
         {
             if (!_npcs.TryGetValue(npcId, out var npc))

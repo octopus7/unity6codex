@@ -1,31 +1,181 @@
 {
   "dialogueSets": [
     {
-      "id": "greeting_common",
+      "id": "mina_market_chat",
       "cooldownSeconds": 6,
       "lines": [
         {
           "speaker": "npc",
           "translations": {
-            "ko": "오늘은 장터가 꽤 붐비네.",
-            "en": "The market is pretty busy today.",
-            "ja": "今日は市場がかなりにぎやかだね。"
+            "ko": "광장 장터는 점심 무렵이 제일 시끌벅적해.",
+            "en": "The plaza market gets the loudest around lunchtime.",
+            "ja": "広場の市はお昼どきがいちばんにぎやかなんだ。"
           }
         },
         {
           "speaker": "player",
           "translations": {
-            "ko": "그쪽부터 둘러봐야겠네요.",
-            "en": "I should start looking around there.",
-            "ja": "まずはあちらから見て回ろうかな。"
+            "ko": "사람들이 많이 모이는 시간대를 기억해둘게요.",
+            "en": "I should remember when everyone gathers.",
+            "ja": "みんなが集まる時間を覚えておきます。"
           }
         },
         {
           "speaker": "npc",
           "translations": {
-            "ko": "언어 버튼을 눌러도 지금 대사가 바로 바뀌는지 봐.",
-            "en": "Try pressing the language button and see this line update immediately.",
-            "ja": "言語ボタンを押して、このセリフがすぐ切り替わるか見てみて。"
+            "ko": "해 질 때쯤 오면 빵 냄새도 같이 퍼져서 더 좋아.",
+            "en": "Come back near dusk and the smell of fresh bread is even better.",
+            "ja": "夕方に来ると焼きたてのパンの匂いまで広がって最高だよ。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "jisu_garden_chat",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "꽃밭은 아침마다 색이 조금씩 달라 보여.",
+            "en": "The flower beds look a little different every morning.",
+            "ja": "花壇は朝になるたび少しずつ違う色に見えるの。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "오늘은 노란 꽃이 제일 먼저 눈에 들어왔어요.",
+            "en": "The yellow flowers caught my eye first today.",
+            "ja": "今日は黄色い花が真っ先に目に入りました。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "비가 한 번 오고 나면 길 가장자리도 금방 가득 차지.",
+            "en": "After one good rain, even the roadside fills up quickly.",
+            "ja": "ひと雨くると道ばたまであっという間にいっぱいになるよ。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "haru_workshop_chat",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "공방 망치 소리가 들리면 오늘 일감이 많다는 뜻이야.",
+            "en": "If you hear hammers from the workshop, it means we have a busy day ahead.",
+            "ja": "工房から金づちの音がしたら、今日は仕事が多いってことさ。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "그래서 길가 상자들이 새것처럼 보였군요.",
+            "en": "That explains why the crates on the road look brand new.",
+            "ja": "だから道ばたの木箱が新品みたいに見えたんですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "해가 지기 전까지는 문짝 하나쯤 더 맞출 수 있을걸.",
+            "en": "We can probably finish one more door before sunset.",
+            "ja": "日が沈む前ならドアをもう一枚くらい仕上げられるよ。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "noah_plaza_chat",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "분수 옆 벤치는 쉬어가기 좋지만, 늘 누가 먼저 앉아 있더라.",
+            "en": "The bench by the fountain is the best rest spot, but someone always gets there first.",
+            "ja": "噴水の横のベンチは最高の休憩場所だけど、いつも誰かが先に座ってる。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "그래도 물소리 덕분에 잠깐 서 있기만 해도 좋네요.",
+            "en": "Even standing nearby feels nice with the sound of the water.",
+            "ja": "それでも水の音があるから、近くに立っているだけでも気持ちいいですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "밤에는 등불까지 비쳐서 광장 분위기가 훨씬 부드러워져.",
+            "en": "At night the lantern light softens the whole plaza.",
+            "ja": "夜になると灯りが映って、広場の空気がずっとやわらかくなるんだ。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "yuna_lantern_chat",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "해가 지면 내가 등불을 하나씩 확인하러 돌아다녀.",
+            "en": "Once the sun sets, I make a round to check each lantern.",
+            "ja": "日が暮れたら、私が灯りをひとつずつ見て回るの。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "그래서 밤에도 길이 유난히 따뜻해 보였군요.",
+            "en": "That must be why the roads still feel warm at night.",
+            "ja": "だから夜でも道があんなにあたたかく見えるんですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "가장 늦게 켜지는 건 서쪽 길 끝 전등이야. 꼭 한 박자 늦어.",
+            "en": "The lamp at the west road always lights a beat later than the rest.",
+            "ja": "いちばん遅れて点くのは西の道の端の灯り。いつも一拍遅いの。"
+          }
+        }
+      ]
+    },
+    {
+      "id": "kai_delivery_chat",
+      "cooldownSeconds": 6,
+      "lines": [
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "동쪽 길은 짐수레가 다니기 좋아서 아침마다 가장 먼저 바빠져.",
+            "en": "The east road is perfect for carts, so it gets busy first thing in the morning.",
+            "ja": "東の道は荷車が通りやすいから、朝いちばんに忙しくなるんだ。"
+          }
+        },
+        {
+          "speaker": "player",
+          "translations": {
+            "ko": "상자들이 모여 있는 이유가 있었네요.",
+            "en": "So that is why all the crates are stacked over there.",
+            "ja": "あそこに木箱が集まっていたのは、そういう理由だったんですね。"
+          }
+        },
+        {
+          "speaker": "npc",
+          "translations": {
+            "ko": "한 바퀴 돌고 오면 시장 쪽 소식도 자연히 다 듣게 돼.",
+            "en": "By the time I finish one delivery loop, I already know all the market gossip.",
+            "ja": "ひと回り配達して戻るころには、市場のうわさも全部耳に入ってくるよ。"
           }
         }
       ]

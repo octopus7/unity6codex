@@ -7,9 +7,99 @@
         "en": "Mina",
         "ja": "ミナ"
       },
+      "roleName": {
+        "ko": "빵 장수",
+        "en": "Bread Seller",
+        "ja": "パン売り"
+      },
       "paletteId": "npc_red",
       "dialogueSetIds": [
-        "greeting_common"
+        "mina_market_chat"
+      ]
+    },
+    {
+      "npcId": "villager_jisu",
+      "displayName": {
+        "ko": "지수",
+        "en": "Jisu",
+        "ja": "ジス"
+      },
+      "roleName": {
+        "ko": "정원사",
+        "en": "Gardener",
+        "ja": "庭師"
+      },
+      "paletteId": "npc_gold",
+      "dialogueSetIds": [
+        "jisu_garden_chat"
+      ]
+    },
+    {
+      "npcId": "villager_haru",
+      "displayName": {
+        "ko": "하루",
+        "en": "Haru",
+        "ja": "ハル"
+      },
+      "roleName": {
+        "ko": "목공",
+        "en": "Carpenter",
+        "ja": "大工"
+      },
+      "paletteId": "npc_green",
+      "dialogueSetIds": [
+        "haru_workshop_chat"
+      ]
+    },
+    {
+      "npcId": "villager_noah",
+      "displayName": {
+        "ko": "노아",
+        "en": "Noah",
+        "ja": "ノア"
+      },
+      "roleName": {
+        "ko": "광장 소식꾼",
+        "en": "Plaza Watcher",
+        "ja": "広場の見張り役"
+      },
+      "paletteId": "npc_blue",
+      "dialogueSetIds": [
+        "noah_plaza_chat"
+      ]
+    },
+    {
+      "npcId": "villager_yuna",
+      "displayName": {
+        "ko": "유나",
+        "en": "Yuna",
+        "ja": "ユナ"
+      },
+      "roleName": {
+        "ko": "등불지기",
+        "en": "Lamplighter",
+        "ja": "灯守"
+      },
+      "paletteId": "npc_violet",
+      "dialogueSetIds": [
+        "yuna_lantern_chat"
+      ]
+    },
+    {
+      "npcId": "villager_kai",
+      "displayName": {
+        "ko": "카이",
+        "en": "Kai",
+        "ja": "カイ"
+      },
+      "roleName": {
+        "ko": "배달꾼",
+        "en": "Courier",
+        "ja": "配達人"
+      },
+      "paletteId": "npc_orange",
+      "dialogueSetIds": [
+        "kai_delivery_chat"
       ]
     }
   ]

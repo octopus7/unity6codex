@@ -12,17 +12,17 @@ namespace McpTest.VoxelVillage.Tests
     {
       ""key"": ""interaction.talk"",
       ""translations"": {
-        ""ko"": ""F 대화하기"",
+        ""ko"": ""Talk ko"",
         ""en"": ""F Talk"",
-        ""ja"": ""F 話す""
+        ""ja"": ""Talk ja""
       }
     },
     {
       ""key"": ""speaker.player"",
       ""translations"": {
-        ""ko"": ""나"",
+        ""ko"": ""Player ko"",
         ""en"": ""You"",
-        ""ja"": ""あなた""
+        ""ja"": ""Player ja""
       }
     }
   ]
@@ -33,12 +33,32 @@ namespace McpTest.VoxelVillage.Tests
     {
       ""npcId"": ""villager_mina"",
       ""displayName"": {
-        ""ko"": ""미나"",
+        ""ko"": ""Mina ko"",
         ""en"": ""Mina"",
-        ""ja"": ""ミナ""
+        ""ja"": ""Mina ja""
+      },
+      ""roleName"": {
+        ""ko"": ""Role ko"",
+        ""en"": ""Merchant"",
+        ""ja"": ""Role ja""
       },
       ""paletteId"": ""npc_red"",
-      ""dialogueSetIds"": [""greeting_common""]
+      ""dialogueSetIds"": [""mina_chat""]
+    },
+    {
+      ""npcId"": ""villager_haru"",
+      ""displayName"": {
+        ""ko"": ""Haru ko"",
+        ""en"": ""Haru"",
+        ""ja"": ""Haru ja""
+      },
+      ""roleName"": {
+        ""ko"": ""Craft ko"",
+        ""en"": ""Carpenter"",
+        ""ja"": ""Craft ja""
+      },
+      ""paletteId"": ""npc_green"",
+      ""dialogueSetIds"": [""haru_chat""]
     }
   ]
 }";
@@ -46,23 +66,37 @@ namespace McpTest.VoxelVillage.Tests
         const string DialogueJson = @"{
   ""dialogueSets"": [
     {
-      ""id"": ""greeting_common"",
+      ""id"": ""mina_chat"",
       ""cooldownSeconds"": 6,
       ""lines"": [
         {
           ""speaker"": ""npc"",
           ""translations"": {
-            ""ko"": ""오늘은 장터가 꽤 붐비네."",
-            ""en"": ""The market is pretty busy today."",
-            ""ja"": ""今日は市場がかなりにぎやかだね。""
+            ""ko"": ""Mina line ko"",
+            ""en"": ""Mina line en"",
+            ""ja"": ""Mina line ja""
           }
         },
         {
           ""speaker"": ""player"",
           ""translations"": {
-            ""ko"": ""그쪽부터 둘러봐야겠네요."",
-            ""en"": ""I should start looking around there."",
-            ""ja"": ""まずはあちらから見て回ろうかな。""
+            ""ko"": ""Reply ko"",
+            ""en"": ""Reply en"",
+            ""ja"": ""Reply ja""
+          }
+        }
+      ]
+    },
+    {
+      ""id"": ""haru_chat"",
+      ""cooldownSeconds"": 6,
+      ""lines"": [
+        {
+          ""speaker"": ""npc"",
+          ""translations"": {
+            ""ko"": ""Haru line ko"",
+            ""en"": ""Haru line en"",
+            ""ja"": ""Haru line ja""
           }
         }
       ]
@@ -93,12 +127,22 @@ namespace McpTest.VoxelVillage.Tests
             var database = LocalizationDatabase.FromJson(UiJson, NpcJson, DialogueJson);
 
             Assert.AreEqual("F Talk", database.GetUiText("interaction.talk", LanguageCode.En));
-            Assert.AreEqual("미나", database.GetNpcDisplayName("villager_mina", LanguageCode.Ko));
+            Assert.AreEqual("Mina ko", database.GetNpcDisplayName("villager_mina", LanguageCode.Ko));
+            Assert.AreEqual("Merchant", database.GetNpcRoleName("villager_mina", LanguageCode.En));
+            Assert.AreEqual("Mina · Merchant", database.GetNpcHeader("villager_mina", LanguageCode.En));
             Assert.AreEqual("You", database.GetSpeakerDisplayName("player", "villager_mina", LanguageCode.En));
             Assert.AreEqual(2, database.GetDialogueLineCount("villager_mina"));
-            Assert.AreEqual(
-                "今日は市場がかなりにぎやかだね。",
-                database.GetDialogueLine("villager_mina", 0)!.translations.Get(LanguageCode.Ja));
+            Assert.AreEqual("Mina line ja", database.GetDialogueLine("villager_mina", 0)!.translations.Get(LanguageCode.Ja));
+        }
+
+        [Test]
+        public void LocalizationDatabaseReturnsNpcSpecificDialogue()
+        {
+            var database = LocalizationDatabase.FromJson(UiJson, NpcJson, DialogueJson);
+
+            Assert.AreEqual(1, database.GetDialogueLineCount("villager_haru"));
+            Assert.AreEqual("Haru line en", database.GetDialogueLine("villager_haru", 0)!.translations.Get(LanguageCode.En));
+            Assert.AreEqual("Haru", database.GetSpeakerDisplayName("npc", "villager_haru", LanguageCode.En));
         }
 
         [Test]
@@ -106,11 +150,11 @@ namespace McpTest.VoxelVillage.Tests
         {
             var localizedText = new LocalizedText
             {
-                ko = "기본 텍스트"
+                ko = "fallback"
             };
 
-            Assert.AreEqual("기본 텍스트", localizedText.Get(LanguageCode.En));
-            Assert.AreEqual("기본 텍스트", localizedText.Get(LanguageCode.Ja));
+            Assert.AreEqual("fallback", localizedText.Get(LanguageCode.En));
+            Assert.AreEqual("fallback", localizedText.Get(LanguageCode.Ja));
         }
     }
 }

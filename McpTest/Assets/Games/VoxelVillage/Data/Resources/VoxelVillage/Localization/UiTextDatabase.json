@@ -12,9 +12,9 @@
     {
       "key": "hud.instructions",
       "translations": {
-        "ko": "WASD 로 이동\\nMina 근처에서 F 로 대화 진행\\n문 근처에서 F 로 열기/닫기\\n우측 상단 버튼으로 언어 전환",
-        "en": "Move with WASD\\nPress F near Mina to advance dialogue\\nPress F near the door to open or close it\\nUse the top-right button to change language",
-        "ja": "WASD で移動\\nMina の近くで F を押すと会話が進行\\nドアの近くで F を押すと開閉\\n右上のボタンで言語を切り替え"
+        "ko": "WASD 로 이동\\n주민 6명 중 가까운 사람에게 F 로 대화\\n문 근처에서 F 로 열기/닫기\\n우측 상단 버튼으로 언어 전환",
+        "en": "Move with WASD\\nPress F near any of the 6 villagers to talk\\nPress F near the door to open or close it\\nUse the top-right button to change language",
+        "ja": "WASD で移動\\n6人の住民の近くで F を押すと会話\\nドアの近くで F を押すと開閉\\n右上のボタンで言語を切り替え"
       }
     },
     {

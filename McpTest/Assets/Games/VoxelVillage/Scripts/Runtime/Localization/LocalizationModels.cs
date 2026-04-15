@@ -29,6 +29,7 @@ namespace McpTest.VoxelVillage
     {
         public string npcId = string.Empty;
         public LocalizedText displayName = new LocalizedText();
+        public LocalizedText roleName = new LocalizedText();
         public string paletteId = string.Empty;
         public string[] dialogueSetIds = Array.Empty<string>();
     }

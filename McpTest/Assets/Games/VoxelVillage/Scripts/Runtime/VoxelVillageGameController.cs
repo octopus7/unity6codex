@@ -12,7 +12,6 @@ namespace McpTest.VoxelVillage
     [DisallowMultipleComponent]
     public sealed class VoxelVillageGameController : MonoBehaviour
     {
-        const string DemoNpcId = "villager_mina";
         const float PlayerMoveSpeed = 8f;
         const float InteractionDistance = 2.15f;
         const float CameraFollowSpeed = 6f;
@@ -33,6 +32,16 @@ namespace McpTest.VoxelVillage
             Door
         }
 
+        enum AccessoryType
+        {
+            MerchantApron,
+            GardenerHat,
+            CarpenterBelt,
+            WatcherScarf,
+            LanternCape,
+            CourierPack
+        }
+
         LocalizationDatabase _database = null!;
         LanguageState _languageState = null!;
 
@@ -40,7 +49,6 @@ namespace McpTest.VoxelVillage
         Light _mainLight = null!;
         Canvas _canvas = null!;
 
-        Text _titleText = null!;
         Text _helpText = null!;
         Text _promptText = null!;
         Text _languageButtonText = null!;
@@ -50,11 +58,12 @@ namespace McpTest.VoxelVillage
 
         Transform _worldRoot = null!;
         GameObject _player = null!;
-        GameObject _npc = null!;
         Transform _doorPivot = null!;
-        readonly List<Transform> _villagers = new List<Transform>();
+        readonly List<VillagerInstance> _villagers = new List<VillagerInstance>();
 
         InteractionTarget _currentTarget;
+        VillagerInstance? _currentVillager;
+        VillagerInstance? _activeDialogueVillager;
         bool _dialogueActive;
         int _dialogueLineIndex;
         bool _doorOpen;
@@ -78,6 +87,7 @@ namespace McpTest.VoxelVillage
         void Update()
         {
             HandleMovement();
+            UpdateVillagers();
             UpdateCamera();
             UpdateInteractionTarget();
             HandleInteractionInput();
@@ -252,14 +262,12 @@ namespace McpTest.VoxelVillage
                 CreateMaterial(new Color(0.16f, 0.41f, 0.95f)));
             _player.transform.SetParent(_worldRoot, false);
 
-            _npc = CreatePrimitive(
-                PrimitiveType.Capsule,
-                "Npc_Mina",
-                new Vector3(2.8f, 0.9f, 10.5f),
-                new Vector3(0.85f, 1.8f, 0.85f),
-                CreateMaterial(new Color(0.92f, 0.43f, 0.35f)));
-            _npc.transform.SetParent(_worldRoot, false);
-            _villagers.Add(_npc.transform);
+            CreateVillager("villager_mina", "Npc_Mina", new Vector3(2.8f, 0.9f, 10.5f), new Color(0.92f, 0.43f, 0.35f), new Vector3(0.9f, 1.88f, 0.9f), -35f, 0.06f, 1.9f, 6f, 1.4f, 0f, AccessoryType.MerchantApron);
+            CreateVillager("villager_jisu", "Npc_Jisu", new Vector3(-7.5f, 0.82f, 8.5f), new Color(0.94f, 0.68f, 0.26f), new Vector3(0.82f, 1.68f, 0.82f), 22f, 0.04f, 1.4f, 4f, 1f, 0.7f, AccessoryType.GardenerHat);
+            CreateVillager("villager_haru", "Npc_Haru", new Vector3(8.5f, 0.96f, 2.5f), new Color(0.34f, 0.75f, 0.46f), new Vector3(0.98f, 1.98f, 0.98f), -12f, 0.03f, 1.2f, 5f, 0.8f, 1.2f, AccessoryType.CarpenterBelt);
+            CreateVillager("villager_noah", "Npc_Noah", new Vector3(-16f, 0.9f, 15f), new Color(0.32f, 0.64f, 0.92f), new Vector3(0.86f, 1.8f, 0.86f), 40f, 0.02f, 0.9f, 7f, 1.8f, 1.9f, AccessoryType.WatcherScarf);
+            CreateVillager("villager_yuna", "Npc_Yuna", new Vector3(18f, 0.9f, 13f), new Color(0.76f, 0.47f, 0.9f), new Vector3(0.88f, 1.84f, 0.88f), 148f, 0.05f, 1.6f, 4.5f, 1.2f, 2.4f, AccessoryType.LanternCape);
+            CreateVillager("villager_kai", "Npc_Kai", new Vector3(24f, 0.9f, -8f), new Color(0.9f, 0.54f, 0.28f), new Vector3(0.92f, 1.86f, 0.92f), -120f, 0.04f, 2.2f, 5.5f, 2.2f, 3.1f, AccessoryType.CourierPack);
 
             CreateTree("TreeNorthWest", new Vector3(-20f, 0f, 28f), trunkMaterial, foliageMaterial);
             CreateTree("TreeSouthWest", new Vector3(-34f, 0f, -28f), trunkMaterial, foliageMaterial);
@@ -300,16 +308,6 @@ namespace McpTest.VoxelVillage
             }
 
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
-            _titleText = CreatePanelText(
-                "TitlePanel",
-                new Vector2(16f, -16f),
-                new Vector2(440f, 76f),
-                font,
-                24,
-                TextAnchor.UpperLeft,
-                new Color(0.1f, 0.16f, 0.24f, 0.8f),
-                new Color(1f, 0.97f, 0.92f));
 
             _helpText = CreatePanelText(
                 "HelpPanel",
@@ -389,14 +387,25 @@ namespace McpTest.VoxelVillage
 
         void CreateSpeechBubble(Font font)
         {
-            var bubble = new GameObject("SpeechBubble", typeof(RectTransform), typeof(Image));
+            var bubble = new GameObject("SpeechBubble", typeof(RectTransform), typeof(SpeechBubbleGraphic), typeof(Shadow));
             bubble.transform.SetParent(_canvas.transform, false);
 
             _bubbleRect = bubble.GetComponent<RectTransform>();
-            _bubbleRect.sizeDelta = new Vector2(300f, 122f);
+            _bubbleRect.sizeDelta = new Vector2(312f, 138f);
             _bubbleRect.pivot = new Vector2(0.5f, 0f);
 
-            bubble.GetComponent<Image>().color = new Color(0.99f, 0.97f, 0.92f, 0.96f);
+            var bubbleGraphic = bubble.GetComponent<SpeechBubbleGraphic>();
+            bubbleGraphic.color = new Color(0.99f, 0.97f, 0.92f, 0.96f);
+            bubbleGraphic.raycastTarget = false;
+            bubbleGraphic.CornerRadius = 24f;
+            bubbleGraphic.TailWidth = 34f;
+            bubbleGraphic.TailHeight = 18f;
+            bubbleGraphic.CornerSegments = 6;
+
+            var shadow = bubble.GetComponent<Shadow>();
+            shadow.effectColor = new Color(0.16f, 0.11f, 0.07f, 0.18f);
+            shadow.effectDistance = new Vector2(0f, -4f);
+            shadow.useGraphicAlpha = true;
 
             var speakerObject = new GameObject("Speaker", typeof(RectTransform), typeof(Text));
             speakerObject.transform.SetParent(bubble.transform, false);
@@ -404,8 +413,8 @@ namespace McpTest.VoxelVillage
             speakerRect.anchorMin = new Vector2(0f, 1f);
             speakerRect.anchorMax = new Vector2(1f, 1f);
             speakerRect.pivot = new Vector2(0.5f, 1f);
-            speakerRect.offsetMin = new Vector2(14f, -36f);
-            speakerRect.offsetMax = new Vector2(-14f, -10f);
+            speakerRect.offsetMin = new Vector2(18f, -40f);
+            speakerRect.offsetMax = new Vector2(-18f, -14f);
 
             _bubbleSpeakerText = speakerObject.GetComponent<Text>();
             _bubbleSpeakerText.font = font;
@@ -413,14 +422,15 @@ namespace McpTest.VoxelVillage
             _bubbleSpeakerText.fontSize = 19;
             _bubbleSpeakerText.alignment = TextAnchor.UpperLeft;
             _bubbleSpeakerText.color = new Color(0.23f, 0.18f, 0.12f);
+            _bubbleSpeakerText.raycastTarget = false;
 
             var contentObject = new GameObject("Content", typeof(RectTransform), typeof(Text));
             contentObject.transform.SetParent(bubble.transform, false);
             var contentRect = contentObject.GetComponent<RectTransform>();
             contentRect.anchorMin = new Vector2(0f, 0f);
             contentRect.anchorMax = new Vector2(1f, 1f);
-            contentRect.offsetMin = new Vector2(14f, 14f);
-            contentRect.offsetMax = new Vector2(-14f, -38f);
+            contentRect.offsetMin = new Vector2(18f, 24f);
+            contentRect.offsetMax = new Vector2(-18f, -42f);
 
             _bubbleContentText = contentObject.GetComponent<Text>();
             _bubbleContentText.font = font;
@@ -429,6 +439,7 @@ namespace McpTest.VoxelVillage
             _bubbleContentText.color = new Color(0.16f, 0.14f, 0.12f);
             _bubbleContentText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _bubbleContentText.verticalOverflow = VerticalWrapMode.Overflow;
+            _bubbleContentText.raycastTarget = false;
 
             bubble.SetActive(false);
         }
@@ -539,28 +550,46 @@ namespace McpTest.VoxelVillage
 
         void UpdateInteractionTarget()
         {
-            if (_dialogueActive && Vector3.Distance(_player.transform.position, _npc.transform.position) > InteractionDistance + 1f)
+            var playerPosition = _player.transform.position;
+
+            if (_dialogueActive && _activeDialogueVillager != null)
             {
-                _dialogueActive = false;
-                _dialogueLineIndex = 0;
+                if (Vector3.Distance(playerPosition, _activeDialogueVillager.Transform.position) > InteractionDistance + 1f)
+                {
+                    _dialogueActive = false;
+                    _dialogueLineIndex = 0;
+                    _activeDialogueVillager = null;
+                }
+                else
+                {
+                    _currentTarget = InteractionTarget.Npc;
+                    _currentVillager = _activeDialogueVillager;
+                    return;
+                }
             }
 
-            var playerPosition = _player.transform.position;
-            var npcDistance = Vector3.Distance(playerPosition, _npc.transform.position);
             var doorDistance = Vector3.Distance(playerPosition, GetDoorInteractionPoint());
 
             _currentTarget = InteractionTarget.None;
+            _currentVillager = null;
             var bestDistance = InteractionDistance;
 
-            if (npcDistance <= bestDistance)
+            for (var index = 0; index < _villagers.Count; index++)
             {
-                _currentTarget = InteractionTarget.Npc;
-                bestDistance = npcDistance;
+                var villager = _villagers[index];
+                var npcDistance = Vector3.Distance(playerPosition, villager.Transform.position);
+                if (npcDistance <= bestDistance)
+                {
+                    _currentTarget = InteractionTarget.Npc;
+                    _currentVillager = villager;
+                    bestDistance = npcDistance;
+                }
             }
 
             if (doorDistance <= bestDistance)
             {
                 _currentTarget = InteractionTarget.Door;
+                _currentVillager = null;
             }
         }
 
@@ -586,7 +615,13 @@ namespace McpTest.VoxelVillage
 
         void AdvanceDialogue()
         {
-            var lineCount = _database.GetDialogueLineCount(DemoNpcId);
+            var villager = _dialogueActive ? _activeDialogueVillager : _currentVillager;
+            if (villager == null)
+            {
+                return;
+            }
+
+            var lineCount = _database.GetDialogueLineCount(villager.NpcId);
             if (lineCount <= 0)
             {
                 return;
@@ -595,6 +630,7 @@ namespace McpTest.VoxelVillage
             if (!_dialogueActive)
             {
                 _dialogueActive = true;
+                _activeDialogueVillager = villager;
                 _dialogueLineIndex = 0;
                 RefreshLocalizedTexts();
                 return;
@@ -609,6 +645,7 @@ namespace McpTest.VoxelVillage
 
             _dialogueActive = false;
             _dialogueLineIndex = 0;
+            _activeDialogueVillager = null;
             RefreshLocalizedTexts();
         }
 
@@ -632,17 +669,26 @@ namespace McpTest.VoxelVillage
                 return;
             }
 
-            var line = _database.GetDialogueLine(DemoNpcId, _dialogueLineIndex);
+            if (_activeDialogueVillager == null)
+            {
+                _bubbleRect.gameObject.SetActive(false);
+                return;
+            }
+
+            var line = _database.GetDialogueLine(_activeDialogueVillager.NpcId, _dialogueLineIndex);
             if (line == null)
             {
                 _bubbleRect.gameObject.SetActive(false);
                 return;
             }
 
-            _bubbleSpeakerText.text = _database.GetSpeakerDisplayName(line.speaker, DemoNpcId, _languageState.Current);
+            _bubbleSpeakerText.text =
+                line.speaker.Equals("npc", System.StringComparison.OrdinalIgnoreCase)
+                    ? _database.GetNpcHeader(_activeDialogueVillager.NpcId, _languageState.Current)
+                    : _database.GetSpeakerDisplayName(line.speaker, _activeDialogueVillager.NpcId, _languageState.Current);
             _bubbleContentText.text = line.translations.Get(_languageState.Current);
 
-            var screenPoint = _mainCamera.WorldToScreenPoint(_npc.transform.position + new Vector3(0f, BubbleHeight, 0f));
+            var screenPoint = _mainCamera.WorldToScreenPoint(_activeDialogueVillager.Transform.position + new Vector3(0f, BubbleHeight + _activeDialogueVillager.HeadOffset, 0f));
             var visible = screenPoint.z > 0f;
             _bubbleRect.gameObject.SetActive(visible);
             if (visible)
@@ -653,7 +699,6 @@ namespace McpTest.VoxelVillage
 
         void RefreshLocalizedTexts()
         {
-            _titleText.text = _database.GetUiText("hud.title", _languageState.Current);
             _helpText.text = _database.GetUiText("hud.instructions", _languageState.Current);
             _languageButtonText.text = string.Format(
                 _database.GetUiText("hud.language.label", _languageState.Current),
@@ -674,11 +719,19 @@ namespace McpTest.VoxelVillage
             switch (_currentTarget)
             {
                 case InteractionTarget.Npc:
+                    if (_currentVillager == null && _activeDialogueVillager == null)
+                    {
+                        _promptText.transform.parent.gameObject.SetActive(false);
+                        return;
+                    }
+
+                    var promptVillager = _activeDialogueVillager ?? _currentVillager!;
+                    var lineCount = _database.GetDialogueLineCount(promptVillager.NpcId);
                     if (!_dialogueActive)
                     {
                         key = "interaction.talk";
                     }
-                    else if (_dialogueLineIndex < _database.GetDialogueLineCount(DemoNpcId) - 1)
+                    else if (_dialogueLineIndex < lineCount - 1)
                     {
                         key = "interaction.nextLine";
                     }
@@ -734,13 +787,27 @@ namespace McpTest.VoxelVillage
                 resolved = PlanarPersonCollision.Resolve(
                     current,
                     resolved,
-                    new Vector2(villager.position.x, villager.position.z),
+                    new Vector2(villager.Transform.position.x, villager.Transform.position.z),
                     minDistance);
             }
 
             desiredPosition.x = resolved.x;
             desiredPosition.z = resolved.y;
             return desiredPosition;
+        }
+
+        void UpdateVillagers()
+        {
+            var time = Time.time;
+            for (var index = 0; index < _villagers.Count; index++)
+            {
+                var villager = _villagers[index];
+                var bob = Mathf.Sin(time * villager.BobSpeed + villager.PhaseOffset) * villager.BobAmplitude;
+                var sway = Mathf.Sin(time * villager.SwaySpeed + villager.PhaseOffset) * villager.SwayAngle;
+
+                villager.Transform.position = villager.BasePosition + new Vector3(0f, bob, 0f);
+                villager.Transform.rotation = Quaternion.Euler(0f, villager.BaseYaw + sway, 0f);
+            }
         }
 
         void CreateInteractiveHouse(
@@ -848,6 +915,96 @@ namespace McpTest.VoxelVillage
             flower.transform.SetParent(_worldRoot, false);
         }
 
+        void CreateVillager(
+            string npcId,
+            string objectName,
+            Vector3 position,
+            Color color,
+            Vector3 scale,
+            float yaw,
+            float bobAmplitude,
+            float bobSpeed,
+            float swayAngle,
+            float swaySpeed,
+            float phaseOffset,
+            AccessoryType accessoryType)
+        {
+            var villager = CreatePrimitive(
+                PrimitiveType.Capsule,
+                objectName,
+                position,
+                scale,
+                CreateMaterial(color));
+            villager.transform.SetParent(_worldRoot, false);
+            villager.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            CreateVillagerAccessories(villager.transform, color, accessoryType);
+            _villagers.Add(new VillagerInstance(npcId, villager.transform, position, yaw, bobAmplitude, bobSpeed, swayAngle, swaySpeed, phaseOffset, scale.y * 0.45f));
+        }
+
+        void CreateVillagerAccessories(Transform parent, Color baseColor, AccessoryType accessoryType)
+        {
+            var darkTrim = CreateMaterial(Color.Lerp(baseColor, Color.black, 0.45f));
+            var lightTrim = CreateMaterial(Color.Lerp(baseColor, Color.white, 0.35f));
+            var accent = CreateMaterial(new Color(0.94f, 0.86f, 0.52f));
+            var cloth = CreateMaterial(new Color(0.18f, 0.18f, 0.2f));
+
+            switch (accessoryType)
+            {
+                case AccessoryType.MerchantApron:
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Apron", new Vector3(0f, 0.15f, 0.42f), new Vector3(0.7f, 1.05f, 0.08f), lightTrim);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Cap", new Vector3(0f, 1.45f, 0f), new Vector3(0.82f, 0.22f, 0.82f), accent);
+                    break;
+
+                case AccessoryType.GardenerHat:
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cylinder, "HatTop", new Vector3(0f, 1.46f, 0f), new Vector3(0.32f, 0.15f, 0.32f), accent);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cylinder, "HatBrim", new Vector3(0f, 1.31f, 0f), new Vector3(0.58f, 0.03f, 0.58f), accent);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Basket", new Vector3(0.46f, -0.02f, 0.18f), new Vector3(0.24f, 0.32f, 0.24f), darkTrim);
+                    break;
+
+                case AccessoryType.CarpenterBelt:
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Belt", new Vector3(0f, -0.08f, 0f), new Vector3(0.86f, 0.14f, 0.86f), darkTrim);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "ToolPouch", new Vector3(0.42f, -0.06f, 0.18f), new Vector3(0.18f, 0.34f, 0.12f), cloth);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "HammerHead", new Vector3(-0.52f, 0.1f, 0.24f), new Vector3(0.2f, 0.08f, 0.12f), accent);
+                    break;
+
+                case AccessoryType.WatcherScarf:
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Scarf", new Vector3(0f, 0.72f, 0f), new Vector3(0.88f, 0.16f, 0.88f), accent);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Book", new Vector3(0.48f, 0.08f, 0.24f), new Vector3(0.18f, 0.26f, 0.12f), lightTrim);
+                    break;
+
+                case AccessoryType.LanternCape:
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Cape", new Vector3(0f, 0.3f, -0.24f), new Vector3(0.76f, 1.18f, 0.08f), darkTrim);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cylinder, "Lantern", new Vector3(0.54f, -0.06f, 0.18f), new Vector3(0.12f, 0.22f, 0.12f), accent);
+                    break;
+
+                case AccessoryType.CourierPack:
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Backpack", new Vector3(0f, 0.2f, -0.28f), new Vector3(0.56f, 0.78f, 0.2f), darkTrim);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "Cap", new Vector3(0f, 1.42f, 0.12f), new Vector3(0.8f, 0.18f, 0.72f), lightTrim);
+                    CreateAttachmentPrimitive(parent, PrimitiveType.Cube, "ShoulderBag", new Vector3(-0.46f, -0.05f, 0.16f), new Vector3(0.2f, 0.38f, 0.16f), accent);
+                    break;
+            }
+        }
+
+        void CreateAttachmentPrimitive(
+            Transform parent,
+            PrimitiveType primitiveType,
+            string name,
+            Vector3 localPosition,
+            Vector3 localScale,
+            Material material)
+        {
+            var attachment = CreatePrimitive(primitiveType, name, parent.position, localScale, material);
+            attachment.transform.SetParent(parent, false);
+            attachment.transform.localPosition = localPosition;
+            attachment.transform.localRotation = Quaternion.identity;
+
+            var collider = attachment.GetComponent<Collider>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+            }
+        }
+
         static GameObject CreatePrimitive(
             PrimitiveType primitiveType,
             string name,
@@ -879,6 +1036,53 @@ namespace McpTest.VoxelVillage
             }
 
             return material;
+        }
+
+        sealed class VillagerInstance
+        {
+            public VillagerInstance(
+                string npcId,
+                Transform transform,
+                Vector3 basePosition,
+                float baseYaw,
+                float bobAmplitude,
+                float bobSpeed,
+                float swayAngle,
+                float swaySpeed,
+                float phaseOffset,
+                float headOffset)
+            {
+                NpcId = npcId;
+                Transform = transform;
+                BasePosition = basePosition;
+                BaseYaw = baseYaw;
+                BobAmplitude = bobAmplitude;
+                BobSpeed = bobSpeed;
+                SwayAngle = swayAngle;
+                SwaySpeed = swaySpeed;
+                PhaseOffset = phaseOffset;
+                HeadOffset = headOffset;
+            }
+
+            public string NpcId { get; }
+
+            public Transform Transform { get; }
+
+            public Vector3 BasePosition { get; }
+
+            public float BaseYaw { get; }
+
+            public float BobAmplitude { get; }
+
+            public float BobSpeed { get; }
+
+            public float SwayAngle { get; }
+
+            public float SwaySpeed { get; }
+
+            public float PhaseOffset { get; }
+
+            public float HeadOffset { get; }
         }
     }
 
