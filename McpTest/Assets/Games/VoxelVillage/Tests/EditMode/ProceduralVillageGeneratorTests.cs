@@ -20,6 +20,79 @@ namespace McpTest.VoxelVillage.Tests
         }
 
         [Test]
+        public void Generate_NpcSpawnsAreDistributedAcrossVillageDistricts()
+        {
+            var layout = ProceduralVillageGenerator.Generate(12345, 72);
+            var grid = VillageGrid.FromLayout(layout);
+            var northCount = 0;
+            var southCount = 0;
+            var eastCount = 0;
+            var westCount = 0;
+            var distantCount = 0;
+
+            for (var index = 0; index < layout.npcSpawnPoints.Length; index++)
+            {
+                var spawn = layout.npcSpawnPoints[index];
+                var centerOffset = spawn.patrolCenter - layout.plazaCenter;
+                var plazaDistance = Mathf.Abs(spawn.cell.x - layout.plazaCenter.x) + Mathf.Abs(spawn.cell.y - layout.plazaCenter.y);
+
+                Assert.IsTrue(grid.IsWalkable(spawn.patrolCenter, false), $"Patrol center for npc spawn {index} should stay on NPC walkable cells.");
+                Assert.That(spawn.patrolRadius, Is.GreaterThanOrEqualTo(5), $"Patrol radius for npc spawn {index} should define a meaningful area.");
+
+                if (centerOffset.y > 0)
+                {
+                    northCount++;
+                }
+
+                if (centerOffset.y < 0)
+                {
+                    southCount++;
+                }
+
+                if (centerOffset.x > 0)
+                {
+                    eastCount++;
+                }
+
+                if (centerOffset.x < 0)
+                {
+                    westCount++;
+                }
+
+                if (plazaDistance >= 6)
+                {
+                    distantCount++;
+                }
+            }
+
+            Assert.Greater(northCount, 0);
+            Assert.Greater(southCount, 0);
+            Assert.Greater(eastCount, 0);
+            Assert.Greater(westCount, 0);
+            Assert.GreaterOrEqual(distantCount, 10, "Most villagers should start outside the plaza core.");
+        }
+
+        [Test]
+        public void Generate_NpcSpawnsCanReachTheirAssignedPatrolCenters()
+        {
+            var layout = ProceduralVillageGenerator.Generate(24601, 72);
+            var grid = VillageGrid.FromLayout(layout);
+            var path = new List<Vector2Int>();
+            var patrolCells = new List<Vector2Int>();
+
+            for (var index = 0; index < layout.npcSpawnPoints.Length; index++)
+            {
+                var spawn = layout.npcSpawnPoints[index];
+
+                Assert.IsTrue(grid.TryFindPath(spawn.cell, spawn.patrolCenter, path, false), $"Npc spawn {index} should connect to its patrol center.");
+
+                grid.CollectReachableCells(spawn.patrolCenter, spawn.patrolRadius, patrolCells, false);
+                Assert.Greater(patrolCells.Count, 3, $"Npc spawn {index} should have multiple patrol cells in its assigned area.");
+                CollectionAssert.Contains(patrolCells, spawn.patrolCenter);
+            }
+        }
+
+        [Test]
         public void Generate_DifferentSeedsChangeLayout()
         {
             var first = ProceduralVillageGenerator.Generate(111, 72);

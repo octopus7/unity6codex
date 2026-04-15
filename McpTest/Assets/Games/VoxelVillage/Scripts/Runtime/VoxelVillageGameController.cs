@@ -102,7 +102,6 @@ namespace McpTest.VoxelVillage
         readonly List<HouseInstance> _houses = new List<HouseInstance>();
         readonly List<VillagerInstance> _villagers = new List<VillagerInstance>();
         readonly List<DoorInstance> _doors = new List<DoorInstance>();
-        readonly List<Vector2Int> _patrolCells = new List<Vector2Int>();
         System.Random _worldRandom = new System.Random();
 
         InteractionTarget _currentTarget;
@@ -235,7 +234,6 @@ namespace McpTest.VoxelVillage
             _houses.Clear();
             _villagers.Clear();
             _doors.Clear();
-            _patrolCells.Clear();
             _currentTarget = InteractionTarget.None;
             _currentVillager = null;
             _currentDoor = null;
@@ -251,7 +249,6 @@ namespace McpTest.VoxelVillage
 
             _layout = ProceduralVillageGenerator.Generate(_worldSeed, WorldGridSize);
             _villageGrid = VillageGrid.FromLayout(_layout);
-            CollectPatrolCells();
 
             var grassMaterial = CreateMaterial(new Color(0.49f, 0.74f, 0.46f));
             var roadMaterial = CreateMaterial(new Color(0.77f, 0.67f, 0.5f));
@@ -732,7 +729,9 @@ namespace McpTest.VoxelVillage
                     Range(0.7f, 1.45f),
                     Range(0f, Mathf.PI * 2f),
                     style.AccessoryType,
-                    spawnCell);
+                    spawnCell,
+                    spawn.patrolCenter,
+                    spawn.patrolRadius);
             }
         }
 
@@ -1366,7 +1365,7 @@ namespace McpTest.VoxelVillage
             var start = WorldToCell(villager.Transform.position);
             for (var attempt = 0; attempt < 10; attempt++)
             {
-                var destination = ChoosePatrolDestination(start, villager.HomeCell);
+                var destination = ChoosePatrolDestination(villager, start);
                 if (destination == start)
                 {
                     continue;
@@ -1387,24 +1386,24 @@ namespace McpTest.VoxelVillage
             villager.NextPathRefreshTime = villager.WaitUntilTime;
         }
 
-        Vector2Int ChoosePatrolDestination(Vector2Int start, Vector2Int homeCell)
+        Vector2Int ChoosePatrolDestination(VillagerInstance villager, Vector2Int start)
         {
-            if (_patrolCells.Count == 0)
+            if (villager.PatrolCells.Count == 0)
             {
-                return homeCell;
+                return villager.HomeCell;
             }
 
             for (var attempt = 0; attempt < 20; attempt++)
             {
-                var candidate = _patrolCells[_worldRandom.Next(0, _patrolCells.Count)];
-                var distance = Mathf.Abs(candidate.x - homeCell.x) + Mathf.Abs(candidate.y - homeCell.y);
-                if (candidate != start && distance >= 2 && distance <= 18)
+                var candidate = villager.PatrolCells[_worldRandom.Next(0, villager.PatrolCells.Count)];
+                var distance = Mathf.Abs(candidate.x - start.x) + Mathf.Abs(candidate.y - start.y);
+                if (candidate != start && distance >= 2)
                 {
                     return candidate;
                 }
             }
 
-            return homeCell;
+            return villager.HomeCell != start ? villager.HomeCell : villager.PatrolCenter;
         }
 
         Vector3 ResolveDynamicBlocking(VillagerInstance? self, Vector3 currentPosition, Vector3 desiredPosition, float collisionRadius)
@@ -1441,41 +1440,18 @@ namespace McpTest.VoxelVillage
             return desiredPosition;
         }
 
-        void CollectPatrolCells()
+        void PopulatePatrolCells(VillagerInstance villager)
         {
-            var lookup = new HashSet<Vector2Int>();
-
-            for (var roadIndex = 0; roadIndex < _layout.roads.Length; roadIndex++)
+            villager.PatrolCells.Clear();
+            _villageGrid.CollectReachableCells(villager.PatrolCenter, villager.PatrolRadius, villager.PatrolCells, false);
+            if (villager.PatrolCells.Count == 0)
             {
-                var road = _layout.roads[roadIndex];
-                for (var cellIndex = 0; cellIndex < road.cells.Length; cellIndex++)
-                {
-                    RegisterPatrolCell(lookup, road.cells[cellIndex]);
-                }
+                _villageGrid.CollectReachableCells(villager.HomeCell, villager.PatrolRadius, villager.PatrolCells, false);
             }
-
-            for (var y = -3; y <= 3; y++)
+            if (!villager.PatrolCells.Contains(villager.HomeCell))
             {
-                for (var x = -3; x <= 3; x++)
-                {
-                    RegisterPatrolCell(lookup, _layout.plazaCenter + new Vector2Int(x, y));
-                }
+                villager.PatrolCells.Add(villager.HomeCell);
             }
-
-            for (var spawnIndex = 0; spawnIndex < _layout.npcSpawnPoints.Length; spawnIndex++)
-            {
-                RegisterPatrolCell(lookup, _layout.npcSpawnPoints[spawnIndex].cell);
-            }
-        }
-
-        void RegisterPatrolCell(HashSet<Vector2Int> lookup, Vector2Int cell)
-        {
-            if (!_villageGrid.IsWalkable(cell, false) || !lookup.Add(cell))
-            {
-                return;
-            }
-
-            _patrolCells.Add(cell);
         }
 
         void CreateFoliage(VillageFoliagePlacement foliage, int index)
@@ -1723,7 +1699,9 @@ namespace McpTest.VoxelVillage
             float swaySpeed,
             float phaseOffset,
             VoxelCharacterAccessoryType accessoryType,
-            Vector2Int homeCell)
+            Vector2Int homeCell,
+            Vector2Int patrolCenter,
+            int patrolRadius)
         {
             var character = VoxelCharacterFactory.CreateCharacter(
                 objectName,
@@ -1735,10 +1713,12 @@ namespace McpTest.VoxelVillage
             var villager = character.Root;
             villager.transform.SetParent(_worldRoot, true);
             villager.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
-            _villagers.Add(new VillagerInstance(
+            var villagerInstance = new VillagerInstance(
                 npcId,
                 villager.transform,
                 homeCell,
+                patrolCenter,
+                patrolRadius,
                 position.y,
                 yaw,
                 bobAmplitude,
@@ -1746,7 +1726,9 @@ namespace McpTest.VoxelVillage
                 swayAngle,
                 swaySpeed,
                 phaseOffset,
-                character.HeadOffset));
+                character.HeadOffset);
+            PopulatePatrolCells(villagerInstance);
+            _villagers.Add(villagerInstance);
         }
 
         static GameObject CreatePrimitive(
@@ -2153,6 +2135,8 @@ namespace McpTest.VoxelVillage
                 string npcId,
                 Transform transform,
                 Vector2Int homeCell,
+                Vector2Int patrolCenter,
+                int patrolRadius,
                 float groundY,
                 float facingYaw,
                 float bobAmplitude,
@@ -2165,6 +2149,8 @@ namespace McpTest.VoxelVillage
                 NpcId = npcId;
                 Transform = transform;
                 HomeCell = homeCell;
+                PatrolCenter = patrolCenter;
+                PatrolRadius = Mathf.Max(2, patrolRadius);
                 CurrentCell = homeCell;
                 GroundY = groundY;
                 FacingYaw = facingYaw;
@@ -2181,6 +2167,10 @@ namespace McpTest.VoxelVillage
             public Transform Transform { get; }
 
             public Vector2Int HomeCell { get; }
+
+            public Vector2Int PatrolCenter { get; }
+
+            public int PatrolRadius { get; }
 
             public Vector2Int CurrentCell { get; set; }
 
@@ -2199,6 +2189,8 @@ namespace McpTest.VoxelVillage
             public float PhaseOffset { get; }
 
             public float HeadOffset { get; }
+
+            public List<Vector2Int> PatrolCells { get; } = new List<Vector2Int>();
 
             public List<Vector2Int> Path { get; } = new List<Vector2Int>();
 

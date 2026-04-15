@@ -67,6 +67,8 @@ namespace McpTest.VoxelVillage
         public string npcId = string.Empty;
         public Vector2Int cell;
         public Vector2Int facing;
+        public Vector2Int patrolCenter;
+        public int patrolRadius = 8;
     }
 
     public enum VillageFoliageKind

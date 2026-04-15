@@ -253,6 +253,48 @@ namespace McpTest.VoxelVillage
             return false;
         }
 
+        public void CollectReachableCells(Vector2Int start, int maxDistance, List<Vector2Int> results, bool includeEmpty)
+        {
+            results.Clear();
+            if (maxDistance < 0 || !IsWalkable(start, includeEmpty))
+            {
+                return;
+            }
+
+            var queue = new Queue<Vector2Int>();
+            var distanceByCell = new Dictionary<int, int>();
+            var startKey = Encode(start.x, start.y);
+            queue.Enqueue(start);
+            distanceByCell[startKey] = 0;
+
+            while (queue.Count > 0)
+            {
+                var cell = queue.Dequeue();
+                var cellKey = Encode(cell.x, cell.y);
+                var distance = distanceByCell[cellKey];
+                results.Add(cell);
+
+                if (distance >= maxDistance)
+                {
+                    continue;
+                }
+
+                var neighbors = GetCardinalNeighbors(cell);
+                for (var index = 0; index < neighbors.Count; index++)
+                {
+                    var neighbor = neighbors[index];
+                    var neighborKey = Encode(neighbor.x, neighbor.y);
+                    if (distanceByCell.ContainsKey(neighborKey) || !IsWalkable(neighbor, includeEmpty))
+                    {
+                        continue;
+                    }
+
+                    distanceByCell[neighborKey] = distance + 1;
+                    queue.Enqueue(neighbor);
+                }
+            }
+        }
+
         public bool TrySetRoadPath(IEnumerable<Vector2Int> cells)
         {
             var wroteAny = false;

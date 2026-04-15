@@ -119,27 +119,67 @@ namespace McpTest.VoxelVillage
 
             void PlaceNpcSpawns()
             {
-                var spawnTargets = new[]
-                {
-                    new Vector2Int(_layout.plazaCenter.x - 2, _layout.plazaCenter.y),
-                    new Vector2Int(_layout.plazaCenter.x + 2, _layout.plazaCenter.y),
-                    new Vector2Int(_layout.plazaCenter.x, _layout.plazaCenter.y - 2),
-                    new Vector2Int(_layout.plazaCenter.x, _layout.plazaCenter.y + 2)
-                };
-
+                var anchors = BuildNpcDistrictAnchors();
+                var usedCells = new HashSet<Vector2Int>();
                 var npcCount = 12;
                 for (var index = 0; index < npcCount; index++)
                 {
-                    var preferred = spawnTargets[index % spawnTargets.Length] + RandomOffset(3);
-                    var cell = FindNearestWalkable(preferred);
+                    var anchor = anchors[index % anchors.Count];
+                    var cell = FindUniqueNpcSpawnCell(anchor.SpawnCell, usedCells);
+                    usedCells.Add(cell);
+                    var patrolCenter = FindNearestWalkable(anchor.PatrolCenter, false);
                     _npcSpawns.Add(new VillageNpcSpawnPoint
                     {
                         npcId = "npc_" + index,
                         cell = cell,
-                        facing = Vector2Int.up
+                        facing = anchor.Facing,
+                        patrolCenter = patrolCenter,
+                        patrolRadius = anchor.PatrolRadius
                     });
                     _grid.SetCellKind(cell, VillageCellKind.NpcSpawn);
                 }
+            }
+
+            List<NpcDistrictAnchor> BuildNpcDistrictAnchors()
+            {
+                var anchors = new List<NpcDistrictAnchor>();
+                for (var index = 0; index < _doors.Count; index++)
+                {
+                    var door = _doors[index];
+                    anchors.Add(new NpcDistrictAnchor(
+                        door.cell + (door.facing * 2),
+                        door.cell + (door.facing * 4),
+                        door.facing,
+                        8));
+                }
+
+                var center = _layout.plazaCenter;
+                var farOffset = Mathf.Clamp(_layout.townSize / 6, 6, 12);
+                var farCenterOffset = Mathf.Min(farOffset + 2, (_layout.townSize / 2) - 3);
+                var midOffset = Mathf.Clamp(farOffset - 4, 4, 8);
+                var midCenterOffset = Mathf.Min(midOffset + 2, farOffset);
+                var roadAnchors = new[]
+                {
+                    new NpcDistrictAnchor(center + new Vector2Int(0, farOffset), center + new Vector2Int(0, farCenterOffset), Vector2Int.down, 6),
+                    new NpcDistrictAnchor(center + new Vector2Int(0, -farOffset), center + new Vector2Int(0, -farCenterOffset), Vector2Int.up, 6),
+                    new NpcDistrictAnchor(center + new Vector2Int(-farOffset, 0), center + new Vector2Int(-farCenterOffset, 0), Vector2Int.right, 6),
+                    new NpcDistrictAnchor(center + new Vector2Int(farOffset, 0), center + new Vector2Int(farCenterOffset, 0), Vector2Int.left, 6),
+                    new NpcDistrictAnchor(center + new Vector2Int(0, midOffset), center + new Vector2Int(0, midCenterOffset), Vector2Int.down, 5),
+                    new NpcDistrictAnchor(center + new Vector2Int(0, -midOffset), center + new Vector2Int(0, -midCenterOffset), Vector2Int.up, 5),
+                    new NpcDistrictAnchor(center + new Vector2Int(-midOffset, 0), center + new Vector2Int(-midCenterOffset, 0), Vector2Int.right, 5),
+                    new NpcDistrictAnchor(center + new Vector2Int(midOffset, 0), center + new Vector2Int(midCenterOffset, 0), Vector2Int.left, 5),
+                    new NpcDistrictAnchor(center + new Vector2Int(-4, 4), center + new Vector2Int(-4, 4), Vector2Int.right, 4),
+                    new NpcDistrictAnchor(center + new Vector2Int(4, 4), center + new Vector2Int(4, 4), Vector2Int.left, 4),
+                    new NpcDistrictAnchor(center + new Vector2Int(-4, -4), center + new Vector2Int(-4, -4), Vector2Int.right, 4),
+                    new NpcDistrictAnchor(center + new Vector2Int(4, -4), center + new Vector2Int(4, -4), Vector2Int.left, 4)
+                };
+
+                for (var index = 0; index < roadAnchors.Length; index++)
+                {
+                    anchors.Add(roadAnchors[index]);
+                }
+
+                return anchors;
             }
 
             bool TryPlaceBuilding(BuildingSlot slot)
@@ -384,9 +424,9 @@ namespace McpTest.VoxelVillage
                 };
             }
 
-            Vector2Int FindNearestWalkable(Vector2Int preferred)
+            Vector2Int FindNearestWalkable(Vector2Int preferred, bool includeEmpty)
             {
-                if (_grid.IsWalkable(preferred))
+                if (_grid.IsWalkable(preferred, includeEmpty))
                 {
                     return preferred;
                 }
@@ -398,7 +438,7 @@ namespace McpTest.VoxelVillage
                         for (var x = -radius; x <= radius; x++)
                         {
                             var candidate = preferred + new Vector2Int(x, y);
-                            if (_grid.IsWalkable(candidate))
+                            if (_grid.IsWalkable(candidate, includeEmpty))
                             {
                                 return candidate;
                             }
@@ -407,6 +447,34 @@ namespace McpTest.VoxelVillage
                 }
 
                 return _layout.plazaCenter;
+            }
+
+            Vector2Int FindUniqueNpcSpawnCell(Vector2Int preferred, HashSet<Vector2Int> usedCells)
+            {
+                var resolved = FindNearestWalkable(preferred, false);
+                if (!usedCells.Contains(resolved))
+                {
+                    return resolved;
+                }
+
+                for (var radius = 1; radius <= 8; radius++)
+                {
+                    for (var y = -radius; y <= radius; y++)
+                    {
+                        for (var x = -radius; x <= radius; x++)
+                        {
+                            var candidate = FindNearestWalkable(preferred + new Vector2Int(x, y), false);
+                            if (usedCells.Contains(candidate))
+                            {
+                                continue;
+                            }
+
+                            return candidate;
+                        }
+                    }
+                }
+
+                return resolved;
             }
 
             Vector2Int RandomCell(int margin)
@@ -457,6 +525,22 @@ namespace McpTest.VoxelVillage
                 public string Id { get; }
                 public Vector2Int Anchor { get; }
                 public Vector2Int Facing { get; }
+            }
+
+            readonly struct NpcDistrictAnchor
+            {
+                public NpcDistrictAnchor(Vector2Int spawnCell, Vector2Int patrolCenter, Vector2Int facing, int patrolRadius)
+                {
+                    SpawnCell = spawnCell;
+                    PatrolCenter = patrolCenter;
+                    Facing = facing;
+                    PatrolRadius = patrolRadius;
+                }
+
+                public Vector2Int SpawnCell { get; }
+                public Vector2Int PatrolCenter { get; }
+                public Vector2Int Facing { get; }
+                public int PatrolRadius { get; }
             }
         }
     }
