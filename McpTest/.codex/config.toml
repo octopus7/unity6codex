@@ -1,0 +1,5 @@
+[mcp_servers.ai-game-developer]
+args = ["port=26121","plugin-timeout=10000","client-transport=stdio","authorization=none"]
+command = "D:/github/unity6codex/McpTest/Library/mcp-server/win-x64/unity-mcp-server.exe"
+enabled = true
+tool_timeout_sec = 300
