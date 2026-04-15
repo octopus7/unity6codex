@@ -7,25 +7,25 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "우리 마을은 빵 굽는 냄새도 사람 눈빛의 단추를 한 칸쯤 풀어놔. 골목만 돌면 허기보다 상상이 먼저 달아오르거든.",
-            "en": "In this town, even the smell of baking bread feels like it loosens a button in a person's gaze. Turn one corner and imagination heats up before hunger does.",
-            "ja": "この町じゃ、焼きたてのパンの香りだけで人のまなざしのボタンがひとつ外れるみたい。路地をひとつ曲がるだけで、空腹より先に想像が熱を帯びるの。"
+            "ko": "우리 마을은 빵 굽는 냄새도 사람 눈빛의 단추를 두 칸쯤 풀어놔. 갓 구운 냄새 맡고 나면 다들 배보다 입술이 먼저 뜨거워지거든.",
+            "en": "In this town, even the smell of baking bread loosens two buttons in a person's gaze. Catch a fresh-baked scent and people's lips heat up before their stomachs do.",
+            "ja": "この町じゃ、焼きたてのパンの香りだけで人のまなざしのボタンが二つくらい外れる。焼きたての匂いを嗅ぐと、みんなお腹より先に唇が熱くなるの。"
           }
         },
         {
           "speaker": "player",
           "translations": {
-            "ko": "아침부터 상상력이 발효되는 건 점포 책임 맞죠? 이 정도면 유혹성 진열인데.",
-            "en": "If my imagination starts proofing before breakfast, surely that's the bakery's liability. At this point the display itself is flirting.",
-            "ja": "朝から想像力が発酵し始めるなら、さすがに店の責任ですよね。ここまで来ると陳列そのものが口説いてます。"
+            "ko": "아침 빵 사러 왔다가 괜히 키스 생각까지 나면 점포 책임 맞죠? 이 정도면 진열장이 먼저 들이대는 건데.",
+            "en": "If I come in for breakfast bread and end up thinking about kissing, that's the bakery's fault, right? At that point the display case is making the first move.",
+            "ja": "朝のパンを買いに来ただけなのに、なぜかキスまで連想したら店の責任ですよね？ そこまで来るとショーケースのほうから誘ってます。"
           }
         },
         {
           "speaker": "npc",
           "translations": {
-            "ko": "그 정도는 생활 서비스지. 대신 눈웃음은 넉넉하게, 혀는 얌전하게. 그게 이 동네 예의야.",
-            "en": "That much is practically a public service. Around here we keep the smiling eyes generous and the tongue polite. That's the town's manners.",
-            "ja": "それくらいは生活サービスよ。この町じゃ、目元の笑みはたっぷりでも舌は上品に。それが礼儀なの。"
+            "ko": "상상은 공짜지. 대신 입술은 농담까지만 들이대고, 진짜는 서로 허락 받고. 그게 이 동네 어른 예의야.",
+            "en": "Imagination is free. Around here the lips only go as far as the joke, and anything real waits for both people to want it. That's adult manners in this town.",
+            "ja": "想像は無料よ。この町じゃ、唇が近づくのは冗談のところまで。本気のことはちゃんとお互いが望んでから。それが大人の礼儀なの。"
           }
         }
       ]
@@ -67,25 +67,25 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "새 문짝 달아놓으면 꼭 누가 이 문 뒤 공기는 좀 위험해 보인다고 웃더라. 여기선 문보다 상상이 먼저 열려.",
-            "en": "Whenever I hang a new door, someone laughs and says the air behind it looks a little dangerous. Around here, imagination opens before the door does.",
-            "ja": "新しい扉を付けると、決まって誰かが『この扉の向こうの空気、ちょっと危なそうだね』って笑うんだ。この町は扉より想像のほうが先に開く。"
+            "ko": "새 문짝 달아놓으면 꼭 누가 이 문 뒤에선 숨소리도 더 야릇하게 울리겠다고 웃더라. 여기선 문보다 상상이 먼저 벌어져.",
+            "en": "Whenever I hang a new door, someone laughs that even breathing would sound more suggestive behind it. Around here, imagination swings open before the door does.",
+            "ja": "新しい扉を付けると、決まって『この向こうじゃ息づかいまで妙に色っぽく響きそうだ』って笑うんだ。この町は扉より想像のほうが先に開く。"
           }
         },
         {
           "speaker": "player",
           "translations": {
-            "ko": "하루 씨 작업장은 경첩보다 농담이 더 잘 돌아가네요.",
-            "en": "Your workshop runs on jokes even better than hinges.",
-            "ja": "ハルさんの工房は、蝶番より冗談のほうがよく回りますね。"
+            "ko": "하루 씨 작업장은 경첩보다 수위가 더 잘 풀리네요.",
+            "en": "Your workshop loosens the rating even better than it loosens hinges.",
+            "ja": "ハルさんの工房は、蝶番より先に空気の温度をゆるめますね。"
           }
         },
         {
           "speaker": "npc",
           "translations": {
-            "ko": "살짝 뜨거운 정도는 괜찮지. 끈적하게만 안 가면 다들 웃으면서 받아쳐.",
-            "en": "A little heat is fine. As long as it never turns sticky, everyone throws the joke back with a grin.",
-            "ja": "少しくらい熱いのは構わないさ。でもべたつくところまで行かなければ、みんな笑って冗談を返してくる。"
+            "ko": "농담은 세도 돼. 대신 손은 얌전하고, 진짜 합은 맞는 사람끼리만 봐야지.",
+            "en": "The jokes can get strong. The hands stay polite, though, and any real chemistry is only for people who are actually on the same page.",
+            "ja": "冗談は強めでもいいさ。でも手つきは上品に、本当に熱が合うのはちゃんと気持ちの合う相手同士だけだ。"
           }
         }
       ]
@@ -113,9 +113,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "그래서 더 짜릿하지. 대놓고 다 보이는 데서도 말은 점잖은데 공기만 살짝 발칙해지거든.",
-            "en": "That's what makes it thrilling. Even in plain view, the words stay proper while only the air turns a little wicked.",
-            "ja": "だからこそぞくっとするんだ。人目のある場所でも、言葉は上品なままなのに空気だけが少し小悪魔っぽくなる。"
+            "ko": "그래서 더 짜릿하지. 다 보는 데서도 말은 멀쩡한데 머릿속만 대놓고 19금 직전으로 달아오르니까.",
+            "en": "That's what makes it thrilling. Even in plain view the words stay decent, while the mind runs straight up to the edge of something openly R-rated.",
+            "ja": "だからこそぞくっとするんだ。人目のある場所では言葉はまともなままなのに、頭の中だけがあからさまに一線手前まで熱くなる。"
           }
         }
       ]
@@ -143,9 +143,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "밝히는 건 길만이 아니지. 여기선 시선이 목선 따라 조금 오래 흘러도 손끝만 얌전하면 다들 어른스럽게 웃어넘겨.",
-            "en": "They brighten more than roads. Around here, even if a gaze drifts along someone's neckline a little too long, people take it in stride as long as the hands stay polite.",
-            "ja": "照らすのは道だけじゃないさ。この町では、視線が首元を少し長めになぞっても、手つきさえ上品ならみんな大人っぽく笑って流すんだ。"
+            "ko": "밝히는 건 길만이 아니지. 여기선 시선이 쇄골 아래로 떨어지기 직전까진 다들 웃어넘겨. 그 다음은 당사자들끼리 정하는 거고.",
+            "en": "They brighten more than roads. Around here, people can laugh off a gaze right up to the moment before it drops below the collarbone. Anything after that belongs to the people involved.",
+            "ja": "照らすのは道だけじゃないさ。この町じゃ、視線が鎖骨の下に落ちる寸前まではみんな笑って受け流せる。その先は当人同士で決めることだけどね。"
           }
         }
       ]
@@ -187,25 +187,25 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "찻집 커튼은 얇게 쳐놔. 하나도 안 보이면 다들 누가 누구랑 눈 맞추고 입꼬리부터 녹였는지 멋대로 상상하잖아.",
-            "en": "I keep the tea shop curtains light. If people can't see a thing, they start inventing who locked eyes with whom and whose smile melted first.",
-            "ja": "茶屋のカーテンは薄めにしてある。何も見えないと、誰が誰と目を合わせて、どっちの口元が先にほどけたかまで勝手に想像しはじめるからね。"
+            "ko": "찻집 커튼은 얇게 쳐놔. 하나도 안 보이면 다들 누가 누구랑 눈 맞추고, 찻잔보다 입술 먼저 축였는지 상상하잖아.",
+            "en": "I keep the tea shop curtains light. If people can't see a thing, they start inventing who locked eyes with whom and who moistened their lips before touching their teacup.",
+            "ja": "茶屋のカーテンは薄めにしてある。何も見えないと、誰が誰と目を合わせて、どっちが湯のみより先に唇を湿らせたかまで勝手に想像しはじめるからね。"
           }
         },
         {
           "speaker": "player",
           "translations": {
-            "ko": "적당히 보여줘야 상상도 덜 달아오른다는 거군요.",
-            "en": "So showing just enough keeps the imagination from running too hot.",
-            "ja": "ほどよく見せたほうが、想像も熱くなりすぎずに済むってことですね。"
+            "ko": "적당히 보여줘야 상상도 덜 침실 쪽으로 달린다는 거군요.",
+            "en": "So showing just enough keeps people's imaginations from sprinting straight toward the bedroom.",
+            "ja": "ほどよく見せたほうが、想像がまっすぐ寝室まで走っていかずに済むってことですね。"
           }
         },
         {
           "speaker": "npc",
           "translations": {
-            "ko": "맞아. 이 마을은 숨기기보다 멀쩡한 얼굴로 위험한 농담 하나 얹는 쪽이 취향이야.",
-            "en": "Exactly. This town prefers wearing a perfectly calm face while laying down one dangerous joke instead of hiding everything.",
-            "ja": "そう。この町は全部隠すより、平然とした顔で少し危ない冗談をひとつ乗せるほうが性に合ってる。"
+            "ko": "맞아. 이 마을은 멀쩡한 얼굴로 위험한 농담 하나 얹고, 진짜 뜨거운 건 둘이 합의한 뒤에만 즐기는 쪽이 취향이야.",
+            "en": "Exactly. This town likes to wear a calm face, lay down one dangerous joke, and save anything truly hot for after two people agree to it.",
+            "ja": "そう。この町は平然とした顔で少し危ない冗談をひとつ乗せて、本当に熱いことは二人がちゃんと望んでから楽しむほうが性に合ってる。"
           }
         }
       ]
@@ -217,9 +217,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "돌담은 너무 빽빽하면 답답해 보여. 틈이 조금 있어야 바람도 농담도 드나들지.",
-            "en": "A stone wall looks suffocating if it's packed too tight. Leave a little space and both the breeze and the jokes can pass through.",
-            "ja": "石垣は詰めすぎると息苦しく見える。少し隙間があってこそ、風も冗談も通れるんだ。"
+            "ko": "돌담은 너무 빽빽하면 답답해 보여. 틈이 조금 있어야 바람도 농담도, 밤에 괜히 뜨거워진 숨도 드나들지.",
+            "en": "A stone wall looks suffocating if it's packed too tight. Leave a little space and the breeze, the jokes, and even a breath made hot by the night can pass through.",
+            "ja": "石垣は詰めすぎると息苦しく見える。少し隙間があってこそ、風も冗談も、夜に妙に熱くなった息も通れるんだ。"
           }
         },
         {
@@ -233,9 +233,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "둘 다 비슷해. 오래 가려면 단단함보다 숨 쉴 틈이 먼저야.",
-            "en": "They're not so different. If you want something to last, breathing room matters before stiffness.",
-            "ja": "どっちも似たようなもんだ。長持ちさせたいなら、硬さより先に息のできる余白がいる。"
+            "ko": "둘 다 비슷해. 오래 가려면 단단함보다 몸 하나 비집고 들어올 틈이 먼저야.",
+            "en": "They're not so different. If you want something to last, room for a whole body to edge in matters before sheer hardness.",
+            "ja": "どっちも似たようなもんだ。長持ちさせたいなら、ただ硬いよりも、ひとりぶんの体が入り込める余白のほうが先なんだ。"
           }
         }
       ]
@@ -247,9 +247,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "꽃다발은 색을 너무 얌전히 섞으면 심심해. 한 송이는 꼭 '나 오늘 건드리면 곤란해질걸' 하는 표정이어야 예쁘거든.",
-            "en": "A bouquet gets dull if the colors behave too politely. One bloom has to look like it's saying, 'Touch me today and things may get complicated,' or it doesn't shine.",
-            "ja": "花束は色をおとなしく混ぜすぎると退屈になる。一本くらいは『今日は触れたら少し厄介よ』って顔をしていてこそ、きれいなの。"
+            "ko": "꽃다발은 색을 너무 얌전히 섞으면 심심해. 한 송이는 꼭 '나 오늘 건드리면 밤새 생각날걸' 하는 표정이어야 예쁘거든.",
+            "en": "A bouquet gets dull if the colors behave too politely. One bloom has to look like it's saying, 'Touch me today and you'll think about it all night,' or it doesn't shine.",
+            "ja": "花束は色をおとなしく混ぜすぎると退屈になる。一本くらいは『今日触れたら一晩じゅう思い出すわよ』って顔をしていてこそ、きれいなの。"
           }
         },
         {
@@ -263,9 +263,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "맞아. 시선 끄는 건 죄가 아니지. 목선이든 손목이든, 어디 한 군데쯤 상상 들어올 틈을 남기는 게 멋이야.",
-            "en": "Exactly. Catching the eye isn't a crime. Whether it's the neckline or the wrist, style is leaving a small opening somewhere for imagination to slip in.",
-            "ja": "その通り。目を引くことは罪じゃない。首元でも手首でも、どこか一か所に想像が入り込む隙を残すのがおしゃれなんだ。"
+            "ko": "맞아. 시선 끄는 건 죄가 아니지. 목선이든 허리선이든, 상상이 들어와 앉을 자리 하나쯤 남기는 게 멋이야.",
+            "en": "Exactly. Catching the eye isn't a crime. Whether it's the neckline or the line of the waist, style means leaving one little place where imagination can sit down.",
+            "ja": "その通り。目を引くことは罪じゃない。首元でも腰の線でも、想像が座り込める席をひとつ残すのがおしゃれなんだ。"
           }
         }
       ]
@@ -307,9 +307,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "천은 너무 꽉 당기면 무늬가 죽어. 살짝 느슨해야 몸선도 마음선도 예쁘게 흐르지.",
-            "en": "Pull cloth too tight and the pattern dies. Leave it a little loose and both the body's line and the heart's line flow better.",
-            "ja": "布は張りすぎると柄が死ぬ。少しだけゆるいほうが、体の線も心の線もきれいに流れるの。"
+            "ko": "천은 너무 꽉 당기면 무늬가 죽어. 살짝 느슨해야 몸선도 마음선도, 괜히 만져보고 싶단 소리 나올 만큼 아슬하게 예쁘지.",
+            "en": "Pull cloth too tight and the pattern dies. Leave it a little loose and both the body's line and the heart's line stay just tempting enough to make someone want to touch.",
+            "ja": "布は張りすぎると柄が死ぬ。少しだけゆるいほうが、体の線も心の線も、つい触れてみたくなるくらい危うくきれいに見えるの。"
           }
         },
         {
@@ -323,9 +323,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "그게 좋은 직물의 힘이야. 사람도 숨 쉬게 해주면 목소리부터 먼저 부드러워지거든.",
-            "en": "That's the power of good fabric. Give people room to breathe and even their voices soften first.",
-            "ja": "それがいい布の力よ。人も息ができるようにしてあげれば、まず声から先にやわらかくなるの。"
+            "ko": "그게 좋은 직물의 힘이야. 사람도 편해지면 목소리부터 풀리고, 수위도 한 칸씩 솔직해지거든.",
+            "en": "That's the power of good fabric. Make people comfortable and their voices loosen first, then the rating gets honest one notch at a time.",
+            "ja": "それがいい布の力よ。人も楽になると、まず声がほどけて、そのあと空気の温度も一段ずつ正直になるの。"
           }
         }
       ]
@@ -337,9 +337,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "새벽 강바람 맞고 오면 농담이 좀 짭짤해져. 괜히 혀가 먼저 선 넘기 직전까지 장난을 치거든.",
-            "en": "After a dawn run by the river, my jokes come back a little saltier. Maybe it's just that my tongue starts playing right up to the edge of the line.",
-            "ja": "夜明けの川風を浴びてくると、冗談が少し塩気を帯びるんだ。たぶん先に舌のほうが、線を越える寸前までいたずらを始めるせいだな。"
+            "ko": "새벽 강바람 맞고 오면 농담이 좀 짭짤해져. 괜히 혀가 먼저 키스 직전 같은 소리를 하거든.",
+            "en": "After a dawn run by the river, my jokes come back a little saltier. Maybe it's just that my tongue starts sounding like it's one breath away from a kiss.",
+            "ja": "夜明けの川風を浴びてくると、冗談が少し塩気を帯びるんだ。たぶん先に舌のほうが、キスの寸前みたいなことを言い出すせいだな。"
           }
         },
         {
@@ -353,9 +353,9 @@
         {
           "speaker": "npc",
           "translations": {
-            "ko": "비린내만 빼면 다들 잘 들어. 이 마을은 재치 있는 한마디에 잘 낚이거든. 살짝 발칙하면 더 빨리 물고.",
-            "en": "Take the stink out and people listen just fine. This town bites easily on a clever line, and it bites faster if the line is a little wicked.",
-            "ja": "生臭さえ抜けば、みんなちゃんと聞いてくれる。この町は気の利いたひと言に案外よく食いつくし、少し小悪魔っぽいほうがもっと早く食いつくんだ。"
+            "ko": "비린내만 빼면 다들 잘 들어. 이 마을은 재치 있는 한마디보다, 살짝 야한 한마디에 더 빨리 물어.",
+            "en": "Take the stink out and people listen just fine. In this town, a slightly naughty line hooks faster than a merely clever one.",
+            "ja": "生臭さえ抜けば、みんなちゃんと聞いてくれる。この町じゃ、ただ気が利いたひと言より、少しきわどいひと言のほうが早く食いつかれるんだ。"
           }
         }
       ]
