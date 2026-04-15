@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
@@ -166,8 +167,20 @@ namespace McpTest.VoxelVillage
             _mainLight.intensity = 1.1f;
             _mainLight.color = new Color(1f, 0.96f, 0.9f);
             _mainLight.transform.rotation = Quaternion.Euler(48f, -32f, 0f);
+            _mainLight.shadows = LightShadows.Soft;
+            _mainLight.shadowStrength = 0.92f;
+            _mainLight.shadowBias = 0.08f;
+            _mainLight.shadowNormalBias = 0.4f;
+            _mainLight.shadowNearPlane = 0.2f;
+            RenderSettings.sun = _mainLight;
 
-            RenderSettings.ambientLight = new Color(0.64f, 0.72f, 0.82f);
+            RenderSettings.ambientMode = AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.34f, 0.38f, 0.44f);
+
+            if (QualitySettings.shadowDistance < 85f)
+            {
+                QualitySettings.shadowDistance = 85f;
+            }
         }
 
         void EnsureEventSystem()
