@@ -70,6 +70,75 @@ namespace McpTest.VoxelVillage
             return pose;
         }
 
+        public static TwoBoneIkPose SolveWithHint(
+            Vector3 hipPosition,
+            Vector3 targetPosition,
+            Vector3 kneeHintPosition,
+            float upperLength,
+            float lowerLength)
+        {
+            var toTarget = targetPosition - hipPosition;
+            var targetDistance = toTarget.magnitude;
+            var direction = targetDistance > Epsilon ? toTarget / targetDistance : Vector3.down;
+
+            var minReach = Mathf.Max(Epsilon, Mathf.Abs(upperLength - lowerLength) + Epsilon);
+            var maxReach = Mathf.Max(minReach, (upperLength + lowerLength) - Epsilon);
+            var clampedDistance = Mathf.Clamp(targetDistance, minReach, maxReach);
+            var clampedTarget = hipPosition + (direction * clampedDistance);
+
+            var toHint = kneeHintPosition - hipPosition;
+            var bendDirection = Vector3.ProjectOnPlane(toHint, direction);
+            if (bendDirection.sqrMagnitude <= Epsilon)
+            {
+                bendDirection = Vector3.ProjectOnPlane(Vector3.up, direction);
+            }
+
+            if (bendDirection.sqrMagnitude <= Epsilon)
+            {
+                bendDirection = Vector3.ProjectOnPlane(Vector3.right, direction);
+            }
+
+            bendDirection.Normalize();
+
+            var along = ((upperLength * upperLength) - (lowerLength * lowerLength) + (clampedDistance * clampedDistance)) / (2f * clampedDistance);
+            var heightSquared = Mathf.Max(0f, (upperLength * upperLength) - (along * along));
+            var height = Mathf.Sqrt(heightSquared);
+            var kneePosition = hipPosition + (direction * along) + (bendDirection * height);
+
+            return new TwoBoneIkPose(kneePosition, clampedTarget, clampedDistance);
+        }
+
+        public static TwoBoneIkPose ApplyToTransformsWithHint(
+            Transform hip,
+            Transform knee,
+            Vector3 targetPosition,
+            Vector3 kneeHintPosition,
+            float upperLength,
+            float lowerLength)
+        {
+            var pose = SolveWithHint(hip.position, targetPosition, kneeHintPosition, upperLength, lowerLength);
+            var hipToTarget = (pose.TargetPosition - hip.position).normalized;
+            var hipToKnee = (pose.KneePosition - hip.position).normalized;
+            var planeNormal = Vector3.Cross(hipToTarget, hipToKnee);
+            if (planeNormal.sqrMagnitude <= Epsilon)
+            {
+                planeNormal = Vector3.Cross(hipToTarget, Vector3.up);
+            }
+
+            if (planeNormal.sqrMagnitude <= Epsilon)
+            {
+                planeNormal = Vector3.forward;
+            }
+
+            planeNormal.Normalize();
+
+            var hipDirection = (pose.KneePosition - hip.position).normalized;
+            var kneeDirection = (pose.TargetPosition - pose.KneePosition).normalized;
+            hip.rotation = CreateSegmentRotation(hipDirection, planeNormal);
+            knee.rotation = CreateSegmentRotation(kneeDirection, planeNormal);
+            return pose;
+        }
+
         static Quaternion CreateSegmentRotation(Vector3 upDirection, Vector3 planeNormal)
         {
             var safeUp = upDirection.sqrMagnitude > Epsilon ? upDirection.normalized : Vector3.up;

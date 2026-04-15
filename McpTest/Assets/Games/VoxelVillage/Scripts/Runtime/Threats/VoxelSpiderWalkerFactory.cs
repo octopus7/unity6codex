@@ -24,7 +24,12 @@ namespace McpTest.VoxelVillage
         const float VoxelSize = 0.08f;
         const int PaletteSize = 1;
         static readonly Vector3 EyeScale = Vector3.one * 0.25f;
-        static readonly Vector3 LegThicknessScale = new Vector3(0.25f, 1f, 0.25f);
+        static readonly Vector3 LegThicknessScale = new Vector3(0.5f, 1f, 0.5f);
+        const float EyeColumnSpacing = 0.44f;
+        const float EyeRowSpacing = 0.28f;
+        const float EyeClusterRightOffset = -EyeColumnSpacing * 2f;
+        const float FootLateralSpreadScale = 1.85f;
+        const float KneeHintLateralSpreadScale = 1.25f;
 
         static readonly Dictionary<SpiderWalkerModuleType, Mesh> MeshCache = new Dictionary<SpiderWalkerModuleType, Mesh>();
         static Material? SharedBodyMaterial;
@@ -65,7 +70,7 @@ namespace McpTest.VoxelVillage
                 new Vector3(1.4f, 1f, 1.4f),
                 VisualAlignment.Center);
 
-            var eyeCluster = CreateNode(bodyPivot, "EyeCluster", new Vector3(0f, 0.28f, 0.98f));
+            var eyeCluster = CreateNode(bodyPivot, "EyeCluster", new Vector3(EyeClusterRightOffset, 0.28f, 0.98f));
             var eyeRenderers = new List<Renderer>(8);
             for (var row = 0; row < 2; row++)
             {
@@ -77,7 +82,7 @@ namespace McpTest.VoxelVillage
                         $"Eye_{eyeIndex + 1:00}",
                         GetOrCreateMesh(SpiderWalkerModuleType.Eye),
                         GetOrCreateEyeMaterial(),
-                        new Vector3(-0.34f + (column * 0.22f), 0.09f - (row * 0.14f), 0f),
+                        new Vector3(-0.66f + (column * EyeColumnSpacing), 0.14f - (row * EyeRowSpacing), 0f),
                         EyeScale,
                         VisualAlignment.Center);
                     eye.shadowCastingMode = ShadowCastingMode.Off;
@@ -88,10 +93,10 @@ namespace McpTest.VoxelVillage
 
             var legs = new[]
             {
-                CreateLeg(locomotionRoot, "Leg_FL", new Vector3(-0.82f, 0.72f, 0.86f), new Vector3(-1.42f, -1.06f, 0.74f), 0, -1f, 1f),
-                CreateLeg(locomotionRoot, "Leg_FR", new Vector3(0.82f, 0.72f, 0.86f), new Vector3(1.42f, -1.06f, 0.74f), 1, 1f, 1f),
-                CreateLeg(locomotionRoot, "Leg_BL", new Vector3(-0.84f, 0.68f, -0.82f), new Vector3(-1.46f, -1.04f, -0.78f), 1, -1f, -1f),
-                CreateLeg(locomotionRoot, "Leg_BR", new Vector3(0.84f, 0.68f, -0.82f), new Vector3(1.46f, -1.04f, -0.78f), 0, 1f, -1f)
+                CreateLeg(locomotionRoot, "Leg_FL", new Vector3(-0.82f, 0.72f, 0.86f), new Vector3(-1.42f, -1.06f, 0.74f), new Vector3(-1.58f, 1.84f, 1.06f), 0, -1f, 1f),
+                CreateLeg(locomotionRoot, "Leg_FR", new Vector3(0.82f, 0.72f, 0.86f), new Vector3(1.42f, -1.06f, 0.74f), new Vector3(1.58f, 1.84f, 1.06f), 1, 1f, 1f),
+                CreateLeg(locomotionRoot, "Leg_BL", new Vector3(-0.84f, 0.68f, -0.82f), new Vector3(-1.46f, -1.04f, -0.78f), new Vector3(-1.62f, 1.78f, -1.02f), 1, -1f, -1f),
+                CreateLeg(locomotionRoot, "Leg_BR", new Vector3(0.84f, 0.68f, -0.82f), new Vector3(1.46f, -1.04f, -0.78f), new Vector3(1.62f, 1.78f, -1.02f), 0, 1f, -1f)
             };
 
             controller.BindRig(locomotionRoot, bodyPivot, bodyShell.transform, eyeCluster, eyeRenderers.ToArray(), legs);
@@ -103,12 +108,15 @@ namespace McpTest.VoxelVillage
             string name,
             Vector3 rootLocalPosition,
             Vector3 footLocalPosition,
+            Vector3 kneeHintLocalPosition,
             int gaitGroup,
             float sideSign,
             float foreSign)
         {
             var legRoot = CreateNode(parent, name, rootLocalPosition);
             var hip = CreateNode(legRoot, "Hip", Vector3.zero);
+            var adjustedFootLocalPosition = ScaleLateral(footLocalPosition, FootLateralSpreadScale);
+            var adjustedKneeHintLocalPosition = ScaleLateral(kneeHintLocalPosition, KneeHintLateralSpreadScale);
             var upperVisual = CreateVisualObject(
                 hip,
                 "UpperVisual",
@@ -117,6 +125,7 @@ namespace McpTest.VoxelVillage
                 Vector3.zero,
                 LegThicknessScale,
                 VisualAlignment.CenterBase);
+            var upperLength = upperVisual.GetComponent<MeshFilter>().sharedMesh!.bounds.size.y * upperVisual.transform.localScale.y;
 
             var knee = CreateNode(
                 upperVisual.transform,
@@ -131,11 +140,13 @@ namespace McpTest.VoxelVillage
                 Vector3.zero,
                 LegThicknessScale,
                 VisualAlignment.CenterBase);
+            var lowerLength = lowerVisual.GetComponent<MeshFilter>().sharedMesh!.bounds.size.y * lowerVisual.transform.localScale.y;
 
-            var footTarget = CreateNode(legRoot, "FootTarget", footLocalPosition - rootLocalPosition);
+            var footTarget = CreateNode(legRoot, "FootTarget", adjustedFootLocalPosition - rootLocalPosition);
 
-            var upperDirection = new Vector3((footTarget.localPosition.x * 0.68f), footTarget.localPosition.y * 0.52f, footTarget.localPosition.z * 0.64f).normalized;
-            var lowerDirection = new Vector3((footTarget.localPosition.x * 0.34f), footTarget.localPosition.y * 0.48f, footTarget.localPosition.z * 0.36f).normalized;
+            var localKneeTarget = adjustedKneeHintLocalPosition - rootLocalPosition;
+            var upperDirection = localKneeTarget.normalized;
+            var lowerDirection = (footTarget.localPosition - localKneeTarget).normalized;
             hip.localRotation = Quaternion.FromToRotation(Vector3.up, upperDirection);
             knee.localRotation = Quaternion.FromToRotation(Vector3.up, lowerDirection);
 
@@ -145,11 +156,19 @@ namespace McpTest.VoxelVillage
                 hip,
                 knee,
                 footTarget,
-                footLocalPosition,
-                new Vector3(0f, 0f, foreSign),
+                adjustedFootLocalPosition,
+                adjustedKneeHintLocalPosition,
+                upperLength,
+                lowerLength,
                 gaitGroup,
                 sideSign,
                 foreSign);
+        }
+
+        static Vector3 ScaleLateral(Vector3 value, float scale)
+        {
+            value.x *= scale;
+            return value;
         }
 
         static Transform CreateNode(Transform parent, string name, Vector3 localPosition)

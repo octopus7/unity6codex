@@ -15,8 +15,10 @@ namespace McpTest.VoxelVillage
         const float BodyBobAmplitude = 0.08f;
         const float BodyBobSpeed = 6.2f;
         const float StepDuration = 0.22f;
-        const float StepArcHeight = 0.28f;
+        const float StepArcHeight = 0.62f;
         const float StepThreshold = 0.42f;
+        const float ForwardStrideDistance = 0.48f;
+        const float SqueezedForwardStrideDistance = 0.4f;
         const float SqueezedWidthScale = 0.78f;
         const float SqueezedStrideScale = 0.84f;
         const float EyePulseSpeed = 3.4f;
@@ -373,12 +375,12 @@ namespace McpTest.VoxelVillage
                 }
 
                 leg.FootTarget.position = leg.PlantedWorldPosition;
-                var bendNormal = transform.TransformDirection(leg.BendNormalLocal);
-                TwoBoneLegIkSolver.ApplyToTransforms(
+                var kneeHintWorldPosition = ComputeKneeHintWorldPosition(leg);
+                TwoBoneLegIkSolver.ApplyToTransformsWithHint(
                     leg.Hip,
                     leg.Knee,
                     leg.PlantedWorldPosition,
-                    bendNormal,
+                    kneeHintWorldPosition,
                     leg.UpperLength,
                     leg.LowerLength);
             }
@@ -449,7 +451,7 @@ namespace McpTest.VoxelVillage
             velocity.y = 0f;
             if (velocity.sqrMagnitude > 0.0001f)
             {
-                localTarget += _locomotionRoot.InverseTransformDirection(velocity.normalized) * 0.16f;
+                localTarget += _locomotionRoot.InverseTransformDirection(velocity.normalized) * GetForwardStrideDistance();
             }
 
             var world = _locomotionRoot.TransformPoint(localTarget);
@@ -457,11 +459,28 @@ namespace McpTest.VoxelVillage
             return world;
         }
 
+        Vector3 ComputeKneeHintWorldPosition(SpiderLegState leg)
+        {
+            var localHint = leg.KneeHintLocal;
+            localHint.x *= _currentWidthScale;
+
+            var strideScale = CurrentFootprint == MovementFootprint.SqueezedSpider1x1 ? SqueezedStrideScale : 1f;
+            localHint.z *= strideScale;
+            return _locomotionRoot.TransformPoint(localHint);
+        }
+
         float GetStepArcHeight()
         {
             return CurrentFootprint == MovementFootprint.SqueezedSpider1x1
-                ? StepArcHeight * 0.72f
+                ? StepArcHeight * 0.8f
                 : StepArcHeight;
+        }
+
+        float GetForwardStrideDistance()
+        {
+            return CurrentFootprint == MovementFootprint.SqueezedSpider1x1
+                ? SqueezedForwardStrideDistance
+                : ForwardStrideDistance;
         }
 
         void SnapFeetToRestPose()
@@ -481,12 +500,12 @@ namespace McpTest.VoxelVillage
                 leg.StepProgress = 1f;
                 leg.FootTarget.position = planted;
 
-                var bendNormal = transform.TransformDirection(leg.BendNormalLocal);
-                TwoBoneLegIkSolver.ApplyToTransforms(
+                var kneeHintWorldPosition = ComputeKneeHintWorldPosition(leg);
+                TwoBoneLegIkSolver.ApplyToTransformsWithHint(
                     leg.Hip,
                     leg.Knee,
                     planted,
-                    bendNormal,
+                    kneeHintWorldPosition,
                     leg.UpperLength,
                     leg.LowerLength);
             }

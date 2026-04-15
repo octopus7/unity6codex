@@ -13,7 +13,9 @@ namespace McpTest.VoxelVillage
             Transform knee,
             Transform footTarget,
             Vector3 restLocalTarget,
-            Vector3 bendNormalLocal,
+            Vector3 kneeHintLocal,
+            float upperLength,
+            float lowerLength,
             int gaitGroup,
             float sideSign,
             float foreSign)
@@ -25,12 +27,12 @@ namespace McpTest.VoxelVillage
             FootTarget = footTarget;
             LegRootBaseLocalPosition = legRoot.localPosition;
             RestLocalTarget = restLocalTarget;
-            BendNormalLocal = bendNormalLocal.normalized;
+            KneeHintLocal = kneeHintLocal;
             GaitGroup = gaitGroup;
             SideSign = sideSign;
             ForeSign = foreSign;
-            UpperLength = Vector3.Distance(hip.position, knee.position);
-            LowerLength = Vector3.Distance(knee.position, footTarget.position);
+            UpperLength = upperLength;
+            LowerLength = lowerLength;
             PlantedWorldPosition = footTarget.position;
             DesiredWorldPosition = footTarget.position;
         }
@@ -49,7 +51,7 @@ namespace McpTest.VoxelVillage
 
         public Vector3 RestLocalTarget { get; }
 
-        public Vector3 BendNormalLocal { get; }
+        public Vector3 KneeHintLocal { get; }
 
         public int GaitGroup { get; }
 

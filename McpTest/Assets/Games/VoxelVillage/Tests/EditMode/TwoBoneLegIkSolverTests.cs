@@ -41,5 +41,19 @@ namespace McpTest.VoxelVillage.Tests
             Assert.That(left.KneePosition.x, Is.LessThan(0f));
             Assert.That(right.KneePosition.x, Is.GreaterThan(0f));
         }
+
+        [Test]
+        public void SolveWithHint_BendsKneeUpwardForMSilhouette()
+        {
+            var pose = TwoBoneLegIkSolver.SolveWithHint(
+                new Vector3(0f, 0.7f, 0f),
+                new Vector3(1.2f, -1f, 0.1f),
+                new Vector3(1.35f, 1.9f, 0.2f),
+                1.6f,
+                1.9f);
+
+            Assert.That(pose.KneePosition.y, Is.GreaterThan(0.7f));
+            Assert.That(pose.KneePosition.y, Is.GreaterThan(pose.TargetPosition.y));
+        }
     }
 }
