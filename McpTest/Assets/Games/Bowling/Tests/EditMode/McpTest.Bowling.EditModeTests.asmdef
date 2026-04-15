@@ -1,0 +1,21 @@
+{
+    "name": "McpTest.Bowling.EditModeTests",
+    "rootNamespace": "McpTest.Bowling.Tests",
+    "references": [
+        "McpTest.Bowling"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
