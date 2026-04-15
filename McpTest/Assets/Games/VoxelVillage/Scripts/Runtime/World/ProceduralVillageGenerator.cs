@@ -28,6 +28,7 @@ namespace McpTest.VoxelVillage
             readonly List<VillageFoliagePlacement> _foliage = new List<VillageFoliagePlacement>();
             readonly List<VillageNpcSpawnPoint> _npcSpawns = new List<VillageNpcSpawnPoint>();
             readonly List<VillageTrafficSignalLayout> _trafficSignals = new List<VillageTrafficSignalLayout>();
+            readonly List<VillageThreatAnchor> _threatAnchors = new List<VillageThreatAnchor>();
 
             public VillageLayoutBuilder(int seed, int townSize)
             {
@@ -45,6 +46,7 @@ namespace McpTest.VoxelVillage
                 PlaceFences();
                 PlaceFoliage();
                 PlaceNpcSpawns();
+                PlaceThreatAnchors();
                 _layout.roads = _roads.ToArray();
                 _layout.buildings = _buildings.ToArray();
                 _layout.doors = _doors.ToArray();
@@ -52,6 +54,7 @@ namespace McpTest.VoxelVillage
                 _layout.foliage = _foliage.ToArray();
                 _layout.npcSpawnPoints = _npcSpawns.ToArray();
                 _layout.trafficSignals = _trafficSignals.ToArray();
+                _layout.threatAnchors = _threatAnchors.ToArray();
                 _grid.ApplyLayout(_layout);
             }
 
@@ -149,6 +152,41 @@ namespace McpTest.VoxelVillage
                         patrolRadius = anchor.PatrolRadius
                     });
                     _grid.SetCellKind(cell, VillageCellKind.NpcSpawn);
+                }
+            }
+
+            void PlaceThreatAnchors()
+            {
+                var center = _layout.plazaCenter;
+                var candidates = new[]
+                {
+                    new ThreatAnchorCandidate("threat_north", center + new Vector2Int(-1, 6), Vector2Int.down, 12),
+                    new ThreatAnchorCandidate("threat_south", center + new Vector2Int(0, -7), Vector2Int.up, 12),
+                    new ThreatAnchorCandidate("threat_west", center + new Vector2Int(-7, 0), Vector2Int.right, 12),
+                    new ThreatAnchorCandidate("threat_east", center + new Vector2Int(6, -1), Vector2Int.left, 12),
+                    new ThreatAnchorCandidate("threat_ring_nw", center + new Vector2Int(-4, 4), Vector2Int.right, 8),
+                    new ThreatAnchorCandidate("threat_ring_ne", center + new Vector2Int(4, 4), Vector2Int.left, 8),
+                    new ThreatAnchorCandidate("threat_ring_sw", center + new Vector2Int(-4, -4), Vector2Int.right, 8),
+                    new ThreatAnchorCandidate("threat_ring_se", center + new Vector2Int(4, -4), Vector2Int.left, 8)
+                };
+
+                var usedCells = new HashSet<Vector2Int>();
+                for (var index = 0; index < candidates.Length; index++)
+                {
+                    var candidate = candidates[index];
+                    if (!TryResolveThreatAnchorCell(candidate.Cell, usedCells, out var resolved))
+                    {
+                        continue;
+                    }
+
+                    usedCells.Add(resolved);
+                    _threatAnchors.Add(new VillageThreatAnchor
+                    {
+                        id = candidate.Id,
+                        cell = resolved,
+                        facing = candidate.Facing,
+                        patrolRadius = candidate.PatrolRadius
+                    });
                 }
             }
 
@@ -477,6 +515,59 @@ namespace McpTest.VoxelVillage
                 return _layout.plazaCenter;
             }
 
+            bool TryResolveThreatAnchorCell(Vector2Int preferred, HashSet<Vector2Int> usedCells, out Vector2Int resolved)
+            {
+                for (var radius = 0; radius <= 8; radius++)
+                {
+                    for (var y = -radius; y <= radius; y++)
+                    {
+                        for (var x = -radius; x <= radius; x++)
+                        {
+                            var candidate = preferred + new Vector2Int(x, y);
+                            if (usedCells.Contains(candidate) || !_grid.IsWalkable(candidate, false) || IsThreatAnchorBlocked(candidate))
+                            {
+                                continue;
+                            }
+
+                            resolved = candidate;
+                            return true;
+                        }
+                    }
+                }
+
+                resolved = default;
+                return false;
+            }
+
+            bool IsThreatAnchorBlocked(Vector2Int cell)
+            {
+                for (var index = 0; index < _npcSpawns.Count; index++)
+                {
+                    if (Mathf.Abs(_npcSpawns[index].cell.x - cell.x) + Mathf.Abs(_npcSpawns[index].cell.y - cell.y) <= 1)
+                    {
+                        return true;
+                    }
+                }
+
+                for (var index = 0; index < _doors.Count; index++)
+                {
+                    if (Mathf.Abs(_doors[index].cell.x - cell.x) + Mathf.Abs(_doors[index].cell.y - cell.y) <= 1)
+                    {
+                        return true;
+                    }
+                }
+
+                for (var index = 0; index < _trafficSignals.Count; index++)
+                {
+                    if (_trafficSignals[index].cell == cell)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
             Vector2Int FindUniqueNpcSpawnCell(Vector2Int preferred, HashSet<Vector2Int> usedCells)
             {
                 var resolved = FindNearestWalkable(preferred, false);
@@ -567,6 +658,22 @@ namespace McpTest.VoxelVillage
 
                 public Vector2Int SpawnCell { get; }
                 public Vector2Int PatrolCenter { get; }
+                public Vector2Int Facing { get; }
+                public int PatrolRadius { get; }
+            }
+
+            readonly struct ThreatAnchorCandidate
+            {
+                public ThreatAnchorCandidate(string id, Vector2Int cell, Vector2Int facing, int patrolRadius)
+                {
+                    Id = id;
+                    Cell = cell;
+                    Facing = facing;
+                    PatrolRadius = patrolRadius;
+                }
+
+                public string Id { get; }
+                public Vector2Int Cell { get; }
                 public Vector2Int Facing { get; }
                 public int PatrolRadius { get; }
             }

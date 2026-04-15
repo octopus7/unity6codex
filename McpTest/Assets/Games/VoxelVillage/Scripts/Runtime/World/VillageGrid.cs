@@ -6,6 +6,13 @@ using UnityEngine;
 
 namespace McpTest.VoxelVillage
 {
+    public enum MovementFootprint
+    {
+        Person1x1,
+        Spider2x2,
+        SqueezedSpider1x1
+    }
+
     public sealed class VillageGrid
     {
         readonly VillageCellKind[] _cells;
@@ -60,10 +67,28 @@ namespace McpTest.VoxelVillage
 
         public bool IsWalkable(Vector2Int cell)
         {
-            return IsWalkable(cell, true);
+            return IsWalkable(cell, true, MovementFootprint.Person1x1);
         }
 
         public bool IsWalkable(Vector2Int cell, bool includeEmpty)
+        {
+            return IsWalkable(cell, includeEmpty, MovementFootprint.Person1x1);
+        }
+
+        public bool IsWalkable(Vector2Int cell, bool includeEmpty, MovementFootprint footprint)
+        {
+            switch (footprint)
+            {
+                case MovementFootprint.Spider2x2:
+                    return HasSpiderClearance(cell, includeEmpty);
+                case MovementFootprint.SqueezedSpider1x1:
+                    return IsSqueezedSpiderWalkable(cell);
+                default:
+                    return IsCellWalkable(cell, includeEmpty);
+            }
+        }
+
+        bool IsCellWalkable(Vector2Int cell, bool includeEmpty)
         {
             if (!TryGetIndex(cell.x, cell.y, out var index))
             {
@@ -79,6 +104,59 @@ namespace McpTest.VoxelVillage
                     return true;
                 case VillageCellKind.Empty:
                     return includeEmpty;
+                default:
+                    return false;
+            }
+        }
+
+        bool HasSpiderClearance(Vector2Int anchor, bool includeEmpty)
+        {
+            if (!TryGetIndex(anchor.x + 1, anchor.y + 1, out _))
+            {
+                return false;
+            }
+
+            return IsSpiderSupportWalkable(anchor, includeEmpty) &&
+                   IsSpiderSupportWalkable(anchor + Vector2Int.right, includeEmpty) &&
+                   IsSpiderSupportWalkable(anchor + Vector2Int.up, includeEmpty) &&
+                   IsSpiderSupportWalkable(anchor + Vector2Int.right + Vector2Int.up, includeEmpty);
+        }
+
+        bool IsSpiderSupportWalkable(Vector2Int cell, bool includeEmpty)
+        {
+            if (!TryGetIndex(cell.x, cell.y, out var index))
+            {
+                return false;
+            }
+
+            switch (_cells[index])
+            {
+                case VillageCellKind.Road:
+                case VillageCellKind.Plaza:
+                case VillageCellKind.DoorOpen:
+                case VillageCellKind.NpcSpawn:
+                    return true;
+                case VillageCellKind.Empty:
+                    return includeEmpty;
+                default:
+                    return false;
+            }
+        }
+
+        bool IsSqueezedSpiderWalkable(Vector2Int cell)
+        {
+            if (!TryGetIndex(cell.x, cell.y, out var index))
+            {
+                return false;
+            }
+
+            switch (_cells[index])
+            {
+                case VillageCellKind.Road:
+                case VillageCellKind.Plaza:
+                case VillageCellKind.NpcSpawn:
+                case VillageCellKind.DoorOpen:
+                    return true;
                 default:
                     return false;
             }
@@ -168,13 +246,18 @@ namespace McpTest.VoxelVillage
 
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal)
         {
-            return FindPath(start, goal, true);
+            return FindPath(start, goal, true, MovementFootprint.Person1x1);
         }
 
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, bool includeEmpty)
         {
+            return FindPath(start, goal, includeEmpty, MovementFootprint.Person1x1);
+        }
+
+        public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, bool includeEmpty, MovementFootprint footprint)
+        {
             var path = new List<Vector2Int>();
-            if (!TryFindPath(start, goal, path, includeEmpty))
+            if (!TryFindPath(start, goal, path, includeEmpty, footprint))
             {
                 return path;
             }
@@ -184,13 +267,18 @@ namespace McpTest.VoxelVillage
 
         public bool TryFindPath(Vector2Int start, Vector2Int goal, List<Vector2Int> path)
         {
-            return TryFindPath(start, goal, path, true);
+            return TryFindPath(start, goal, path, true, MovementFootprint.Person1x1);
         }
 
         public bool TryFindPath(Vector2Int start, Vector2Int goal, List<Vector2Int> path, bool includeEmpty)
         {
+            return TryFindPath(start, goal, path, includeEmpty, MovementFootprint.Person1x1);
+        }
+
+        public bool TryFindPath(Vector2Int start, Vector2Int goal, List<Vector2Int> path, bool includeEmpty, MovementFootprint footprint)
+        {
             path.Clear();
-            if (!IsWalkable(start, includeEmpty) || !IsWalkable(goal, includeEmpty))
+            if (!IsWalkable(start, includeEmpty, footprint) || !IsWalkable(goal, includeEmpty, footprint))
             {
                 return false;
             }
@@ -229,7 +317,7 @@ namespace McpTest.VoxelVillage
                 {
                     var neighbor = neighbors[i];
                     var neighborKey = Encode(neighbor.x, neighbor.y);
-                    if (closed.Contains(neighborKey) || !IsWalkable(neighbor, includeEmpty))
+                    if (closed.Contains(neighborKey) || !IsWalkable(neighbor, includeEmpty, footprint))
                     {
                         continue;
                     }
@@ -255,8 +343,13 @@ namespace McpTest.VoxelVillage
 
         public void CollectReachableCells(Vector2Int start, int maxDistance, List<Vector2Int> results, bool includeEmpty)
         {
+            CollectReachableCells(start, maxDistance, results, includeEmpty, MovementFootprint.Person1x1);
+        }
+
+        public void CollectReachableCells(Vector2Int start, int maxDistance, List<Vector2Int> results, bool includeEmpty, MovementFootprint footprint)
+        {
             results.Clear();
-            if (maxDistance < 0 || !IsWalkable(start, includeEmpty))
+            if (maxDistance < 0 || !IsWalkable(start, includeEmpty, footprint))
             {
                 return;
             }
@@ -284,7 +377,7 @@ namespace McpTest.VoxelVillage
                 {
                     var neighbor = neighbors[index];
                     var neighborKey = Encode(neighbor.x, neighbor.y);
-                    if (distanceByCell.ContainsKey(neighborKey) || !IsWalkable(neighbor, includeEmpty))
+                    if (distanceByCell.ContainsKey(neighborKey) || !IsWalkable(neighbor, includeEmpty, footprint))
                     {
                         continue;
                     }
