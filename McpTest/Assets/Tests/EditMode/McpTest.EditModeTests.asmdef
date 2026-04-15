@@ -1,0 +1,21 @@
+{
+    "name": "McpTest.EditModeTests",
+    "rootNamespace": "",
+    "references": [
+        "McpTest.RuntimeMcpDemo"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
