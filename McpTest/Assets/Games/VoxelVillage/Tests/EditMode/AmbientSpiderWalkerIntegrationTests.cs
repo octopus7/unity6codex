@@ -163,6 +163,56 @@ namespace McpTest.VoxelVillage.Tests
         }
 
         [Test]
+        public void ComputeDesiredFootPosition_UsesColliderGroundHeight()
+        {
+            var controllerObject = new GameObject("AmbientSpiderWalkerController_Test");
+            var locomotionRoot = new GameObject("LocomotionRoot").transform;
+            locomotionRoot.SetParent(controllerObject.transform, false);
+            locomotionRoot.position = new Vector3(31.25f, 4f, -17.5f);
+            var controller = controllerObject.AddComponent<AmbientSpiderWalkerController>();
+            var ground = new GameObject("AmbientSpiderWalkerGround_Test");
+
+            try
+            {
+                var leg = CreateLegState(locomotionRoot, "GroundedLeg", 0);
+                var expectedPlanarTarget = locomotionRoot.TransformPoint(leg.RestLocalTarget);
+                const float groundTopY = 1.75f;
+
+                var groundCollider = ground.AddComponent<BoxCollider>();
+                groundCollider.size = new Vector3(3f, 0.5f, 3f);
+                ground.transform.position = new Vector3(
+                    expectedPlanarTarget.x,
+                    groundTopY - (groundCollider.size.y * 0.5f),
+                    expectedPlanarTarget.z);
+                Physics.SyncTransforms();
+
+                var locomotionRootField = typeof(AmbientSpiderWalkerController).GetField("_locomotionRoot", BindingFlags.Instance | BindingFlags.NonPublic);
+                var currentWidthScaleField = typeof(AmbientSpiderWalkerController).GetField("_currentWidthScale", BindingFlags.Instance | BindingFlags.NonPublic);
+                var desiredFootMethod = typeof(AmbientSpiderWalkerController).GetMethod("ComputeDesiredFootPosition", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                Assert.That(locomotionRootField, Is.Not.Null);
+                Assert.That(currentWidthScaleField, Is.Not.Null);
+                Assert.That(desiredFootMethod, Is.Not.Null);
+
+                locomotionRootField!.SetValue(controller, locomotionRoot);
+                currentWidthScaleField!.SetValue(controller, 1f);
+
+                var desired = (Vector3)desiredFootMethod!.Invoke(controller, new object[] { leg })!;
+
+                Assert.That(desired.x, Is.EqualTo(expectedPlanarTarget.x).Within(0.0001f));
+                Assert.That(desired.z, Is.EqualTo(expectedPlanarTarget.z).Within(0.0001f));
+                Assert.That(desired.y, Is.EqualTo(groundTopY).Within(0.05f));
+                Assert.That(desired.y, Is.Not.EqualTo(0f).Within(0.0001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(controllerObject);
+                Object.DestroyImmediate(ground);
+                Physics.SyncTransforms();
+            }
+        }
+
+        [Test]
         public void KneeHints_PointOutwardAndUpFromEachHip()
         {
             var build = VoxelSpiderWalkerFactory.CreateInstance("SpiderWalker_TestRig", Vector3.zero);

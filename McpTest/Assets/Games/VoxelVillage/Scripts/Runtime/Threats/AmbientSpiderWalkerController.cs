@@ -17,6 +17,9 @@ namespace McpTest.VoxelVillage
         const float StepDuration = 0.22f;
         const float StepArcHeight = 0.62f;
         const float StepThreshold = 0.42f;
+        const float FootGroundProbeHeight = 5.5f;
+        const float FootGroundProbeDistance = 12f;
+        const float FootGroundOffset = 0.02f;
         const float ForwardStrideDistance = 1.44f;
         const float SqueezedForwardStrideDistance = 1.2f;
         const float SqueezedWidthScale = 0.78f;
@@ -25,6 +28,7 @@ namespace McpTest.VoxelVillage
         const float AvoidanceRadius = 2.2f;
         const float BellySpinnerDegreesPerSecond = 360f;
         const int FootTrajectorySamples = 16;
+        const int FootGroundHitCapacity = 16;
 
         static readonly int EmissionColorShaderId = Shader.PropertyToID("_EmissionColor");
         static readonly Color GroupAColor = new Color(0.22f, 0.9f, 1f, 0.95f);
@@ -51,6 +55,7 @@ namespace McpTest.VoxelVillage
         Transform[] _avoidanceTargets = Array.Empty<Transform>();
         readonly List<Vector2Int> _path = new List<Vector2Int>();
         readonly List<Vector2Int> _candidateCells = new List<Vector2Int>();
+        readonly RaycastHit[] _footGroundHits = new RaycastHit[FootGroundHitCapacity];
         System.Random _random = new System.Random();
 
         Vector3 _bodyBaseLocalPosition;
@@ -500,8 +505,41 @@ namespace McpTest.VoxelVillage
             }
 
             var world = _locomotionRoot.TransformPoint(localTarget);
-            world.y = 0f;
-            return world;
+            return ResolveFootGroundContact(world, 0f);
+        }
+
+        Vector3 ResolveFootGroundContact(Vector3 desiredFootWorld, float fallbackY)
+        {
+            var rayOrigin = desiredFootWorld + (Vector3.up * FootGroundProbeHeight);
+            var hitCount = Physics.RaycastNonAlloc(
+                rayOrigin,
+                Vector3.down,
+                _footGroundHits,
+                FootGroundProbeDistance,
+                ~0,
+                QueryTriggerInteraction.Ignore);
+            var bestY = float.NegativeInfinity;
+            var found = false;
+
+            for (var index = 0; index < hitCount; index++)
+            {
+                var collider = _footGroundHits[index].collider;
+                if (collider == null || collider.transform.IsChildOf(transform))
+                {
+                    continue;
+                }
+
+                if (_footGroundHits[index].point.y <= bestY)
+                {
+                    continue;
+                }
+
+                bestY = _footGroundHits[index].point.y;
+                found = true;
+            }
+
+            desiredFootWorld.y = (found ? bestY : fallbackY) + FootGroundOffset;
+            return desiredFootWorld;
         }
 
         bool ShouldApplyStrideBias()
