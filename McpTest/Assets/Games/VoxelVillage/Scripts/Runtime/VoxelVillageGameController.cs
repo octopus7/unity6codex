@@ -139,6 +139,7 @@ namespace McpTest.VoxelVillage
         readonly List<TrafficSignalInstance> _trafficSignals = new List<TrafficSignalInstance>();
         readonly List<AmbientSpiderWalkerController> _ambientSpiders = new List<AmbientSpiderWalkerController>();
         readonly List<CoinInstance> _coins = new List<CoinInstance>();
+        MukhaengTrackerController? _mukhaengTracker;
         System.Random _worldRandom = new System.Random();
         Material? _trafficSignalLampMaterial;
         GameObject? _coinPrefab;
@@ -285,6 +286,7 @@ namespace McpTest.VoxelVillage
             _trafficSignals.Clear();
             _ambientSpiders.Clear();
             _coins.Clear();
+            _mukhaengTracker = null;
             _currentTarget = InteractionTarget.None;
             _currentVillager = null;
             _currentDoor = null;
@@ -326,6 +328,7 @@ namespace McpTest.VoxelVillage
             SpawnCoins();
             SpawnVillagersFromLayout();
             SpawnAmbientSpiderWalker();
+            SpawnMukhaengTracker();
             EnsureGlobalIlluminationProbe();
             RefreshCoinCountText();
         }
@@ -1102,8 +1105,13 @@ namespace McpTest.VoxelVillage
             return targets.ToArray();
         }
 
-        void CreateInvaderPrototype()
+        void SpawnMukhaengTracker()
         {
+            if (_mukhaengTracker != null)
+            {
+                return;
+            }
+
             var tracker = MukhaengTrackerFactory.CreateTracker(
                 "ThreatPrototype_MukhaengTracker",
                 GetInvaderPrototypeSpawnPosition());
@@ -1113,6 +1121,8 @@ namespace McpTest.VoxelVillage
             {
                 tracker.Controller.SetTarget(_player.transform);
             }
+
+            _mukhaengTracker = tracker.Controller;
         }
 
         Vector3 GetInvaderPrototypeSpawnPosition()

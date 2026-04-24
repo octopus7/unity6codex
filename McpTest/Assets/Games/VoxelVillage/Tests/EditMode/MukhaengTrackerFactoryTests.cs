@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -63,6 +64,47 @@ namespace McpTest.VoxelVillage.Tests
             finally
             {
                 Object.DestroyImmediate(result.Root);
+            }
+        }
+
+        [Test]
+        public void BuildWorld_SpawnsSingleMukhaengTrackerTargetingPlayer()
+        {
+            var controllerObject = new GameObject("VoxelVillageGameController_MukhaengTest");
+            controllerObject.SetActive(false);
+            var controller = controllerObject.AddComponent<VoxelVillageGameController>();
+
+            try
+            {
+                var buildWorld = typeof(VoxelVillageGameController).GetMethod("BuildWorld", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(buildWorld, Is.Not.Null);
+
+                buildWorld!.Invoke(controller, null);
+
+                var trackers = controllerObject.GetComponentsInChildren<MukhaengTrackerController>(true);
+                Assert.That(trackers.Length, Is.EqualTo(1));
+
+                var player = controllerObject.transform.Find("VoxelVillageWorld/Player");
+                Assert.That(player, Is.Not.Null);
+                Assert.AreSame(player, trackers[0].Target);
+            }
+            finally
+            {
+                Object.DestroyImmediate(controllerObject);
+                DestroyIfPresent("Main Camera");
+                DestroyIfPresent("VoxelVillage Light");
+                DestroyIfPresent("EventSystem");
+                DestroyIfPresent("VoxelVillageHud");
+                DestroyIfPresent("VoxelVillage Reflection Probe");
+            }
+        }
+
+        static void DestroyIfPresent(string objectName)
+        {
+            var instance = GameObject.Find(objectName);
+            if (instance != null)
+            {
+                Object.DestroyImmediate(instance);
             }
         }
     }
