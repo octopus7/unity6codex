@@ -213,6 +213,54 @@ namespace McpTest.VoxelVillage.Tests
         }
 
         [Test]
+        public void UpdateBodyPose_UsesFootSupportPlaneForHeightAndTilt()
+        {
+            var controllerObject = new GameObject("AmbientSpiderWalkerController_Test");
+            var locomotionRoot = new GameObject("LocomotionRoot").transform;
+            locomotionRoot.SetParent(controllerObject.transform, false);
+            var bodyPivot = new GameObject("BodyPivot").transform;
+            bodyPivot.SetParent(locomotionRoot, false);
+            bodyPivot.localPosition = new Vector3(0f, 1.34f, 0f);
+            var bodyShell = new GameObject("BodyShell").transform;
+            bodyShell.SetParent(bodyPivot, false);
+            var bellySpinner = new GameObject("BellySpinner").transform;
+            bellySpinner.SetParent(bodyPivot, false);
+            var eyeCluster = new GameObject("EyeCluster").transform;
+            eyeCluster.SetParent(bodyPivot, false);
+            var controller = controllerObject.AddComponent<AmbientSpiderWalkerController>();
+
+            try
+            {
+                var legs = new[]
+                {
+                    CreateLegState(locomotionRoot, "Leg_FL", 0),
+                    CreateLegState(locomotionRoot, "Leg_FR", 1),
+                    CreateLegState(locomotionRoot, "Leg_BL", 1),
+                    CreateLegState(locomotionRoot, "Leg_BR", 0)
+                };
+                controller.BindRig(locomotionRoot, bodyPivot, bodyShell, bellySpinner, eyeCluster, new Renderer[0], legs);
+                var baseLocalPosition = bodyPivot.localPosition;
+                SetPlantedFootOnSupportPlane(legs[0], -1f, 1f);
+                SetPlantedFootOnSupportPlane(legs[1], 1f, 1f);
+                SetPlantedFootOnSupportPlane(legs[2], -1f, -1f);
+                SetPlantedFootOnSupportPlane(legs[3], 1f, -1f);
+
+                var updateBodyPoseMethod = typeof(AmbientSpiderWalkerController).GetMethod("UpdateBodyPose", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(updateBodyPoseMethod, Is.Not.Null);
+
+                updateBodyPoseMethod!.Invoke(controller, null);
+
+                var expectedNormal = new Vector3(-0.1f, 1f, -0.2f).normalized;
+                Assert.That(bodyPivot.localPosition.y, Is.EqualTo(baseLocalPosition.y + 1f).Within(0.001f));
+                Assert.That(Vector3.Angle(bodyPivot.up, expectedNormal), Is.LessThan(0.25f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(controllerObject);
+            }
+        }
+
+        [Test]
         public void KneeHints_PointOutwardAndUpFromEachHip()
         {
             var build = VoxelSpiderWalkerFactory.CreateInstance("SpiderWalker_TestRig", Vector3.zero);
@@ -311,6 +359,15 @@ namespace McpTest.VoxelVillage.Tests
                 gaitGroup,
                 1f,
                 1f);
+        }
+
+        static void SetPlantedFootOnSupportPlane(SpiderLegState leg, float x, float z)
+        {
+            var position = new Vector3(x, 1f + (0.1f * x) + (0.2f * z), z);
+            leg.PlantedWorldPosition = position;
+            leg.DesiredWorldPosition = position;
+            leg.FootTarget.position = position;
+            leg.IsStepping = false;
         }
     }
 }

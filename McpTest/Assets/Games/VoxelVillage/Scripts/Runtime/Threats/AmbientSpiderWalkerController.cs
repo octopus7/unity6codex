@@ -17,6 +17,9 @@ namespace McpTest.VoxelVillage
         const float StepDuration = 0.22f;
         const float StepArcHeight = 0.62f;
         const float StepThreshold = 0.42f;
+        const float BodySupportHeightSmoothSpeed = 8.5f;
+        const float BodySupportTiltSmoothSpeed = 7.5f;
+        const float BodySupportTiltMaxDegrees = 16f;
         const float FootGroundProbeHeight = 5.5f;
         const float FootGroundProbeDistance = 12f;
         const float FootGroundOffset = 0.02f;
@@ -61,6 +64,7 @@ namespace McpTest.VoxelVillage
         Vector3 _bodyBaseLocalPosition;
         Quaternion _bodyBaseLocalRotation;
         Vector3 _bodyShellBaseLocalScale;
+        Quaternion _bodySupportLocalRotation = Quaternion.identity;
         Quaternion _bellySpinnerBaseLocalRotation = Quaternion.identity;
         Vector3 _eyeClusterBaseLocalScale;
         Vector3 _currentVelocity;
@@ -69,11 +73,13 @@ namespace McpTest.VoxelVillage
         float _townFootprint;
         float _clock;
         float _waitUntilTime;
+        float _bodySupportLocalHeight;
         float _currentWidthScale = 1f;
         int _pathIndex;
         int _leadGaitGroup;
         int _nextStepGroup = 1;
         bool _navigationBound;
+        bool _bodySupportPoseInitialized;
 
         public bool IsRigBound { get; private set; }
 
@@ -341,6 +347,8 @@ namespace McpTest.VoxelVillage
 
         void UpdateBodyPose()
         {
+            UpdateBodySupportPose();
+
             var planarSpeed = new Vector2(_currentVelocity.x, _currentVelocity.z).magnitude;
             var moveRatio = Mathf.Clamp01(planarSpeed / MoveSpeed);
             var desiredWidthScale = CurrentFootprint == MovementFootprint.SqueezedSpider1x1 ? SqueezedWidthScale : 1f;
@@ -350,8 +358,11 @@ namespace McpTest.VoxelVillage
             var leanForward = -moveRatio * 10f;
             var roll = Mathf.Sin(_clock * 0.5f + (moveRatio * 3.4f)) * (3.4f + (moveRatio * 2.2f));
 
-            _bodyPivot.localPosition = _bodyBaseLocalPosition + new Vector3(0f, bodyBob, 0f);
-            _bodyPivot.localRotation = _bodyBaseLocalRotation * Quaternion.Euler(leanForward, 0f, roll);
+            _bodyPivot.localPosition = _bodyBaseLocalPosition + new Vector3(0f, _bodySupportLocalHeight + bodyBob, 0f);
+            _bodyPivot.localRotation =
+                _bodySupportLocalRotation *
+                _bodyBaseLocalRotation *
+                Quaternion.Euler(leanForward, 0f, roll);
             _bodyShell.localScale = new Vector3(
                 _bodyShellBaseLocalScale.x * _currentWidthScale,
                 _bodyShellBaseLocalScale.y * (1f + (moveRatio * 0.03f)),
@@ -360,6 +371,135 @@ namespace McpTest.VoxelVillage
                 _eyeClusterBaseLocalScale.x * _currentWidthScale,
                 _eyeClusterBaseLocalScale.y,
                 _eyeClusterBaseLocalScale.z);
+        }
+
+        void UpdateBodySupportPose()
+        {
+            var targetHeight = 0f;
+            var targetRotation = Quaternion.identity;
+            if (TryComputeFootSupportPlane(out var planeHeight, out var planeNormal))
+            {
+                targetHeight = planeHeight;
+                targetRotation = ComputeLimitedSupportTilt(planeNormal);
+            }
+
+            if (!_bodySupportPoseInitialized)
+            {
+                _bodySupportLocalHeight = targetHeight;
+                _bodySupportLocalRotation = targetRotation;
+                _bodySupportPoseInitialized = true;
+                return;
+            }
+
+            var heightAlpha = GetSmoothingAlpha(BodySupportHeightSmoothSpeed);
+            var tiltAlpha = GetSmoothingAlpha(BodySupportTiltSmoothSpeed);
+            _bodySupportLocalHeight = Mathf.Lerp(_bodySupportLocalHeight, targetHeight, heightAlpha);
+            _bodySupportLocalRotation = Quaternion.Slerp(_bodySupportLocalRotation, targetRotation, tiltAlpha);
+        }
+
+        bool TryComputeFootSupportPlane(out float localHeight, out Vector3 localNormal)
+        {
+            localHeight = 0f;
+            localNormal = Vector3.up;
+
+            if (_locomotionRoot == null || _legs.Length < 3)
+            {
+                return false;
+            }
+
+            var count = 0;
+            var sumX = 0f;
+            var sumY = 0f;
+            var sumZ = 0f;
+            for (var index = 0; index < _legs.Length; index++)
+            {
+                var localFoot = _locomotionRoot.InverseTransformPoint(GetSupportFootWorldPosition(_legs[index]));
+                sumX += localFoot.x;
+                sumY += localFoot.y;
+                sumZ += localFoot.z;
+                count++;
+            }
+
+            if (count < 3)
+            {
+                return false;
+            }
+
+            var centerX = sumX / count;
+            var centerY = sumY / count;
+            var centerZ = sumZ / count;
+            var sumXX = 0f;
+            var sumXZ = 0f;
+            var sumZZ = 0f;
+            var sumXY = 0f;
+            var sumZY = 0f;
+
+            for (var index = 0; index < _legs.Length; index++)
+            {
+                var localFoot = _locomotionRoot.InverseTransformPoint(GetSupportFootWorldPosition(_legs[index]));
+                var x = localFoot.x - centerX;
+                var y = localFoot.y - centerY;
+                var z = localFoot.z - centerZ;
+
+                sumXX += x * x;
+                sumXZ += x * z;
+                sumZZ += z * z;
+                sumXY += x * y;
+                sumZY += z * y;
+            }
+
+            var determinant = (sumXX * sumZZ) - (sumXZ * sumXZ);
+            if (Mathf.Abs(determinant) <= 0.00001f)
+            {
+                localHeight = centerY;
+                return true;
+            }
+
+            var slopeX = ((sumXY * sumZZ) - (sumZY * sumXZ)) / determinant;
+            var slopeZ = ((sumXX * sumZY) - (sumXZ * sumXY)) / determinant;
+            localHeight =
+                centerY +
+                (slopeX * (_bodyBaseLocalPosition.x - centerX)) +
+                (slopeZ * (_bodyBaseLocalPosition.z - centerZ));
+            localNormal = new Vector3(-slopeX, 1f, -slopeZ).normalized;
+            if (localNormal.y < 0f)
+            {
+                localNormal = -localNormal;
+            }
+
+            return true;
+        }
+
+        Vector3 GetSupportFootWorldPosition(SpiderLegState leg)
+        {
+            return leg.IsStepping ? leg.StepTargetWorldPosition : leg.PlantedWorldPosition;
+        }
+
+        static Quaternion ComputeLimitedSupportTilt(Vector3 localNormal)
+        {
+            if (localNormal.sqrMagnitude <= 0.0001f)
+            {
+                return Quaternion.identity;
+            }
+
+            localNormal.Normalize();
+            var angle = Vector3.Angle(Vector3.up, localNormal);
+            if (angle > BodySupportTiltMaxDegrees)
+            {
+                localNormal = Vector3.Slerp(Vector3.up, localNormal, BodySupportTiltMaxDegrees / angle).normalized;
+            }
+
+            return Quaternion.FromToRotation(Vector3.up, localNormal);
+        }
+
+        static float GetSmoothingAlpha(float speed)
+        {
+            if (!Application.isPlaying)
+            {
+                return 1f;
+            }
+
+            return 1f - Mathf.Exp(-speed * Time.deltaTime);
         }
 
         void UpdateBellySpinner()
@@ -610,6 +750,9 @@ namespace McpTest.VoxelVillage
                     leg.UpperLength,
                     leg.LowerLength);
             }
+
+            _bodySupportPoseInitialized = false;
+            UpdateBodySupportPose();
         }
 
         void UpdateEyeEmission(float intensityScale)
