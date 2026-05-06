@@ -18,6 +18,7 @@ namespace BeltScroll.Editor
         private const string MotionSetPath = "Assets/Characters/PlaceholderHeroMotionSet.asset";
         private const float BackgroundPixelsPerUnit = 100f;
         private const float CharacterPixelsPerUnit = 320f;
+        private const float PlayerGroundY = -2.72f;
 
         private static readonly string[] BackgroundPaths =
         {
@@ -259,7 +260,7 @@ namespace BeltScroll.Editor
         {
             var go = new GameObject("Player");
             go.transform.SetParent(parent);
-            go.transform.position = new Vector3(bounds.x + 8.35f, -4.18f, 0f);
+            go.transform.position = new Vector3(bounds.x + 8.35f, PlayerGroundY, 0f);
             go.transform.localScale = Vector3.one * 1.15f;
 
             var renderer = go.AddComponent<SpriteRenderer>();
@@ -272,6 +273,12 @@ namespace BeltScroll.Editor
 
             var controller = go.AddComponent<PlayerBeltScrollController>();
             controller.XBounds = new Vector2(bounds.x + 0.75f, bounds.y - 0.75f);
+
+            var inputHistoryHudType = System.Type.GetType("BeltScroll.InputHistoryHud, Assembly-CSharp");
+            if (inputHistoryHudType != null)
+            {
+                go.AddComponent(inputHistoryHudType);
+            }
 
             return go;
         }

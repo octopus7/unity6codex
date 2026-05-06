@@ -15,55 +15,79 @@ MonoBehaviour:
   fallbackSprite: {fileID: 21300000, guid: 8a48e2c8f66d479c966c5cc3a2199e53, type: 3}
   idle:
     state: 0
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: 1cc585866df873184021f31c1d27af01, type: 3}
+    - {fileID: 21300000, guid: 75e8192ac9846e1d1f2759eb04240b7b, type: 3}
+    - {fileID: 21300000, guid: f5f1e6f22ae35188292c8935599c924f, type: 3}
+    - {fileID: 21300000, guid: 694d973866e7303fc878ee71d6c50ce6, type: 3}
     framesPerSecond: 6
     loop: 1
     transitionSeconds: 0
   idleToWalk:
     state: 1
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: 5443dfe57be0a90a38f082e0f89a787f, type: 3}
+    - {fileID: 21300000, guid: 5bb09e51f4555382608ad0d0606e93f3, type: 3}
     framesPerSecond: 12
     loop: 0
-    transitionSeconds: 0.12
+    transitionSeconds: 0.16666666666666666
   walk:
     state: 2
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: 01820288af80dd37ae82f41411a306ea, type: 3}
+    - {fileID: 21300000, guid: f378b1976ad9d75ff4c50e984b6c9eea, type: 3}
+    - {fileID: 21300000, guid: 65b7121761b1862df6fb1bd27c02e10d, type: 3}
+    - {fileID: 21300000, guid: dbc1d3e642b8865c72911caaf5863da7, type: 3}
     framesPerSecond: 10
     loop: 1
     transitionSeconds: 0
   walkToIdle:
     state: 3
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: d331c3c09618b64951eef763ea6cf527, type: 3}
+    - {fileID: 21300000, guid: 142d76f01b5152531846fa121593e81b, type: 3}
     framesPerSecond: 12
     loop: 0
-    transitionSeconds: 0.1
+    transitionSeconds: 0.16666666666666666
   walkToRun:
     state: 4
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: 07a06cdddfcfe53936343326bd10b5cd, type: 3}
+    - {fileID: 21300000, guid: 816f00d9f83036092d81dda9cf571102, type: 3}
     framesPerSecond: 12
     loop: 0
-    transitionSeconds: 0.1
+    transitionSeconds: 0.16666666666666666
   run:
     state: 5
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: a00b81e41688b402249c23906b75959c, type: 3}
+    - {fileID: 21300000, guid: 6199bf857c8aca0cb5dad7c9ccb8d6aa, type: 3}
+    - {fileID: 21300000, guid: 78dbfe69b5f74c28d08c695846314bca, type: 3}
+    - {fileID: 21300000, guid: b5906ba1941b7a77556d8b46720f6b30, type: 3}
     framesPerSecond: 14
     loop: 1
     transitionSeconds: 0
   runToWalk:
     state: 6
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: 453b0529ead76cfaf0ff6d73172473a6, type: 3}
+    - {fileID: 21300000, guid: 3faaabdb3d5c7c45ac1f3b424a86b19f, type: 3}
     framesPerSecond: 12
     loop: 0
-    transitionSeconds: 0.1
+    transitionSeconds: 0.16666666666666666
   idleToRun:
     state: 7
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: e91da378c12275d379eeb17198b9fb48, type: 3}
+    - {fileID: 21300000, guid: 4237620e23d197e6365ecb8fb3476c73, type: 3}
     framesPerSecond: 12
     loop: 0
-    transitionSeconds: 0.16
+    transitionSeconds: 0.16666666666666666
   runToIdle:
     state: 8
-    frames: []
+    frames:
+    - {fileID: 21300000, guid: 421eb1f1084d591e7fa3aefaa2454933, type: 3}
+    - {fileID: 21300000, guid: 1f1b9c724a6cebe24f76b3e177d4ad83, type: 3}
     framesPerSecond: 12
     loop: 0
-    transitionSeconds: 0.16
+    transitionSeconds: 0.16666666666666666
