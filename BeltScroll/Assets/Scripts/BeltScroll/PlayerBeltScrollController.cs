@@ -26,7 +26,7 @@ namespace BeltScroll
         [SerializeField] private int wizardWalkCellHeight = 540;
         [SerializeField] private float wizardWalkPixelsPerUnit = 150.76923f;
         [SerializeField] private float wizardWalkFramesPerSecond = 12f;
-        [SerializeField] private Vector2 wizardWalkPivot = new Vector2(0.5f, 0f);
+        [SerializeField] private Vector2 wizardWalkPivot = new Vector2(0.5f, 0.08333334f);
 
         private bool facingLeft;
         private int previousHorizontalDirection;
@@ -198,6 +198,7 @@ namespace BeltScroll
 
             var motionSet = ScriptableObject.CreateInstance<CharacterMotionSet>();
             motionSet.name = "RuntimeWizardWalkMotionSet";
+            motionSet.immediateIdleWalkTransitions = true;
             motionSet.fallbackSprite = defaultMotionSet.fallbackSprite;
             motionSet.idle = CloneClip(defaultMotionSet.idle, CharacterMotionState.Idle);
             motionSet.idleToWalk = CloneClip(defaultMotionSet.idleToWalk, CharacterMotionState.IdleToWalk);
@@ -208,6 +209,13 @@ namespace BeltScroll
             motionSet.runToWalk = CloneClip(defaultMotionSet.runToWalk, CharacterMotionState.RunToWalk);
             motionSet.idleToRun = CloneClip(defaultMotionSet.idleToRun, CharacterMotionState.IdleToRun);
             motionSet.runToIdle = CloneClip(defaultMotionSet.runToIdle, CharacterMotionState.RunToIdle);
+
+            var idleFrame = walkFrames[Mathf.Min(2, walkFrames.Length - 1)];
+            motionSet.fallbackSprite = idleFrame;
+            motionSet.idle.frames = new[] { idleFrame };
+            motionSet.idle.framesPerSecond = 1f;
+            motionSet.idle.loop = true;
+            motionSet.idle.transitionSeconds = 0f;
 
             motionSet.walk.frames = walkFrames;
             motionSet.walk.framesPerSecond = wizardWalkFramesPerSecond;

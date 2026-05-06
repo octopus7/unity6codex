@@ -903,7 +903,7 @@ MonoBehaviour:
   wizardWalkCellHeight: 540
   wizardWalkPixelsPerUnit: 150.76923
   wizardWalkFramesPerSecond: 12
-  wizardWalkPivot: {x: 0.5, y: 0}
+  wizardWalkPivot: {x: 0.5, y: 0.08333334}
 --- !u!114 &1890182821
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -26,6 +26,13 @@ namespace BeltScroll
 
         public void SetDesiredMotion(CharacterBaseMotion desiredMotion)
         {
+            var currentBase = currentState.ToBaseMotion();
+            if (ShouldEnterBaseStateImmediately(currentBase, desiredMotion))
+            {
+                EnterBaseState(desiredMotion);
+                return;
+            }
+
             if (desiredMotion == targetBaseMotion && currentState.IsBaseState())
             {
                 return;
@@ -36,7 +43,7 @@ namespace BeltScroll
                 return;
             }
 
-            StartTransition(currentState.ToBaseMotion(), desiredMotion);
+            StartTransition(currentBase, desiredMotion);
         }
 
         private void Awake()
@@ -79,6 +86,17 @@ namespace BeltScroll
 
             currentState = transition;
             stateElapsedSeconds = 0f;
+        }
+
+        private bool ShouldEnterBaseStateImmediately(CharacterBaseMotion from, CharacterBaseMotion to)
+        {
+            if (motionSet == null || !motionSet.immediateIdleWalkTransitions)
+            {
+                return false;
+            }
+
+            return from == CharacterBaseMotion.Idle && to == CharacterBaseMotion.Walk
+                || from == CharacterBaseMotion.Walk && to == CharacterBaseMotion.Idle;
         }
 
         private void EnterBaseState(CharacterBaseMotion baseMotion)

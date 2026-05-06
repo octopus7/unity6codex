@@ -107,7 +107,7 @@ namespace BeltScroll.Editor
             var settings = new TextureImporterSettings();
             importer.ReadTextureSettings(settings);
             settings.spriteAlignment = (int)SpriteAlignment.Custom;
-            settings.spritePivot = new Vector2(0.5f, 0f);
+            settings.spritePivot = new Vector2(0.5f, 0.08333334f);
             importer.SetTextureSettings(settings);
             importer.SaveAndReimport();
 
@@ -335,7 +335,7 @@ namespace BeltScroll.Editor
             SetSerializedInt(serializedController, "wizardWalkCellHeight", 540);
             SetSerializedFloat(serializedController, "wizardWalkPixelsPerUnit", WizardWalkPixelsPerUnit);
             SetSerializedFloat(serializedController, "wizardWalkFramesPerSecond", 12f);
-            SetSerializedVector2(serializedController, "wizardWalkPivot", new Vector2(0.5f, 0f));
+            SetSerializedVector2(serializedController, "wizardWalkPivot", new Vector2(0.5f, 0.08333334f));
             serializedController.ApplyModifiedPropertiesWithoutUndo();
         }
 

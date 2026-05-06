@@ -9,6 +9,7 @@ namespace BeltScroll
         public Sprite fallbackSprite;
 
         public CharacterMotionClip idle = CharacterMotionClip.Looping(CharacterMotionState.Idle, 6f);
+        public bool immediateIdleWalkTransitions;
         public CharacterMotionClip idleToWalk = CharacterMotionClip.Transition(CharacterMotionState.IdleToWalk, 0.12f);
         public CharacterMotionClip walk = CharacterMotionClip.Looping(CharacterMotionState.Walk, 10f);
         public CharacterMotionClip walkToIdle = CharacterMotionClip.Transition(CharacterMotionState.WalkToIdle, 0.1f);
