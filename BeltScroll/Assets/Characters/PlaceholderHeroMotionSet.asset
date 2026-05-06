@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4640b45ac924e2fa8122c74ee7d1053, type: 3}
+  m_Name: PlaceholderHeroMotionSet
+  m_EditorClassIdentifier: 
+  fallbackSprite: {fileID: 21300000, guid: 8a48e2c8f66d479c966c5cc3a2199e53, type: 3}
+  idle:
+    state: 0
+    frames: []
+    framesPerSecond: 6
+    loop: 1
+    transitionSeconds: 0
+  idleToWalk:
+    state: 1
+    frames: []
+    framesPerSecond: 12
+    loop: 0
+    transitionSeconds: 0.12
+  walk:
+    state: 2
+    frames: []
+    framesPerSecond: 10
+    loop: 1
+    transitionSeconds: 0
+  walkToIdle:
+    state: 3
+    frames: []
+    framesPerSecond: 12
+    loop: 0
+    transitionSeconds: 0.1
+  walkToRun:
+    state: 4
+    frames: []
+    framesPerSecond: 12
+    loop: 0
+    transitionSeconds: 0.1
+  run:
+    state: 5
+    frames: []
+    framesPerSecond: 14
+    loop: 1
+    transitionSeconds: 0
+  runToWalk:
+    state: 6
+    frames: []
+    framesPerSecond: 12
+    loop: 0
+    transitionSeconds: 0.1
+  idleToRun:
+    state: 7
+    frames: []
+    framesPerSecond: 12
+    loop: 0
+    transitionSeconds: 0.16
+  runToIdle:
+    state: 8
+    frames: []
+    framesPerSecond: 12
+    loop: 0
+    transitionSeconds: 0.16
