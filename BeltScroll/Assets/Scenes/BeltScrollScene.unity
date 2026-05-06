@@ -706,6 +706,12 @@ MonoBehaviour:
   wizardJumpDescendingSprite: {fileID: 21300000, guid: e59bb5cde4c144a39f1bcdb41cf5f6d0, type: 3}
   wizardJumpHeight: 1.65
   wizardJumpDurationSeconds: 0.58
+  characterShadowSprite: {fileID: 21300000, guid: 2b9a87a64fe54fdc9f5d6a0cfcd2db9a, type: 3}
+  characterShadowRenderer: {fileID: 0}
+  characterShadowOffset: {x: 0, y: 0.04}
+  characterShadowScale: {x: 0.38, y: 0.1}
+  characterShadowAlpha: 0.55
+  characterShadowSortingOrder: 450
 --- !u!114 &1497263336
 MonoBehaviour:
   m_ObjectHideFlags: 0

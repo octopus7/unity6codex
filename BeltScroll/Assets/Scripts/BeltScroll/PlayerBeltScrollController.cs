@@ -32,6 +32,12 @@ namespace BeltScroll
         [SerializeField] private Sprite wizardJumpDescendingSprite;
         [SerializeField] private float wizardJumpHeight = 1.65f;
         [SerializeField] private float wizardJumpDurationSeconds = 0.58f;
+        [SerializeField] private Sprite characterShadowSprite;
+        [SerializeField] private SpriteRenderer characterShadowRenderer;
+        [SerializeField] private Vector2 characterShadowOffset = new Vector2(0f, 0.04f);
+        [SerializeField] private Vector2 characterShadowScale = new Vector2(0.38f, 0.1f);
+        [SerializeField] private float characterShadowAlpha = 0.55f;
+        [SerializeField] private int characterShadowSortingOrder = 450;
 
         private bool facingLeft;
         private bool wizardVariantActive;
@@ -68,6 +74,9 @@ namespace BeltScroll
             wizardWalkFramesPerSecond = Mathf.Max(0.01f, wizardWalkFramesPerSecond);
             wizardJumpHeight = Mathf.Max(0.01f, wizardJumpHeight);
             wizardJumpDurationSeconds = Mathf.Max(0.05f, wizardJumpDurationSeconds);
+            characterShadowScale.x = Mathf.Max(0.01f, characterShadowScale.x);
+            characterShadowScale.y = Mathf.Max(0.01f, characterShadowScale.y);
+            characterShadowAlpha = Mathf.Clamp01(characterShadowAlpha);
             EnsureReferences();
         }
 
@@ -105,6 +114,7 @@ namespace BeltScroll
                 }
 
                 motionDriver.SetDesiredMotion(desiredMotion);
+                RefreshCharacterShadow(0f, 0f);
             }
 
             if (!hasInput)
@@ -224,7 +234,9 @@ namespace BeltScroll
                 motionDriver.enabled = false;
             }
 
+            EnsureCharacterShadow();
             ApplyWizardJumpPose(0f);
+            RefreshCharacterShadow(0f, 0f);
         }
 
         private void UpdateWizardJump(CharacterBaseMotion desiredMotion)
@@ -237,6 +249,7 @@ namespace BeltScroll
             transform.position = position;
 
             ApplyWizardJumpPose(normalizedTime);
+            RefreshCharacterShadow(normalizedTime, jumpOffset);
 
             if (normalizedTime >= 1f)
             {
@@ -256,6 +269,8 @@ namespace BeltScroll
                 motionDriver.enabled = true;
                 motionDriver.SetDesiredMotion(desiredMotion);
             }
+
+            RefreshCharacterShadow(0f, 0f);
         }
 
         private void CancelWizardJump()
@@ -279,6 +294,8 @@ namespace BeltScroll
             {
                 motionDriver.enabled = true;
             }
+
+            RefreshCharacterShadow(0f, 0f);
         }
 
         private void ApplyWizardJumpPose(float normalizedTime)
@@ -327,6 +344,60 @@ namespace BeltScroll
             return wizardJumpAscendingSprite != null
                 || wizardJumpApexSprite != null
                 || wizardJumpDescendingSprite != null;
+        }
+
+        private void RefreshCharacterShadow(float normalizedJumpTime, float jumpOffset)
+        {
+            EnsureCharacterShadow();
+            if (characterShadowRenderer == null)
+            {
+                return;
+            }
+
+            characterShadowRenderer.transform.localPosition = new Vector3(
+                characterShadowOffset.x,
+                characterShadowOffset.y - jumpOffset,
+                0f);
+
+            var jumpAlphaMultiplier = wizardJumping
+                ? Mathf.Clamp01(Mathf.Abs(normalizedJumpTime - 0.5f) * 2f)
+                : 1f;
+            var color = characterShadowRenderer.color;
+            color.a = characterShadowAlpha * jumpAlphaMultiplier;
+            characterShadowRenderer.color = color;
+        }
+
+        private void EnsureCharacterShadow()
+        {
+            if (characterShadowSprite == null)
+            {
+                return;
+            }
+
+            if (characterShadowRenderer == null)
+            {
+                var shadowTransform = transform.Find("CharacterShadow");
+                if (shadowTransform != null)
+                {
+                    characterShadowRenderer = shadowTransform.GetComponent<SpriteRenderer>();
+                }
+            }
+
+            if (characterShadowRenderer == null)
+            {
+                var shadowObject = new GameObject("CharacterShadow");
+                shadowObject.transform.SetParent(transform, false);
+                characterShadowRenderer = shadowObject.AddComponent<SpriteRenderer>();
+            }
+
+            characterShadowRenderer.sprite = characterShadowSprite;
+            characterShadowRenderer.sortingOrder = characterShadowSortingOrder;
+            characterShadowRenderer.transform.localScale = new Vector3(characterShadowScale.x, characterShadowScale.y, 1f);
+            characterShadowRenderer.transform.localPosition = new Vector3(characterShadowOffset.x, characterShadowOffset.y, 0f);
+
+            var color = Color.white;
+            color.a = characterShadowAlpha;
+            characterShadowRenderer.color = color;
         }
 
         private CharacterMotionSet GetOrCreateWizardWalkMotionSet()

@@ -17,6 +17,7 @@ namespace BeltScroll.Editor
         private const string FadeMaterialPath = "Assets/__BootstrapGenerated/BeltScroll/Materials/SpriteRightFade.mat";
         private const string UiOverlayPath = "Assets/UI/ui_transparent.png";
         private const string LegacyUiOverlayPath = "Assets/__BootstrapGenerated/BeltScroll/UI/ui_transparent.png";
+        private const string CharacterShadowPath = "Assets/__BootstrapGenerated/BeltScroll/Characters/character_soft_shadow.png";
         private const string WizardJumpAscendingPath = "Assets/__BootstrapGenerated/BeltScroll/Characters/wizard_jump_ascending.png";
         private const string WizardJumpApexPath = "Assets/__BootstrapGenerated/BeltScroll/Characters/wizard_jump_apex.png";
         private const string WizardJumpDescendingPath = "Assets/__BootstrapGenerated/BeltScroll/Characters/wizard_jump_descending.png";
@@ -29,6 +30,9 @@ namespace BeltScroll.Editor
         private const float WizardWalkFramesPerSecond = 24f;
         private const float WizardJumpHeight = 1.65f;
         private const float WizardJumpDurationSeconds = 0.58f;
+        private const float CharacterShadowAlpha = 0.55f;
+        private static readonly Vector2 CharacterShadowOffset = new Vector2(0f, 0.04f);
+        private static readonly Vector2 CharacterShadowScale = new Vector2(0.38f, 0.1f);
         private const float PlayerGroundY = -2.72f;
 
         private static readonly string[] BackgroundPaths =
@@ -58,6 +62,7 @@ namespace BeltScroll.Editor
             var backgroundSprites = ImportBackgroundSprites();
             var characterSprite = ImportSprite(CharacterPath, CharacterPixelsPerUnit, SpriteAlignment.Custom, new Vector2(0.5f, 0f), true);
             var uiOverlaySprite = ImportSprite(ResolveUiOverlayPath(), 100f, SpriteAlignment.Center, new Vector2(0.5f, 0.5f), true);
+            var characterShadowSprite = ImportSprite(CharacterShadowPath, 100f, SpriteAlignment.Center, new Vector2(0.5f, 0.5f), true);
             var wizardJumpAscendingSprite = ImportSprite(WizardJumpAscendingPath, WizardWalkPixelsPerUnit, SpriteAlignment.Custom, new Vector2(0.5f, 0.08333334f), true);
             var wizardJumpApexSprite = ImportSprite(WizardJumpApexPath, WizardWalkPixelsPerUnit, SpriteAlignment.Custom, new Vector2(0.5f, 0.08333334f), true);
             var wizardJumpDescendingSprite = ImportSprite(WizardJumpDescendingPath, WizardWalkPixelsPerUnit, SpriteAlignment.Custom, new Vector2(0.5f, 0.08333334f), true);
@@ -67,7 +72,7 @@ namespace BeltScroll.Editor
 
             var scene = OpenOrCreateScene();
             ClearGeneratedRoot(scene);
-            BuildScene(backgroundSprites, characterSprite, uiOverlaySprite, wizardJumpAscendingSprite, wizardJumpApexSprite, wizardJumpDescendingSprite, wizardWalkSheet, fadeMaterial, motionSet);
+            BuildScene(backgroundSprites, characterSprite, uiOverlaySprite, characterShadowSprite, wizardJumpAscendingSprite, wizardJumpApexSprite, wizardJumpDescendingSprite, wizardWalkSheet, fadeMaterial, motionSet);
             EnsureSceneInBuildSettings();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -248,7 +253,7 @@ namespace BeltScroll.Editor
             }
         }
 
-        private static void BuildScene(Sprite[] backgroundSprites, Sprite characterSprite, Sprite uiOverlaySprite, Sprite wizardJumpAscendingSprite, Sprite wizardJumpApexSprite, Sprite wizardJumpDescendingSprite, Texture2D wizardWalkSheet, Material fadeMaterial, CharacterMotionSet motionSet)
+        private static void BuildScene(Sprite[] backgroundSprites, Sprite characterSprite, Sprite uiOverlaySprite, Sprite characterShadowSprite, Sprite wizardJumpAscendingSprite, Sprite wizardJumpApexSprite, Sprite wizardJumpDescendingSprite, Texture2D wizardWalkSheet, Material fadeMaterial, CharacterMotionSet motionSet)
         {
             var root = new GameObject(GeneratedRootName);
             var stage = new GameObject("Stage");
@@ -256,7 +261,7 @@ namespace BeltScroll.Editor
 
             var bounds = CreateBackgrounds(stage.transform, backgroundSprites, fadeMaterial, out var backgroundHeight);
             var camera = CreateCamera(root.transform, backgroundHeight);
-            var player = CreatePlayer(root.transform, characterSprite, wizardWalkSheet, wizardJumpAscendingSprite, wizardJumpApexSprite, wizardJumpDescendingSprite, motionSet, bounds);
+            var player = CreatePlayer(root.transform, characterSprite, wizardWalkSheet, characterShadowSprite, wizardJumpAscendingSprite, wizardJumpApexSprite, wizardJumpDescendingSprite, motionSet, bounds);
             CreateHudOverlay(root.transform, uiOverlaySprite);
 
             var follow = camera.gameObject.AddComponent<BeltScrollCameraFollow>();
@@ -359,7 +364,7 @@ namespace BeltScroll.Editor
             return camera;
         }
 
-        private static GameObject CreatePlayer(Transform parent, Sprite characterSprite, Texture2D wizardWalkSheet, Sprite wizardJumpAscendingSprite, Sprite wizardJumpApexSprite, Sprite wizardJumpDescendingSprite, CharacterMotionSet motionSet, Vector2 bounds)
+        private static GameObject CreatePlayer(Transform parent, Sprite characterSprite, Texture2D wizardWalkSheet, Sprite characterShadowSprite, Sprite wizardJumpAscendingSprite, Sprite wizardJumpApexSprite, Sprite wizardJumpDescendingSprite, CharacterMotionSet motionSet, Vector2 bounds)
         {
             var go = new GameObject("Player");
             go.transform.SetParent(parent);
@@ -375,7 +380,7 @@ namespace BeltScroll.Editor
 
             var controller = go.AddComponent<PlayerBeltScrollController>();
             controller.XBounds = new Vector2(bounds.x + 0.75f, bounds.y - 0.75f);
-            ConfigureWizardWalkVariant(controller, wizardWalkSheet, wizardJumpAscendingSprite, wizardJumpApexSprite, wizardJumpDescendingSprite);
+            ConfigureWizardWalkVariant(controller, wizardWalkSheet, characterShadowSprite, wizardJumpAscendingSprite, wizardJumpApexSprite, wizardJumpDescendingSprite);
 
             var inputHistoryHudType = System.Type.GetType("BeltScroll.InputHistoryHud, Assembly-CSharp");
             if (inputHistoryHudType != null)
@@ -386,7 +391,7 @@ namespace BeltScroll.Editor
             return go;
         }
 
-        private static void ConfigureWizardWalkVariant(PlayerBeltScrollController controller, Texture2D wizardWalkSheet, Sprite wizardJumpAscendingSprite, Sprite wizardJumpApexSprite, Sprite wizardJumpDescendingSprite)
+        private static void ConfigureWizardWalkVariant(PlayerBeltScrollController controller, Texture2D wizardWalkSheet, Sprite characterShadowSprite, Sprite wizardJumpAscendingSprite, Sprite wizardJumpApexSprite, Sprite wizardJumpDescendingSprite)
         {
             if (controller == null || wizardWalkSheet == null)
             {
@@ -408,6 +413,12 @@ namespace BeltScroll.Editor
             SetSerializedObject(serializedController, "wizardJumpDescendingSprite", wizardJumpDescendingSprite);
             SetSerializedFloat(serializedController, "wizardJumpHeight", WizardJumpHeight);
             SetSerializedFloat(serializedController, "wizardJumpDurationSeconds", WizardJumpDurationSeconds);
+            SetSerializedObject(serializedController, "characterShadowSprite", characterShadowSprite);
+            SetSerializedObject(serializedController, "characterShadowRenderer", null);
+            SetSerializedVector2(serializedController, "characterShadowOffset", CharacterShadowOffset);
+            SetSerializedVector2(serializedController, "characterShadowScale", CharacterShadowScale);
+            SetSerializedFloat(serializedController, "characterShadowAlpha", CharacterShadowAlpha);
+            SetSerializedInt(serializedController, "characterShadowSortingOrder", 450);
             serializedController.ApplyModifiedPropertiesWithoutUndo();
         }
 
