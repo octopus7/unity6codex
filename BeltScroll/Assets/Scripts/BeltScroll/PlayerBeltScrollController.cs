@@ -25,13 +25,22 @@ namespace BeltScroll
         [SerializeField] private int wizardWalkCellWidth = 290;
         [SerializeField] private int wizardWalkCellHeight = 540;
         [SerializeField] private float wizardWalkPixelsPerUnit = 150.76923f;
-        [SerializeField] private float wizardWalkFramesPerSecond = 12f;
+        [SerializeField] private float wizardWalkFramesPerSecond = 24f;
         [SerializeField] private Vector2 wizardWalkPivot = new Vector2(0.5f, 0.08333334f);
+        [SerializeField] private Sprite wizardJumpAscendingSprite;
+        [SerializeField] private Sprite wizardJumpApexSprite;
+        [SerializeField] private Sprite wizardJumpDescendingSprite;
+        [SerializeField] private float wizardJumpHeight = 1.15f;
+        [SerializeField] private float wizardJumpDurationSeconds = 0.58f;
 
         private bool facingLeft;
+        private bool wizardVariantActive;
+        private bool wizardJumping;
         private int previousHorizontalDirection;
         private int lastHorizontalPressDirection;
         private float lastHorizontalPressTime = -999f;
+        private float wizardJumpElapsedSeconds;
+        private float wizardJumpBaseY;
         private int runDirection;
         private CharacterMotionSet defaultMotionSet;
         private CharacterMotionSet wizardWalkMotionSet;
@@ -57,6 +66,8 @@ namespace BeltScroll
             wizardWalkCellHeight = Mathf.Max(1, wizardWalkCellHeight);
             wizardWalkPixelsPerUnit = Mathf.Max(1f, wizardWalkPixelsPerUnit);
             wizardWalkFramesPerSecond = Mathf.Max(0.01f, wizardWalkFramesPerSecond);
+            wizardJumpHeight = Mathf.Max(0.01f, wizardJumpHeight);
+            wizardJumpDurationSeconds = Mathf.Max(0.05f, wizardJumpDurationSeconds);
             EnsureReferences();
         }
 
@@ -77,7 +88,24 @@ namespace BeltScroll
                     ? CharacterBaseMotion.Run
                     : CharacterBaseMotion.Walk;
 
-            motionDriver.SetDesiredMotion(desiredMotion);
+            if (wizardVariantActive && !wizardJumping && ReadJumpPressed())
+            {
+                StartWizardJump();
+            }
+
+            if (wizardJumping)
+            {
+                UpdateWizardJump(desiredMotion);
+            }
+            else if (motionDriver != null)
+            {
+                if (!motionDriver.enabled)
+                {
+                    motionDriver.enabled = true;
+                }
+
+                motionDriver.SetDesiredMotion(desiredMotion);
+            }
 
             if (!hasInput)
             {
@@ -155,6 +183,8 @@ namespace BeltScroll
 
         private void ApplyDefaultCharacterVariant()
         {
+            wizardVariantActive = false;
+            CancelWizardJump();
             CacheDefaultMotionSet();
             if (motionDriver != null && defaultMotionSet != null)
             {
@@ -173,8 +203,130 @@ namespace BeltScroll
             var motionSet = GetOrCreateWizardWalkMotionSet();
             if (motionSet != null)
             {
+                wizardVariantActive = true;
                 motionDriver.SetMotionSet(motionSet);
             }
+        }
+
+        private void StartWizardJump()
+        {
+            if (!HasWizardJumpSprite())
+            {
+                return;
+            }
+
+            wizardJumping = true;
+            wizardJumpElapsedSeconds = 0f;
+            wizardJumpBaseY = transform.position.y;
+
+            if (motionDriver != null)
+            {
+                motionDriver.enabled = false;
+            }
+
+            ApplyWizardJumpPose(0f);
+        }
+
+        private void UpdateWizardJump(CharacterBaseMotion desiredMotion)
+        {
+            wizardJumpElapsedSeconds += Time.deltaTime;
+            var normalizedTime = Mathf.Clamp01(wizardJumpElapsedSeconds / wizardJumpDurationSeconds);
+            var jumpOffset = 4f * wizardJumpHeight * normalizedTime * (1f - normalizedTime);
+            var position = transform.position;
+            position.y = wizardJumpBaseY + jumpOffset;
+            transform.position = position;
+
+            ApplyWizardJumpPose(normalizedTime);
+
+            if (normalizedTime >= 1f)
+            {
+                FinishWizardJump(desiredMotion);
+            }
+        }
+
+        private void FinishWizardJump(CharacterBaseMotion desiredMotion)
+        {
+            var position = transform.position;
+            position.y = wizardJumpBaseY;
+            transform.position = position;
+            wizardJumping = false;
+
+            if (motionDriver != null)
+            {
+                motionDriver.enabled = true;
+                motionDriver.SetDesiredMotion(desiredMotion);
+            }
+        }
+
+        private void CancelWizardJump()
+        {
+            if (!wizardJumping)
+            {
+                if (motionDriver != null && !motionDriver.enabled)
+                {
+                    motionDriver.enabled = true;
+                }
+
+                return;
+            }
+
+            var position = transform.position;
+            position.y = wizardJumpBaseY;
+            transform.position = position;
+            wizardJumping = false;
+
+            if (motionDriver != null)
+            {
+                motionDriver.enabled = true;
+            }
+        }
+
+        private void ApplyWizardJumpPose(float normalizedTime)
+        {
+            if (facingRenderer == null)
+            {
+                return;
+            }
+
+            var sprite = ResolveWizardJumpSprite(normalizedTime);
+            if (sprite != null)
+            {
+                facingRenderer.sprite = sprite;
+            }
+        }
+
+        private Sprite ResolveWizardJumpSprite(float normalizedTime)
+        {
+            if (normalizedTime < 0.34f)
+            {
+                return wizardJumpAscendingSprite != null
+                    ? wizardJumpAscendingSprite
+                    : wizardJumpApexSprite != null
+                        ? wizardJumpApexSprite
+                        : wizardJumpDescendingSprite;
+            }
+
+            if (normalizedTime < 0.68f)
+            {
+                return wizardJumpApexSprite != null
+                    ? wizardJumpApexSprite
+                    : wizardJumpAscendingSprite != null
+                        ? wizardJumpAscendingSprite
+                        : wizardJumpDescendingSprite;
+            }
+
+            return wizardJumpDescendingSprite != null
+                ? wizardJumpDescendingSprite
+                : wizardJumpApexSprite != null
+                    ? wizardJumpApexSprite
+                    : wizardJumpAscendingSprite;
+        }
+
+        private bool HasWizardJumpSprite()
+        {
+            return wizardJumpAscendingSprite != null
+                || wizardJumpApexSprite != null
+                || wizardJumpDescendingSprite != null;
         }
 
         private CharacterMotionSet GetOrCreateWizardWalkMotionSet()
@@ -349,6 +501,26 @@ namespace BeltScroll
 
 #if ENABLE_LEGACY_INPUT_MANAGER
             if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            {
+                return true;
+            }
+#endif
+
+            return false;
+        }
+
+        private static bool ReadJumpPressed()
+        {
+#if ENABLE_INPUT_SYSTEM
+            var keyboard = Keyboard.current;
+            if (keyboard != null && (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame))
+            {
+                return true;
+            }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
+            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
             {
                 return true;
             }
