@@ -16,6 +16,8 @@ namespace BeltScroll
         [SerializeField] private SpriteRenderer facingRenderer;
         [SerializeField] private CharacterMotionDriver motionDriver;
 
+        private bool facingLeft;
+
         public Vector2 XBounds
         {
             get => xBounds;
@@ -35,6 +37,8 @@ namespace BeltScroll
         private void Update()
         {
             var horizontal = ReadHorizontal();
+            UpdateFacing(horizontal);
+
             var wantsRun = shiftKeyRuns && ReadRunHeld();
             var hasInput = Mathf.Abs(horizontal) > 0.01f;
             var desiredMotion = !hasInput
@@ -55,10 +59,6 @@ namespace BeltScroll
             position.x = Mathf.Clamp(position.x + horizontal * speed * Time.deltaTime, xBounds.x, xBounds.y);
             transform.position = position;
 
-            if (facingRenderer != null)
-            {
-                facingRenderer.flipX = horizontal < 0f;
-            }
         }
 
         private void EnsureReferences()
@@ -71,6 +71,23 @@ namespace BeltScroll
             if (facingRenderer == null)
             {
                 facingRenderer = GetComponent<SpriteRenderer>();
+            }
+        }
+
+        private void UpdateFacing(float horizontal)
+        {
+            if (horizontal < -0.01f)
+            {
+                facingLeft = true;
+            }
+            else if (horizontal > 0.01f)
+            {
+                facingLeft = false;
+            }
+
+            if (facingRenderer != null)
+            {
+                facingRenderer.flipX = facingLeft;
             }
         }
 

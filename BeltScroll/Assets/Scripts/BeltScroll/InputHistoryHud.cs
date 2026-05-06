@@ -98,7 +98,7 @@ namespace BeltScroll
                 return;
             }
 
-            builtInFont = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            builtInFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
             canvasObject = new GameObject("InputHistoryHudCanvas", typeof(Canvas), typeof(CanvasScaler));
 
