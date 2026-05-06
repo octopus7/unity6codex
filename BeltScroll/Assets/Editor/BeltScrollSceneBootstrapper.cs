@@ -191,7 +191,7 @@ namespace BeltScroll.Editor
 
             var bounds = CreateBackgrounds(stage.transform, backgroundSprites, fadeMaterial, out var backgroundHeight);
             var camera = CreateCamera(root.transform, backgroundHeight);
-            var player = CreatePlayer(root.transform, characterSprite, fadeMaterial, motionSet, bounds);
+            var player = CreatePlayer(root.transform, characterSprite, motionSet, bounds);
 
             var follow = camera.gameObject.AddComponent<BeltScrollCameraFollow>();
             follow.Configure(player.transform, bounds, 0f);
@@ -256,7 +256,7 @@ namespace BeltScroll.Editor
             return camera;
         }
 
-        private static GameObject CreatePlayer(Transform parent, Sprite characterSprite, Material fadeMaterial, CharacterMotionSet motionSet, Vector2 bounds)
+        private static GameObject CreatePlayer(Transform parent, Sprite characterSprite, CharacterMotionSet motionSet, Vector2 bounds)
         {
             var go = new GameObject("Player");
             go.transform.SetParent(parent);
@@ -265,7 +265,6 @@ namespace BeltScroll.Editor
 
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = characterSprite;
-            renderer.sharedMaterial = fadeMaterial;
             renderer.sortingOrder = 500;
 
             var motionDriver = go.AddComponent<CharacterMotionDriver>();
