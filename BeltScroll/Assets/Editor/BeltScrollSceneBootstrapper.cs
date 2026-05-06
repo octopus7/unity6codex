@@ -27,7 +27,7 @@ namespace BeltScroll.Editor
         private const float CharacterPixelsPerUnit = 320f;
         private const float WizardWalkPixelsPerUnit = 150.76923f;
         private const float WizardWalkFramesPerSecond = 24f;
-        private const float WizardJumpHeight = 1.15f;
+        private const float WizardJumpHeight = 1.65f;
         private const float WizardJumpDurationSeconds = 0.58f;
         private const float PlayerGroundY = -2.72f;
 

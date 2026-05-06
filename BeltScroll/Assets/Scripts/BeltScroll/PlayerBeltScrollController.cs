@@ -30,7 +30,7 @@ namespace BeltScroll
         [SerializeField] private Sprite wizardJumpAscendingSprite;
         [SerializeField] private Sprite wizardJumpApexSprite;
         [SerializeField] private Sprite wizardJumpDescendingSprite;
-        [SerializeField] private float wizardJumpHeight = 1.15f;
+        [SerializeField] private float wizardJumpHeight = 1.65f;
         [SerializeField] private float wizardJumpDurationSeconds = 0.58f;
 
         private bool facingLeft;
