@@ -16,6 +16,7 @@ namespace BeltScroll
         public CharacterMotionState CurrentState => currentState;
         public CharacterBaseMotion CurrentBaseMotion => currentBaseMotion;
         public CharacterBaseMotion TargetBaseMotion => targetBaseMotion;
+        public CharacterMotionSet MotionSet => motionSet;
 
         public void SetMotionSet(CharacterMotionSet value)
         {

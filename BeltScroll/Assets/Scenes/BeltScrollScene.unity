@@ -891,8 +891,19 @@ MonoBehaviour:
   runSpeed: 5.6
   xBounds: {x: -30.194996, y: 30.194996}
   shiftKeyRuns: 1
+  doubleTapRuns: 1
+  doubleTapRunWindowSeconds: 0.28
   facingRenderer: {fileID: 1890182822}
   motionDriver: {fileID: 1890182821}
+  numberKeysSwitchCharacterVariant: 1
+  wizardWalkSheet: {fileID: 2800000, guid: 9544011d0e82ca94f86265b9b8cffa59, type: 3}
+  wizardWalkColumns: 6
+  wizardWalkRows: 4
+  wizardWalkCellWidth: 290
+  wizardWalkCellHeight: 540
+  wizardWalkPixelsPerUnit: 150.76923
+  wizardWalkFramesPerSecond: 12
+  wizardWalkPivot: {x: 0.5, y: 0}
 --- !u!114 &1890182821
 MonoBehaviour:
   m_ObjectHideFlags: 0

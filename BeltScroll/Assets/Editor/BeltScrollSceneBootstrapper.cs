@@ -16,8 +16,10 @@ namespace BeltScroll.Editor
         private const string FadeMaterialPath = "Assets/__BootstrapGenerated/BeltScroll/Materials/SpriteRightFade.mat";
         private const string CharacterPath = "Assets/Characters/placeholder_hero.png";
         private const string MotionSetPath = "Assets/Characters/PlaceholderHeroMotionSet.asset";
+        private const string WizardWalkSheetPath = "Assets/Characters/wizard_walk.png";
         private const float BackgroundPixelsPerUnit = 100f;
         private const float CharacterPixelsPerUnit = 320f;
+        private const float WizardWalkPixelsPerUnit = 150.76923f;
         private const float PlayerGroundY = -2.72f;
 
         private static readonly string[] BackgroundPaths =
@@ -46,12 +48,13 @@ namespace BeltScroll.Editor
 
             var backgroundSprites = ImportBackgroundSprites();
             var characterSprite = ImportSprite(CharacterPath, CharacterPixelsPerUnit, SpriteAlignment.Custom, new Vector2(0.5f, 0f), true);
+            var wizardWalkSheet = ImportWizardWalkSheet();
             var fadeMaterial = EnsureFadeMaterial();
             var motionSet = EnsureMotionSet(characterSprite);
 
             var scene = OpenOrCreateScene();
             ClearGeneratedRoot(scene);
-            BuildScene(backgroundSprites, characterSprite, fadeMaterial, motionSet);
+            BuildScene(backgroundSprites, characterSprite, wizardWalkSheet, fadeMaterial, motionSet);
             EnsureSceneInBuildSettings();
 
             EditorSceneManager.MarkSceneDirty(scene);
@@ -76,6 +79,39 @@ namespace BeltScroll.Editor
             }
 
             return sprites;
+        }
+
+        private static Texture2D ImportWizardWalkSheet()
+        {
+            if (!File.Exists(WizardWalkSheetPath))
+            {
+                return null;
+            }
+
+            var importer = AssetImporter.GetAtPath(WizardWalkSheetPath) as TextureImporter;
+            if (importer == null)
+            {
+                return null;
+            }
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = WizardWalkPixelsPerUnit;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.npotScale = TextureImporterNPOTScale.None;
+            importer.maxTextureSize = 4096;
+
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteAlignment = (int)SpriteAlignment.Custom;
+            settings.spritePivot = new Vector2(0.5f, 0f);
+            importer.SetTextureSettings(settings);
+            importer.SaveAndReimport();
+
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(WizardWalkSheetPath);
         }
 
         private static Sprite ImportSprite(string path, float pixelsPerUnit, SpriteAlignment alignment, Vector2 pivot, bool alphaIsTransparency)
@@ -183,7 +219,7 @@ namespace BeltScroll.Editor
             }
         }
 
-        private static void BuildScene(Sprite[] backgroundSprites, Sprite characterSprite, Material fadeMaterial, CharacterMotionSet motionSet)
+        private static void BuildScene(Sprite[] backgroundSprites, Sprite characterSprite, Texture2D wizardWalkSheet, Material fadeMaterial, CharacterMotionSet motionSet)
         {
             var root = new GameObject(GeneratedRootName);
             var stage = new GameObject("Stage");
@@ -191,7 +227,7 @@ namespace BeltScroll.Editor
 
             var bounds = CreateBackgrounds(stage.transform, backgroundSprites, fadeMaterial, out var backgroundHeight);
             var camera = CreateCamera(root.transform, backgroundHeight);
-            var player = CreatePlayer(root.transform, characterSprite, motionSet, bounds);
+            var player = CreatePlayer(root.transform, characterSprite, wizardWalkSheet, motionSet, bounds);
 
             var follow = camera.gameObject.AddComponent<BeltScrollCameraFollow>();
             follow.Configure(player.transform, bounds, 0f);
@@ -256,7 +292,7 @@ namespace BeltScroll.Editor
             return camera;
         }
 
-        private static GameObject CreatePlayer(Transform parent, Sprite characterSprite, CharacterMotionSet motionSet, Vector2 bounds)
+        private static GameObject CreatePlayer(Transform parent, Sprite characterSprite, Texture2D wizardWalkSheet, CharacterMotionSet motionSet, Vector2 bounds)
         {
             var go = new GameObject("Player");
             go.transform.SetParent(parent);
@@ -272,6 +308,7 @@ namespace BeltScroll.Editor
 
             var controller = go.AddComponent<PlayerBeltScrollController>();
             controller.XBounds = new Vector2(bounds.x + 0.75f, bounds.y - 0.75f);
+            ConfigureWizardWalkVariant(controller, wizardWalkSheet);
 
             var inputHistoryHudType = System.Type.GetType("BeltScroll.InputHistoryHud, Assembly-CSharp");
             if (inputHistoryHudType != null)
@@ -280,6 +317,71 @@ namespace BeltScroll.Editor
             }
 
             return go;
+        }
+
+        private static void ConfigureWizardWalkVariant(PlayerBeltScrollController controller, Texture2D wizardWalkSheet)
+        {
+            if (controller == null || wizardWalkSheet == null)
+            {
+                return;
+            }
+
+            var serializedController = new SerializedObject(controller);
+            SetSerializedBool(serializedController, "numberKeysSwitchCharacterVariant", true);
+            SetSerializedObject(serializedController, "wizardWalkSheet", wizardWalkSheet);
+            SetSerializedInt(serializedController, "wizardWalkColumns", 6);
+            SetSerializedInt(serializedController, "wizardWalkRows", 4);
+            SetSerializedInt(serializedController, "wizardWalkCellWidth", 290);
+            SetSerializedInt(serializedController, "wizardWalkCellHeight", 540);
+            SetSerializedFloat(serializedController, "wizardWalkPixelsPerUnit", WizardWalkPixelsPerUnit);
+            SetSerializedFloat(serializedController, "wizardWalkFramesPerSecond", 12f);
+            SetSerializedVector2(serializedController, "wizardWalkPivot", new Vector2(0.5f, 0f));
+            serializedController.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        private static void SetSerializedBool(SerializedObject target, string propertyName, bool value)
+        {
+            var property = target.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.boolValue = value;
+            }
+        }
+
+        private static void SetSerializedInt(SerializedObject target, string propertyName, int value)
+        {
+            var property = target.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.intValue = value;
+            }
+        }
+
+        private static void SetSerializedFloat(SerializedObject target, string propertyName, float value)
+        {
+            var property = target.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.floatValue = value;
+            }
+        }
+
+        private static void SetSerializedVector2(SerializedObject target, string propertyName, Vector2 value)
+        {
+            var property = target.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.vector2Value = value;
+            }
+        }
+
+        private static void SetSerializedObject(SerializedObject target, string propertyName, Object value)
+        {
+            var property = target.FindProperty(propertyName);
+            if (property != null)
+            {
+                property.objectReferenceValue = value;
+            }
         }
 
         private static void EnsureSceneInBuildSettings()
