@@ -41,11 +41,16 @@ namespace BeltScroll
         [SerializeField] private float entrySpacing = 6f;
         [SerializeField] private Color entryColor = new Color(0f, 0f, 0f, 0.58f);
         [SerializeField] private Color textColor = new Color(1f, 1f, 1f, 0.95f);
+        [SerializeField] private CharacterMotionDriver motionDriver;
+        [SerializeField] private Vector2 statePanelSize = new Vector2(176f, 44f);
+        [SerializeField] private float statePanelGap = 10f;
+        [SerializeField] private Color statePanelColor = new Color(0f, 0f, 0f, 0.58f);
 
         private readonly List<InputEntry> entries = new List<InputEntry>();
         private DirectionInput currentDirection = DirectionInput.Neutral;
         private GameObject canvasObject;
         private RectTransform listRoot;
+        private Text stateLabel;
         private Font builtInFont;
 
         private void Awake()
@@ -71,11 +76,15 @@ namespace BeltScroll
             entrySize.x = Mathf.Max(20f, entrySize.x);
             entrySize.y = Mathf.Max(20f, entrySize.y);
             entrySpacing = Mathf.Max(0f, entrySpacing);
+            statePanelSize.x = Mathf.Max(96f, statePanelSize.x);
+            statePanelSize.y = Mathf.Max(28f, statePanelSize.y);
+            statePanelGap = Mathf.Max(0f, statePanelGap);
         }
 
         private void Update()
         {
             BuildHud();
+            RefreshStateLabel();
 
             var direction = ReadDirection();
             if (direction != currentDirection)
@@ -128,6 +137,8 @@ namespace BeltScroll
             layout.childControlHeight = false;
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
+
+            CreateStatePanel();
         }
 
         private void Enqueue(DirectionInput direction)
@@ -221,6 +232,59 @@ namespace BeltScroll
             }
         }
 
+        private void CreateStatePanel()
+        {
+            var stateObject = new GameObject("PlayerState", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            stateObject.transform.SetParent(canvasObject.transform, false);
+
+            var rect = stateObject.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(1f, 0.5f);
+            rect.anchorMax = new Vector2(1f, 0.5f);
+            rect.pivot = new Vector2(1f, 0.5f);
+            rect.anchoredPosition = new Vector2(anchoredPosition.x - entrySize.x - statePanelGap, anchoredPosition.y);
+            rect.sizeDelta = statePanelSize;
+
+            var background = stateObject.GetComponent<Image>();
+            background.color = statePanelColor;
+            background.raycastTarget = false;
+
+            var labelObject = new GameObject("StateText", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            labelObject.transform.SetParent(stateObject.transform, false);
+
+            var labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(8f, 0f);
+            labelRect.offsetMax = new Vector2(-8f, 0f);
+
+            stateLabel = labelObject.GetComponent<Text>();
+            stateLabel.raycastTarget = false;
+            stateLabel.font = builtInFont;
+            stateLabel.alignment = TextAnchor.MiddleCenter;
+            stateLabel.fontStyle = FontStyle.Bold;
+            stateLabel.fontSize = Mathf.RoundToInt(statePanelSize.y * 0.42f);
+            stateLabel.color = textColor;
+
+            RefreshStateLabel();
+        }
+
+        private void RefreshStateLabel()
+        {
+            if (stateLabel == null)
+            {
+                return;
+            }
+
+            if (motionDriver == null)
+            {
+                motionDriver = GetComponent<CharacterMotionDriver>();
+            }
+
+            stateLabel.text = motionDriver != null
+                ? ToStateLabel(motionDriver.CurrentState)
+                : "NO STATE";
+        }
+
         private void RemoveOldest()
         {
             if (entries.Count > 0)
@@ -294,6 +358,23 @@ namespace BeltScroll
                 DirectionInput.DownLeft => "↙",
                 DirectionInput.DownRight => "↘",
                 _ => string.Empty
+            };
+        }
+
+        private static string ToStateLabel(CharacterMotionState state)
+        {
+            return state switch
+            {
+                CharacterMotionState.Idle => "IDLE",
+                CharacterMotionState.IdleToWalk => "IDLE > WALK",
+                CharacterMotionState.Walk => "WALK",
+                CharacterMotionState.WalkToIdle => "WALK > IDLE",
+                CharacterMotionState.WalkToRun => "WALK > RUN",
+                CharacterMotionState.Run => "RUN",
+                CharacterMotionState.RunToWalk => "RUN > WALK",
+                CharacterMotionState.IdleToRun => "IDLE > RUN",
+                CharacterMotionState.RunToIdle => "RUN > IDLE",
+                _ => state.ToString()
             };
         }
 

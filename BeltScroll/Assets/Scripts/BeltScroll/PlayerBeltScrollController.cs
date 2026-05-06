@@ -13,10 +13,16 @@ namespace BeltScroll
         [SerializeField] private float runSpeed = 5.6f;
         [SerializeField] private Vector2 xBounds = new Vector2(-50f, 50f);
         [SerializeField] private bool shiftKeyRuns = true;
+        [SerializeField] private bool doubleTapRuns = true;
+        [SerializeField] private float doubleTapRunWindowSeconds = 0.28f;
         [SerializeField] private SpriteRenderer facingRenderer;
         [SerializeField] private CharacterMotionDriver motionDriver;
 
         private bool facingLeft;
+        private int previousHorizontalDirection;
+        private int lastHorizontalPressDirection;
+        private float lastHorizontalPressTime = -999f;
+        private int runDirection;
 
         public Vector2 XBounds
         {
@@ -31,16 +37,19 @@ namespace BeltScroll
 
         private void OnValidate()
         {
+            doubleTapRunWindowSeconds = Mathf.Max(0.05f, doubleTapRunWindowSeconds);
             EnsureReferences();
         }
 
         private void Update()
         {
             var horizontal = ReadHorizontal();
+            var horizontalDirection = ToDirection(horizontal);
+            UpdateRunLatch(horizontalDirection);
             UpdateFacing(horizontal);
 
-            var wantsRun = shiftKeyRuns && ReadRunHeld();
-            var hasInput = Mathf.Abs(horizontal) > 0.01f;
+            var wantsRun = (shiftKeyRuns && ReadRunHeld()) || (doubleTapRuns && runDirection == horizontalDirection);
+            var hasInput = horizontalDirection != 0;
             var desiredMotion = !hasInput
                 ? CharacterBaseMotion.Idle
                 : wantsRun
@@ -59,6 +68,30 @@ namespace BeltScroll
             position.x = Mathf.Clamp(position.x + horizontal * speed * Time.deltaTime, xBounds.x, xBounds.y);
             transform.position = position;
 
+        }
+
+        private void UpdateRunLatch(int horizontalDirection)
+        {
+            if (horizontalDirection == 0)
+            {
+                runDirection = 0;
+                previousHorizontalDirection = 0;
+                return;
+            }
+
+            if (horizontalDirection != previousHorizontalDirection)
+            {
+                var now = Time.unscaledTime;
+                var isDoubleTap = doubleTapRuns
+                    && horizontalDirection == lastHorizontalPressDirection
+                    && now - lastHorizontalPressTime <= doubleTapRunWindowSeconds;
+
+                runDirection = isDoubleTap ? horizontalDirection : 0;
+                lastHorizontalPressDirection = horizontalDirection;
+                lastHorizontalPressTime = now;
+            }
+
+            previousHorizontalDirection = horizontalDirection;
         }
 
         private void EnsureReferences()
@@ -144,6 +177,21 @@ namespace BeltScroll
 #endif
 
             return false;
+        }
+
+        private static int ToDirection(float horizontal)
+        {
+            if (horizontal < -0.01f)
+            {
+                return -1;
+            }
+
+            if (horizontal > 0.01f)
+            {
+                return 1;
+            }
+
+            return 0;
         }
     }
 }
