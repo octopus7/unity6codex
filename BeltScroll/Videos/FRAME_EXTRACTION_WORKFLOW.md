@@ -34,6 +34,12 @@ The transparent alpha-split output is:
 Videos/movecycle-dreamina-2026-05-06_wizard_front24_alpha_split
 ```
 
+The black/white opacity preview output is:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview
+```
+
 Current result:
 
 - Source video: `Videos/movecycle-dreamina-2026-05-06.MP4`
@@ -57,6 +63,12 @@ Current result:
 - Alpha mask sheet: `wizard_front24_alpha_mask_exact.png`
 - Transparent sheet: `wizard_front24_grid_6x4_transparent.png`
 - Split transparent frames: `24`, under `split_frames`
+- Black/white opacity preview sheet size: `1740x2160`
+- Black/white opacity preview files:
+  - `01_black_background.png`
+  - `02_white_background.png`
+  - `03_transparent_from_black_white.png`
+  - `opacity_mask_from_black_white.png`
 
 Samples `0` and `1` are excluded because their brightness differs from the
 rest of the video.
@@ -250,6 +262,79 @@ Split output:
 - Split order: left-to-right, top-to-bottom
 - Split file names: `wizard_front24_alpha_####.png`
 
+## Black/White Opacity Preview
+
+This pass starts from the transparent `6x4` sheet and renders two opaque
+versions over pure black and pure white backgrounds. It then reconstructs
+opacity from the color difference between those two renders.
+
+Input:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_alpha_split/wizard_front24_grid_6x4_transparent.png
+```
+
+Command:
+
+```powershell
+& {
+  $env:DOTNET_CLI_HOME = (Resolve-Path .\.codex-tmp\dotnet-home).Path
+  $env:NUGET_PACKAGES = (Resolve-Path .\.codex-tmp\nuget).Path
+  $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
+  $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+
+  dotnet .\.codex-tmp\BwOpacityPreview\bin\Release\net10.0-windows\BwOpacityPreview.dll `
+    .\Videos\movecycle-dreamina-2026-05-06_wizard_front24_alpha_split\wizard_front24_grid_6x4_transparent.png `
+    .\Videos\movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview
+}
+```
+
+Production files:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview/01_black_background.png
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview/02_white_background.png
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview/03_transparent_from_black_white.png
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview/opacity_mask_from_black_white.png
+```
+
+Direct split outputs:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview/split_black/
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview/split_white/
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview/split_transparent/
+```
+
+Each split directory contains `24` PNG frames. The split is a direct `6x4`
+grid crop only; it does not change color, opacity, masking, or edge cleanup.
+
+Alpha reconstruction:
+
+```text
+alpha = 255 - average(white_rgb - black_rgb)
+```
+
+Direct split command example:
+
+```powershell
+& {
+  $env:DOTNET_CLI_HOME = (Resolve-Path .\.codex-tmp\dotnet-home).Path
+  $env:NUGET_PACKAGES = (Resolve-Path .\.codex-tmp\nuget).Path
+  $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
+  $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+
+  dotnet .\.codex-tmp\GridSplitter\bin\Release\net10.0-windows\GridSplitter.dll `
+    --input .\Videos\movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview\03_transparent_from_black_white.png `
+    --out .\Videos\movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview\split_transparent `
+    --prefix wizard_front24_transparent `
+    --columns 6 `
+    --rows 4 `
+    --cell-width 290 `
+    --cell-height 540
+}
+```
+
 ## General Extraction Notes
 
 For a manually selected source sample range, use:
@@ -271,10 +356,16 @@ Use `--threshold -1` to keep every sampled frame in the selected range.
 ## Cleanup Policy
 
 Intermediate image result folders should be removed after choosing a final
-cycle. The current retained image output is only:
+cycle. The current retained image outputs are:
 
 ```text
 Videos/movecycle-dreamina-2026-05-06_wizard_walk_cycle
+Videos/movecycle-dreamina-2026-05-06_wizard_walk_cycle_cropped_transparent
+Videos/movecycle-dreamina-2026-05-06_wizard_walk_cycle_front24_cropped
+Videos/movecycle-dreamina-2026-05-06_wizard_walk_cycle_front24_grid_6x4
+Videos/movecycle-dreamina-2026-05-06_wizard_walk_cycle_front24_grid_6x4_cleaned_bleed
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_alpha_split
+Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview
 ```
 
 The source video and this workflow document are retained.
