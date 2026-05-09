@@ -40,6 +40,18 @@ The black/white opacity preview output is:
 Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview
 ```
 
+The full-frame dump for choosing a run loop is:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_run_full_frames
+```
+
+The current run-loop crop sheet candidate is:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_run_111_126_wizard_crop_4x4/wizard_run_111_126_grid_4x4.png
+```
+
 Current result:
 
 - Source video: `Videos/movecycle-dreamina-2026-05-06.MP4`
@@ -69,6 +81,11 @@ Current result:
   - `02_white_background.png`
   - `03_transparent_from_black_white.png`
   - `opacity_mask_from_black_white.png`
+- Run-loop selection dump: `299` full-frame PNGs, source samples `2..300`
+- Run-loop review sheets: `5`, under `run_full_frames/review_sheets`
+- Run-loop crop candidate: output frames `111..126`, source samples `112..127`
+- Run-loop crop rectangle: `x=200, y=65, width=380, height=590`
+- Run-loop sheet: `4x4`, `1520x2360`
 
 Samples `0` and `1` are excluded because their brightness differs from the
 rest of the video.
@@ -337,6 +354,71 @@ Direct split command example:
 
 ## General Extraction Notes
 
+## Full Frame Dump For Run Loop Selection
+
+This pass extracts every sampled full-frame image so a run loop range can be
+chosen manually. It does not remove duplicate-looking poses.
+
+Output:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_run_full_frames
+```
+
+Command:
+
+```powershell
+& {
+  $env:DOTNET_CLI_HOME = (Resolve-Path .\.codex-tmp\dotnet-home).Path
+  $env:NUGET_PACKAGES = (Resolve-Path .\.codex-tmp\nuget).Path
+  $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
+  $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+
+  dotnet .\.codex-tmp\FrameExtractor\bin\Release\net10.0-windows\FrameExtractor.dll `
+    --video .\Videos\movecycle-dreamina-2026-05-06.MP4 `
+    --out .\Videos\movecycle-dreamina-2026-05-06_run_full_frames `
+    --sample-fps 30 `
+    --threshold -1 `
+    --min-stddev 2.0 `
+    --seek-delay-ms 140 `
+    --start-sample 2
+}
+```
+
+Settings and result:
+
+- Samples `0` and `1` are ignored.
+- Source sample range: `2..300`
+- Saved frames: `299`
+- Output file pattern: `unique_####_sample_#####_t####.###s.png`
+- `manifest.csv` maps output frame number to source sample and timestamp.
+- `review_sheets/` contains 60-frame thumbnail sheets for visual range picking.
+
+## Run 111-126 Wizard Crop Sheet
+
+After manually keeping only output frames `111..126`, the second purple wizard
+was cropped from each remaining full-frame PNG and merged into a `4x4` sheet.
+
+Output:
+
+```text
+Videos/movecycle-dreamina-2026-05-06_run_111_126_wizard_crop_4x4
+```
+
+Settings:
+
+- Source files: `unique_0111...png` through `unique_0126...png`
+- Source samples: `112..127`
+- Crop: `x=200, y=65, width=380, height=590`
+- Individual cropped frames: `16`
+- Sheet columns: `4`
+- Sheet rows: `4`
+- Sheet size: `1520x2360`
+- Sheet order: left-to-right, top-to-bottom
+- Sheet file: `wizard_run_111_126_grid_4x4.png`
+
+## General Extraction Notes
+
 For a manually selected source sample range, use:
 
 ```powershell
@@ -366,6 +448,8 @@ Videos/movecycle-dreamina-2026-05-06_wizard_walk_cycle_front24_grid_6x4
 Videos/movecycle-dreamina-2026-05-06_wizard_walk_cycle_front24_grid_6x4_cleaned_bleed
 Videos/movecycle-dreamina-2026-05-06_wizard_front24_alpha_split
 Videos/movecycle-dreamina-2026-05-06_wizard_front24_bw_opacity_preview
+Videos/movecycle-dreamina-2026-05-06_run_full_frames
+Videos/movecycle-dreamina-2026-05-06_run_111_126_wizard_crop_4x4
 ```
 
 The source video and this workflow document are retained.

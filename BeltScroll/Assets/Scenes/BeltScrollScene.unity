@@ -710,7 +710,7 @@ MonoBehaviour:
   characterShadowRenderer: {fileID: 0}
   characterShadowOffset: {x: 0, y: 0.04}
   characterShadowScale: {x: 0.38, y: 0.1}
-  characterShadowAlpha: 0.55
+  characterShadowAlpha: 0.72
   characterShadowSortingOrder: 450
 --- !u!114 &1497263336
 MonoBehaviour:

@@ -36,7 +36,7 @@ namespace BeltScroll
         [SerializeField] private SpriteRenderer characterShadowRenderer;
         [SerializeField] private Vector2 characterShadowOffset = new Vector2(0f, 0.04f);
         [SerializeField] private Vector2 characterShadowScale = new Vector2(0.38f, 0.1f);
-        [SerializeField] private float characterShadowAlpha = 0.55f;
+        [SerializeField] private float characterShadowAlpha = 0.72f;
         [SerializeField] private int characterShadowSortingOrder = 450;
 
         private bool facingLeft;

@@ -30,7 +30,7 @@ namespace BeltScroll.Editor
         private const float WizardWalkFramesPerSecond = 24f;
         private const float WizardJumpHeight = 1.65f;
         private const float WizardJumpDurationSeconds = 0.58f;
-        private const float CharacterShadowAlpha = 0.55f;
+        private const float CharacterShadowAlpha = 0.72f;
         private static readonly Vector2 CharacterShadowOffset = new Vector2(0f, 0.04f);
         private static readonly Vector2 CharacterShadowScale = new Vector2(0.38f, 0.1f);
         private const float PlayerGroundY = -2.72f;
