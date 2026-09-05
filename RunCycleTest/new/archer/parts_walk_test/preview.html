@@ -1,0 +1,13 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><title>Archer · Parts Walk Test</title>
+<style>body{margin:0;background:#111820;color:#dfe9ee;font:15px system-ui}main{max-width:1150px;margin:24px auto;padding:0 20px}h1{font-size:24px}section{display:flex;gap:24px;flex-wrap:wrap}canvas{width:min(640px,100%);background:#181f27;border:1px solid #354653;border-radius:12px}aside{flex:1;min-width:260px}button,select{background:#2c404f;color:white;border:1px solid #597181;border-radius:6px;padding:9px;cursor:pointer;margin:4px}button.active{background:#99692c}label{display:block;margin:18px 0}input[type=range]{width:100%}pre{white-space:pre-wrap;color:#9ac4d8}p{line-height:1.65}.note{color:#e7b56c}</style>
+<main><h1>Archer / 관절 파츠 보행 검증</h1><p>오른쪽 진행 · 주황색: 가까운 쪽 · 청록색: 먼 쪽 · 4개 핵심 포즈 + 120개 관절 샘플</p><section><canvas id="canvas" width="640" height="640"></canvas><aside>
+<button id="play">일시 정지</button><button id="reset">처음</button><div id="keys"></div>
+<label>프레임 / 위상 <input id="phase" type="range" min="0" max="119" value="0"></label>
+<label><input id="joints" type="checkbox"> 관절점과 부모 연결 표시</label>
+<label><input id="cape" type="checkbox" checked> 망토 표시 (등판 검사 시 해제)</label>
+<label>파츠 면 <select id="surface"><option value="auto">포즈별 앞면 / 뒷면 교대</option><option value="front">앞면 고정 비교</option><option value="rear">뒷면 고정 비교</option></select></label>
+<label>재생 속도 <select id="speed"><option value=".5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label>
+<pre id="status"></pre><p class="note">검증 시안: 앞·뒷면 전환 때 몸통 윤곽이 튑니다. 중간 면 파츠가 없어 최종 애니메이션 품질로 판정하지 않습니다.</p>
+<p>1: 가까운 다리 앞 / 팔 뒤<br>2: 가까운 다리 지지 / 먼 다리 통과<br>3: 가까운 다리 뒤 / 팔 앞<br>4: 반대쪽 지지 / 가까운 다리 통과</p>
+<a href="comparison_sheet.png" style="color:#82cdf3">4프레임 비교 시트</a> · <a href="walk_loop.gif" style="color:#82cdf3">반복 GIF</a>
+</aside></section></main><script src="preview_data.js"></script><script src="preview.js"></script></html>

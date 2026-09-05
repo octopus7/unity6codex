@@ -1,0 +1,28 @@
+BUILT-IN image_gen used. Front atlas prompt:
+Use case: stylized-concept. Create a production 2D skeletal animation PARTS ATLAS, not a complete character or animation frames. Reference image defines blonde braided bob, green eyes, green gold cloak, ivory bodice, leather shorts and boots, botanical gold bow. True transparent RGBA background. Square 2048x2048 atlas with strict 6 columns x 3 rows equal cells, one isolated part per cell, centered, generous empty margins, no text no grid. All parts right-facing side view, same consistent anime painted style. Exact row-major order: row1 HEAD with neck (right-facing), TORSO ivory bodice green collar no arms no cape, PELVIS leather shorts belt pouch no legs, NEAR UPPER ARM bare with gold shoulder band, NEAR FOREARM leather bracer, NEAR HAND fingerless glove gripping closed fist. row2 FAR UPPER ARM bare simple band, FAR FOREARM leather bracer, FAR HAND fingerless closed fist, NEAR THIGH bare with ornate gold thigh plate, NEAR SHIN bare lower leg ending above boot, NEAR FOOT entire brown ankle boot toe pointing right. row3 FAR THIGH bare with simple brown strap (no gold plate), FAR SHIN bare lower leg ending above boot, FAR FOOT entire brown ankle boot toe pointing right, BOW whole vertical ornate wooden green leaf bow with visible string and central grip, CAPE green gold cloth trailing left, QUIVER leather with arrows pointing upward. Limbs straight vertically hanging, proximal rounded end at top and distal rounded end bottom with generous joint overlap. Each part fully contained in its own cell, detached, never touching another. No duplicate pieces. No connecting anatomy. Head torso pelvis largest within cell; limbs centered narrow vertical. Bow fits completely in cell. Preserve near/far differing thigh decorations. Do not copy reference hand-bow disconnection; bow is separate prop.
+
+Rear atlas prompt (additional alternate surfaces, not replacement):
+Use case: stylized-concept. Production cutout skeletal sprite PARTS ATLAS for reference blonde archer. CRITICAL CAMERA CORRECTION: reference is identity and costume only. ALL ANATOMY must use a coherent REAR THREE-QUARTER view, character traveling screen RIGHT and AWAY slightly, camera behind and on character's near side. We see BACK of torso, BACK of shorts/pelvis, backs/outer sides of thighs and calves, heel plus right-directed toe of boots. NO FRONT CHEST, NO FRONT BELT BUCKLE, NO frontal crotch. The head shows mostly braided back hair plus right-facing cheek/nose silhouette at right edge. This is NOT a front three-quarter character. Make detached parts only, never complete poses.
+Transparent background with real alpha, no checkerboard pattern drawn. 6 columns by 3 rows spatial layout, generous gaps. Exact row order:
+HEAD rear-right three quarter blonde braided bob neck;
+TORSO back view ivory fitted vest back seam, green collar, shoulder sockets no arms no cape, waist bottom;
+PELVIS back three quarter brown shorts rear seams, belt back and side pouch on visible side no front buckle;
+NEAR UPPER ARM rear outer view gold band;
+NEAR FOREARM rear outer view leather bracer NO HAND;
+NEAR HAND fingerless glove closed holding fist wrist short.
+Row2 FAR UPPER ARM rear view simple band;
+FAR FOREARM leather bracer NO HAND;
+FAR HAND closed glove fist;
+NEAR THIGH rear outer view bare with gold plate on outer edge;
+NEAR SHIN back of calf bare NO FOOT;
+NEAR FOOT brown ankle boot rear three quarter heel left toe pointing RIGHT.
+Row3 FAR THIGH rear view bare simple strap;
+FAR SHIN rear calf bare NO FOOT;
+FAR FOOT brown ankle boot rear three quarter heel left toe RIGHT;
+BOW whole ornate curved wooden leaf bow with string, vertical orientation separate from hand;
+CAPE detached green gold cloth viewed FROM BACK hanging trailing left, no collar duplicated;
+QUIVER arrows and leather rear view.
+Limbs hang straight down, proximal joint top distal joint bottom, rounded joint overlap pads, consistent perspective. Maintain anime painted style reference, blonde green ivory brown gold palette. The torso and pelvis MUST SHOW THEIR BACK SURFACES. All parts separated and fully within their cells. No text no labels no ground shadow.
+
+Background edit attempt returned RGB checkerboard again. External connected neutral pixels removed during deterministic extraction. Both original generated atlases preserved.
+
