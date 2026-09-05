@@ -12,5 +12,17 @@
     286.56092974743325,
     389.03756631533463
   ],
-  "warning": "Attachment metrics validate coordinate anchors, not painted grip or pixel-level joint coverage. Front/rear silhouettes differ and switch abruptly."
+  "torso_surfaces_at_keys": [
+    "front/torso",
+    "side/torso",
+    "rear/torso",
+    "side/torso"
+  ],
+  "pelvis_surfaces_at_keys": [
+    "front/pelvis",
+    "side/pelvis",
+    "rear/pelvis",
+    "side/pelvis"
+  ],
+  "warning": "Attachment metrics validate coordinate anchors, not painted grip or pixel-level joint coverage. Three torso/pelvis views still use discrete swaps; limb silhouettes retain the baseline issues."
 }

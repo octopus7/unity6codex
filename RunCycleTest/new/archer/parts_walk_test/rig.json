@@ -1115,12 +1115,74 @@
         0.5,
         0.4
       ]
+    },
+    "side/torso": {
+      "file": "parts/side/torso.png",
+      "source_rect": [
+        270,
+        70,
+        665,
+        825
+      ],
+      "trim_rect": [
+        10,
+        16,
+        378,
+        743
+      ],
+      "source_size": [
+        368,
+        727
+      ],
+      "size": [
+        82,
+        132
+      ],
+      "pivot": [
+        41.0,
+        125.39999999999999
+      ],
+      "pivot_normalized": [
+        0.5,
+        0.95
+      ]
+    },
+    "side/pelvis": {
+      "file": "parts/side/pelvis.png",
+      "source_rect": [
+        835,
+        505,
+        1285,
+        945
+      ],
+      "trim_rect": [
+        14,
+        16,
+        435,
+        424
+      ],
+      "source_size": [
+        421,
+        408
+      ],
+      "size": [
+        92,
+        82
+      ],
+      "pivot": [
+        46.0,
+        28.7
+      ],
+      "pivot_normalized": [
+        0.5,
+        0.35
+      ]
     }
   },
   "samples": [
     {
       "phase": 0.0,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -1306,7 +1368,7 @@
     },
     {
       "phase": 0.008333333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -1492,7 +1554,7 @@
     },
     {
       "phase": 0.016666666666666666,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -1678,7 +1740,7 @@
     },
     {
       "phase": 0.025,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -1864,7 +1926,7 @@
     },
     {
       "phase": 0.03333333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -2050,7 +2112,7 @@
     },
     {
       "phase": 0.041666666666666664,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -2236,7 +2298,7 @@
     },
     {
       "phase": 0.05,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -2422,7 +2484,7 @@
     },
     {
       "phase": 0.058333333333333334,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -2608,7 +2670,7 @@
     },
     {
       "phase": 0.06666666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -2794,7 +2856,7 @@
     },
     {
       "phase": 0.075,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -2980,7 +3042,7 @@
     },
     {
       "phase": 0.08333333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -3166,7 +3228,7 @@
     },
     {
       "phase": 0.09166666666666666,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -3352,7 +3414,7 @@
     },
     {
       "phase": 0.1,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -3538,7 +3600,7 @@
     },
     {
       "phase": 0.10833333333333334,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -3724,7 +3786,7 @@
     },
     {
       "phase": 0.11666666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -3910,7 +3972,7 @@
     },
     {
       "phase": 0.125,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -4096,7 +4158,7 @@
     },
     {
       "phase": 0.13333333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -4282,7 +4344,7 @@
     },
     {
       "phase": 0.14166666666666666,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -4468,7 +4530,7 @@
     },
     {
       "phase": 0.15,
-      "surface": "front",
+      "surface": "side / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -4487,7 +4549,7 @@
             -7
           ],
           "angle": -0.014694631307311828,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -4553,8 +4615,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.2821369211003871,
           "art": "front/far_upper_arm",
@@ -4613,8 +4675,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.2821369211003871,
           "art": "front/near_upper_arm",
@@ -4654,7 +4716,7 @@
     },
     {
       "phase": 0.15833333333333333,
-      "surface": "front",
+      "surface": "side / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -4673,7 +4735,7 @@
             -7
           ],
           "angle": -0.01361597587537568,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -4739,8 +4801,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.26142673680721307,
           "art": "front/far_upper_arm",
@@ -4799,8 +4861,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.26142673680721307,
           "art": "front/near_upper_arm",
@@ -4840,7 +4902,7 @@
     },
     {
       "phase": 0.16666666666666666,
-      "surface": "front",
+      "surface": "side / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -4859,7 +4921,7 @@
             -7
           ],
           "angle": -0.012500000000000004,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -4925,8 +4987,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.24000000000000005,
           "art": "front/far_upper_arm",
@@ -4985,8 +5047,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.24000000000000005,
           "art": "front/near_upper_arm",
@@ -5026,7 +5088,7 @@
     },
     {
       "phase": 0.175,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -5035,7 +5097,7 @@
             349.76335575687744
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -5045,7 +5107,7 @@
             -7
           ],
           "angle": -0.011349762493488671,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -5111,8 +5173,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.21791543987498246,
           "art": "front/far_upper_arm",
@@ -5171,8 +5233,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.21791543987498246,
           "art": "front/near_upper_arm",
@@ -5212,7 +5274,7 @@
     },
     {
       "phase": 0.18333333333333332,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -5221,7 +5283,7 @@
             350.0073918190766
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -5231,7 +5293,7 @@
             -7
           ],
           "angle": -0.01016841607689501,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -5297,8 +5359,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.19523358867638418,
           "art": "front/far_upper_arm",
@@ -5357,8 +5419,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.19523358867638418,
           "art": "front/near_upper_arm",
@@ -5398,7 +5460,7 @@
     },
     {
       "phase": 0.19166666666666668,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -5407,7 +5469,7 @@
             350.2294344764322
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -5417,7 +5479,7 @@
             -7
           ],
           "angle": -0.008959198738632504,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -5483,8 +5545,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.17201661578174407,
           "art": "front/far_upper_arm",
@@ -5543,8 +5605,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.17201661578174407,
           "art": "front/near_upper_arm",
@@ -5584,7 +5646,7 @@
     },
     {
       "phase": 0.2,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -5593,7 +5655,7 @@
             350.42705098312484
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -5603,7 +5665,7 @@
             -7
           ],
           "angle": -0.007725424859373687,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -5669,8 +5731,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.14832815729997478,
           "art": "front/far_upper_arm",
@@ -5729,8 +5791,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.14832815729997478,
           "art": "front/near_upper_arm",
@@ -5770,7 +5832,7 @@
     },
     {
       "phase": 0.20833333333333334,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -5779,7 +5841,7 @@
             350.5980762113533
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -5789,7 +5851,7 @@
             -7
           ],
           "angle": -0.0064704761275630185,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -5855,8 +5917,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.12423314164920995,
           "art": "front/far_upper_arm",
@@ -5915,8 +5977,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.12423314164920995,
           "art": "front/near_upper_arm",
@@ -5956,7 +6018,7 @@
     },
     {
       "phase": 0.21666666666666667,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -5965,7 +6027,7 @@
             350.7406363729278
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -5975,7 +6037,7 @@
             -7
           ],
           "angle": -0.005197792270443981,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -6041,8 +6103,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.09979761159252443,
           "art": "front/far_upper_arm",
@@ -6101,8 +6163,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.09979761159252443,
           "art": "front/near_upper_arm",
@@ -6142,7 +6204,7 @@
     },
     {
       "phase": 0.225,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -6151,7 +6213,7 @@
             350.8531695488855
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -6161,7 +6223,7 @@
             -7
           ],
           "angle": -0.003910861626005773,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -6227,8 +6289,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.07508854321931084,
           "art": "front/far_upper_arm",
@@ -6287,8 +6349,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.07508854321931084,
           "art": "front/near_upper_arm",
@@ -6328,7 +6390,7 @@
     },
     {
       "phase": 0.23333333333333334,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -6337,7 +6399,7 @@
             350.93444280220143
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -6347,7 +6409,7 @@
             -7
           ],
           "angle": -0.0026132115816913364,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -6413,8 +6475,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.050173662368473655,
           "art": "front/far_upper_arm",
@@ -6473,8 +6535,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.050173662368473655,
           "art": "front/near_upper_arm",
@@ -6514,7 +6576,7 @@
     },
     {
       "phase": 0.24166666666666667,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -6523,7 +6585,7 @@
             350.98356568610484
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -6533,7 +6595,7 @@
             -7
           ],
           "angle": -0.0013083989060735993,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -6599,8 +6661,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.0251212589966131,
           "art": "front/far_upper_arm",
@@ -6659,8 +6721,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.0251212589966131,
           "art": "front/near_upper_arm",
@@ -6700,7 +6762,7 @@
     },
     {
       "phase": 0.25,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -6709,7 +6771,7 @@
             351.0
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -6719,7 +6781,7 @@
             -7
           ],
           "angle": -1.5308084989341916e-18,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -6785,8 +6847,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -2.9391523179536474e-17,
           "art": "front/far_upper_arm",
@@ -6845,8 +6907,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 2.9391523179536474e-17,
           "art": "front/near_upper_arm",
@@ -6886,7 +6948,7 @@
     },
     {
       "phase": 0.25833333333333336,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -6895,7 +6957,7 @@
             350.98356568610484
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -6905,7 +6967,7 @@
             -7
           ],
           "angle": 0.001308398906073596,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -6971,8 +7033,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.025121258996613043,
           "art": "rear/far_upper_arm",
@@ -7031,8 +7093,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.025121258996613043,
           "art": "rear/near_upper_arm",
@@ -7072,7 +7134,7 @@
     },
     {
       "phase": 0.26666666666666666,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -7081,7 +7143,7 @@
             350.93444280220143
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -7091,7 +7153,7 @@
             -7
           ],
           "angle": 0.0026132115816913334,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -7157,8 +7219,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.0501736623684736,
           "art": "rear/far_upper_arm",
@@ -7217,8 +7279,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.0501736623684736,
           "art": "rear/near_upper_arm",
@@ -7258,7 +7320,7 @@
     },
     {
       "phase": 0.275,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -7267,7 +7329,7 @@
             350.8531695488855
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -7277,7 +7339,7 @@
             -7
           ],
           "angle": 0.003910861626005776,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -7343,8 +7405,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.0750885432193109,
           "art": "rear/far_upper_arm",
@@ -7403,8 +7465,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.0750885432193109,
           "art": "rear/near_upper_arm",
@@ -7444,7 +7506,7 @@
     },
     {
       "phase": 0.2833333333333333,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -7453,7 +7515,7 @@
             350.7406363729278
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -7463,7 +7525,7 @@
             -7
           ],
           "angle": 0.0051977922704439785,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -7529,8 +7591,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.09979761159252437,
           "art": "rear/far_upper_arm",
@@ -7589,8 +7651,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.09979761159252437,
           "art": "rear/near_upper_arm",
@@ -7630,7 +7692,7 @@
     },
     {
       "phase": 0.2916666666666667,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -7639,7 +7701,7 @@
             350.5980762113533
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -7649,7 +7711,7 @@
             -7
           ],
           "angle": 0.006470476127563022,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -7715,8 +7777,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.12423314164921001,
           "art": "rear/far_upper_arm",
@@ -7775,8 +7837,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.12423314164921001,
           "art": "rear/near_upper_arm",
@@ -7816,7 +7878,7 @@
     },
     {
       "phase": 0.3,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -7825,7 +7887,7 @@
             350.42705098312484
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -7835,7 +7897,7 @@
             -7
           ],
           "angle": 0.007725424859373684,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -7901,8 +7963,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.14832815729997473,
           "art": "rear/far_upper_arm",
@@ -7961,8 +8023,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.14832815729997473,
           "art": "rear/near_upper_arm",
@@ -8002,7 +8064,7 @@
     },
     {
       "phase": 0.30833333333333335,
-      "surface": "rear",
+      "surface": "rear / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -8011,7 +8073,7 @@
             350.2294344764322
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -8188,7 +8250,7 @@
     },
     {
       "phase": 0.31666666666666665,
-      "surface": "rear",
+      "surface": "rear / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -8197,7 +8259,7 @@
             350.0073918190766
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -8374,7 +8436,7 @@
     },
     {
       "phase": 0.325,
-      "surface": "rear",
+      "surface": "rear / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -8383,7 +8445,7 @@
             349.76335575687744
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -8560,7 +8622,7 @@
     },
     {
       "phase": 0.3333333333333333,
-      "surface": "rear",
+      "surface": "rear / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -8569,7 +8631,7 @@
             349.5
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -8746,7 +8808,7 @@
     },
     {
       "phase": 0.3416666666666667,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -8932,7 +8994,7 @@
     },
     {
       "phase": 0.35,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -9118,7 +9180,7 @@
     },
     {
       "phase": 0.35833333333333334,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -9304,7 +9366,7 @@
     },
     {
       "phase": 0.36666666666666664,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -9490,7 +9552,7 @@
     },
     {
       "phase": 0.375,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -9676,7 +9738,7 @@
     },
     {
       "phase": 0.38333333333333336,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -9862,7 +9924,7 @@
     },
     {
       "phase": 0.39166666666666666,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -10048,7 +10110,7 @@
     },
     {
       "phase": 0.4,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -10234,7 +10296,7 @@
     },
     {
       "phase": 0.4083333333333333,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -10420,7 +10482,7 @@
     },
     {
       "phase": 0.4166666666666667,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -10606,7 +10668,7 @@
     },
     {
       "phase": 0.425,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -10792,7 +10854,7 @@
     },
     {
       "phase": 0.43333333333333335,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -10978,7 +11040,7 @@
     },
     {
       "phase": 0.44166666666666665,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -11164,7 +11226,7 @@
     },
     {
       "phase": 0.45,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -11350,7 +11412,7 @@
     },
     {
       "phase": 0.4583333333333333,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -11536,7 +11598,7 @@
     },
     {
       "phase": 0.4666666666666667,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -11722,7 +11784,7 @@
     },
     {
       "phase": 0.475,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -11908,7 +11970,7 @@
     },
     {
       "phase": 0.48333333333333334,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -12094,7 +12156,7 @@
     },
     {
       "phase": 0.49166666666666664,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -12280,7 +12342,7 @@
     },
     {
       "phase": 0.5,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -12466,7 +12528,7 @@
     },
     {
       "phase": 0.5083333333333333,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -12652,7 +12714,7 @@
     },
     {
       "phase": 0.5166666666666667,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -12838,7 +12900,7 @@
     },
     {
       "phase": 0.525,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -13024,7 +13086,7 @@
     },
     {
       "phase": 0.5333333333333333,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -13210,7 +13272,7 @@
     },
     {
       "phase": 0.5416666666666666,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -13396,7 +13458,7 @@
     },
     {
       "phase": 0.55,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -13582,7 +13644,7 @@
     },
     {
       "phase": 0.5583333333333333,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -13768,7 +13830,7 @@
     },
     {
       "phase": 0.5666666666666667,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -13954,7 +14016,7 @@
     },
     {
       "phase": 0.575,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -14140,7 +14202,7 @@
     },
     {
       "phase": 0.5833333333333334,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -14326,7 +14388,7 @@
     },
     {
       "phase": 0.5916666666666667,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -14512,7 +14574,7 @@
     },
     {
       "phase": 0.6,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -14698,7 +14760,7 @@
     },
     {
       "phase": 0.6083333333333333,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -14884,7 +14946,7 @@
     },
     {
       "phase": 0.6166666666666667,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -15070,7 +15132,7 @@
     },
     {
       "phase": 0.625,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -15256,7 +15318,7 @@
     },
     {
       "phase": 0.6333333333333333,
-      "surface": "rear",
+      "surface": "rear / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -15442,7 +15504,7 @@
     },
     {
       "phase": 0.6416666666666667,
-      "surface": "rear",
+      "surface": "side / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -15461,7 +15523,7 @@
             -7
           ],
           "angle": 0.015733009776245928,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -15527,8 +15589,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.3020737877039218,
           "art": "rear/far_upper_arm",
@@ -15587,8 +15649,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.3020737877039218,
           "art": "rear/near_upper_arm",
@@ -15628,7 +15690,7 @@
     },
     {
       "phase": 0.65,
-      "surface": "rear",
+      "surface": "side / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -15647,7 +15709,7 @@
             -7
           ],
           "angle": 0.014694631307311832,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -15713,8 +15775,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.28213692110038713,
           "art": "rear/far_upper_arm",
@@ -15773,8 +15835,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.28213692110038713,
           "art": "rear/near_upper_arm",
@@ -15814,7 +15876,7 @@
     },
     {
       "phase": 0.6583333333333333,
-      "surface": "rear",
+      "surface": "side / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -15833,7 +15895,7 @@
             -7
           ],
           "angle": 0.013615975875375675,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -15899,8 +15961,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.26142673680721296,
           "art": "rear/far_upper_arm",
@@ -15959,8 +16021,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.26142673680721296,
           "art": "rear/near_upper_arm",
@@ -16000,7 +16062,7 @@
     },
     {
       "phase": 0.6666666666666666,
-      "surface": "rear",
+      "surface": "side / rear",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -16019,7 +16081,7 @@
             -7
           ],
           "angle": 0.012500000000000011,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -16085,8 +16147,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.2400000000000002,
           "art": "rear/far_upper_arm",
@@ -16145,8 +16207,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.2400000000000002,
           "art": "rear/near_upper_arm",
@@ -16186,7 +16248,7 @@
     },
     {
       "phase": 0.675,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -16195,7 +16257,7 @@
             349.76335575687744
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -16205,7 +16267,7 @@
             -7
           ],
           "angle": 0.011349762493488673,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -16271,8 +16333,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.21791543987498252,
           "art": "rear/far_upper_arm",
@@ -16331,8 +16393,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.21791543987498252,
           "art": "rear/near_upper_arm",
@@ -16372,7 +16434,7 @@
     },
     {
       "phase": 0.6833333333333333,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -16381,7 +16443,7 @@
             350.0073918190766
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -16391,7 +16453,7 @@
             -7
           ],
           "angle": 0.010168416076895004,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -16457,8 +16519,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.19523358867638405,
           "art": "rear/far_upper_arm",
@@ -16517,8 +16579,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.19523358867638405,
           "art": "rear/near_upper_arm",
@@ -16558,7 +16620,7 @@
     },
     {
       "phase": 0.6916666666666667,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -16567,7 +16629,7 @@
             350.2294344764322
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -16577,7 +16639,7 @@
             -7
           ],
           "angle": 0.008959198738632518,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -16643,8 +16705,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.17201661578174435,
           "art": "rear/far_upper_arm",
@@ -16703,8 +16765,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.17201661578174435,
           "art": "rear/near_upper_arm",
@@ -16744,7 +16806,7 @@
     },
     {
       "phase": 0.7,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -16753,7 +16815,7 @@
             350.42705098312484
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -16763,7 +16825,7 @@
             -7
           ],
           "angle": 0.007725424859373689,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -16829,8 +16891,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.1483281572999748,
           "art": "rear/far_upper_arm",
@@ -16889,8 +16951,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.1483281572999748,
           "art": "rear/near_upper_arm",
@@ -16930,7 +16992,7 @@
     },
     {
       "phase": 0.7083333333333334,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -16939,7 +17001,7 @@
             350.5980762113533
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -16949,7 +17011,7 @@
             -7
           ],
           "angle": 0.006470476127563016,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -17015,8 +17077,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.1242331416492099,
           "art": "rear/far_upper_arm",
@@ -17075,8 +17137,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.1242331416492099,
           "art": "rear/near_upper_arm",
@@ -17116,7 +17178,7 @@
     },
     {
       "phase": 0.7166666666666667,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -17125,7 +17187,7 @@
             350.7406363729278
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -17135,7 +17197,7 @@
             -7
           ],
           "angle": 0.005197792270443995,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -17201,8 +17263,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.09979761159252469,
           "art": "rear/far_upper_arm",
@@ -17261,8 +17323,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.09979761159252469,
           "art": "rear/near_upper_arm",
@@ -17302,7 +17364,7 @@
     },
     {
       "phase": 0.725,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -17311,7 +17373,7 @@
             350.85316954888543
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -17321,7 +17383,7 @@
             -7
           ],
           "angle": 0.003910861626005776,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -17387,8 +17449,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.0750885432193109,
           "art": "rear/far_upper_arm",
@@ -17447,8 +17509,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.0750885432193109,
           "art": "rear/near_upper_arm",
@@ -17488,7 +17550,7 @@
     },
     {
       "phase": 0.7333333333333333,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -17497,7 +17559,7 @@
             350.93444280220143
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -17507,7 +17569,7 @@
             -7
           ],
           "angle": 0.002613211581691356,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -17573,8 +17635,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.05017366236847403,
           "art": "rear/far_upper_arm",
@@ -17633,8 +17695,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.05017366236847403,
           "art": "rear/near_upper_arm",
@@ -17674,7 +17736,7 @@
     },
     {
       "phase": 0.7416666666666667,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -17683,7 +17745,7 @@
             350.98356568610484
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -17693,7 +17755,7 @@
             -7
           ],
           "angle": 0.0013083989060735856,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -17759,8 +17821,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 0.025121258996612845,
           "art": "rear/far_upper_arm",
@@ -17819,8 +17881,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -0.025121258996612845,
           "art": "rear/near_upper_arm",
@@ -17860,7 +17922,7 @@
     },
     {
       "phase": 0.75,
-      "surface": "rear",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -17869,7 +17931,7 @@
             351.0
           ],
           "angle": 0,
-          "art": "rear/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -17879,7 +17941,7 @@
             -7
           ],
           "angle": 4.592425496802574e-18,
-          "art": "rear/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -17945,8 +18007,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": 8.817456953860942e-17,
           "art": "rear/far_upper_arm",
@@ -18005,8 +18067,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": -8.817456953860942e-17,
           "art": "rear/near_upper_arm",
@@ -18046,7 +18108,7 @@
     },
     {
       "phase": 0.7583333333333333,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -18055,7 +18117,7 @@
             350.98356568610484
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -18065,7 +18127,7 @@
             -7
           ],
           "angle": -0.0013083989060735765,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -18131,8 +18193,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.025121258996612668,
           "art": "front/far_upper_arm",
@@ -18191,8 +18253,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.025121258996612668,
           "art": "front/near_upper_arm",
@@ -18232,7 +18294,7 @@
     },
     {
       "phase": 0.7666666666666667,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -18241,7 +18303,7 @@
             350.93444280220143
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -18251,7 +18313,7 @@
             -7
           ],
           "angle": -0.002613211581691347,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -18317,8 +18379,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.050173662368473856,
           "art": "front/far_upper_arm",
@@ -18377,8 +18439,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.050173662368473856,
           "art": "front/near_upper_arm",
@@ -18418,7 +18480,7 @@
     },
     {
       "phase": 0.775,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -18427,7 +18489,7 @@
             350.8531695488855
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -18437,7 +18499,7 @@
             -7
           ],
           "angle": -0.003910861626005767,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -18503,8 +18565,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.07508854321931072,
           "art": "front/far_upper_arm",
@@ -18563,8 +18625,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.07508854321931072,
           "art": "front/near_upper_arm",
@@ -18604,7 +18666,7 @@
     },
     {
       "phase": 0.7833333333333333,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -18613,7 +18675,7 @@
             350.7406363729278
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -18623,7 +18685,7 @@
             -7
           ],
           "angle": -0.005197792270443986,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -18689,8 +18751,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.09979761159252452,
           "art": "front/far_upper_arm",
@@ -18749,8 +18811,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.09979761159252452,
           "art": "front/near_upper_arm",
@@ -18790,7 +18852,7 @@
     },
     {
       "phase": 0.7916666666666666,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -18799,7 +18861,7 @@
             350.5980762113533
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -18809,7 +18871,7 @@
             -7
           ],
           "angle": -0.006470476127563008,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -18875,8 +18937,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.12423314164920973,
           "art": "front/far_upper_arm",
@@ -18935,8 +18997,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.12423314164920973,
           "art": "front/near_upper_arm",
@@ -18976,7 +19038,7 @@
     },
     {
       "phase": 0.8,
-      "surface": "front",
+      "surface": "side / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -18985,7 +19047,7 @@
             350.42705098312484
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -18995,7 +19057,7 @@
             -7
           ],
           "angle": -0.007725424859373681,
-          "art": "front/torso",
+          "art": "side/torso",
           "z": 45
         },
         "head": {
@@ -19061,8 +19123,8 @@
         "far_upper_arm": {
           "parent": "torso",
           "xy": [
-            -19,
-            -104
+            12,
+            -94
           ],
           "angle": -0.14832815729997467,
           "art": "front/far_upper_arm",
@@ -19121,8 +19183,8 @@
         "near_upper_arm": {
           "parent": "torso",
           "xy": [
-            14,
-            -104
+            -17,
+            -90
           ],
           "angle": 0.14832815729997467,
           "art": "front/near_upper_arm",
@@ -19162,7 +19224,7 @@
     },
     {
       "phase": 0.8083333333333333,
-      "surface": "front",
+      "surface": "front / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -19171,7 +19233,7 @@
             350.2294344764322
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -19348,7 +19410,7 @@
     },
     {
       "phase": 0.8166666666666667,
-      "surface": "front",
+      "surface": "front / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -19357,7 +19419,7 @@
             350.0073918190766
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -19534,7 +19596,7 @@
     },
     {
       "phase": 0.825,
-      "surface": "front",
+      "surface": "front / side",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -19543,7 +19605,7 @@
             349.76335575687744
           ],
           "angle": 0,
-          "art": "front/pelvis",
+          "art": "side/pelvis",
           "z": 40
         },
         "torso": {
@@ -19720,7 +19782,7 @@
     },
     {
       "phase": 0.8333333333333334,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -19906,7 +19968,7 @@
     },
     {
       "phase": 0.8416666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -20092,7 +20154,7 @@
     },
     {
       "phase": 0.85,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -20278,7 +20340,7 @@
     },
     {
       "phase": 0.8583333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -20464,7 +20526,7 @@
     },
     {
       "phase": 0.8666666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -20650,7 +20712,7 @@
     },
     {
       "phase": 0.875,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -20836,7 +20898,7 @@
     },
     {
       "phase": 0.8833333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -21022,7 +21084,7 @@
     },
     {
       "phase": 0.8916666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -21208,7 +21270,7 @@
     },
     {
       "phase": 0.9,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -21394,7 +21456,7 @@
     },
     {
       "phase": 0.9083333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -21580,7 +21642,7 @@
     },
     {
       "phase": 0.9166666666666666,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -21766,7 +21828,7 @@
     },
     {
       "phase": 0.925,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -21952,7 +22014,7 @@
     },
     {
       "phase": 0.9333333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -22138,7 +22200,7 @@
     },
     {
       "phase": 0.9416666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -22324,7 +22386,7 @@
     },
     {
       "phase": 0.95,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -22510,7 +22572,7 @@
     },
     {
       "phase": 0.9583333333333334,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -22696,7 +22758,7 @@
     },
     {
       "phase": 0.9666666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -22882,7 +22944,7 @@
     },
     {
       "phase": 0.975,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -23068,7 +23130,7 @@
     },
     {
       "phase": 0.9833333333333333,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -23254,7 +23316,7 @@
     },
     {
       "phase": 0.9916666666666667,
-      "surface": "front",
+      "surface": "front / front",
       "nodes": {
         "pelvis": {
           "parent": null,
@@ -23451,5 +23513,14 @@
     60,
     90
   ],
-  "note": "Angles radians, positive clockwise; local parent-child transforms. Variant front/rear switches explicitly; head fixed right. No identity swaps."
+  "surface_schedule": {
+    "threshold": 0.5,
+    "torso_phase_offset": 0.025,
+    "pelvis_phase_offset": 0,
+    "intermediate_parts": [
+      "torso",
+      "pelvis"
+    ]
+  },
+  "note": "Angles radians, positive clockwise; local parent-child transforms. Torso/pelvis use front-side-rear-side; limbs retain two-view art; head fixed right. No identity swaps."
 }

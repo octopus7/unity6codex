@@ -4,10 +4,11 @@
 <button id="play">일시 정지</button><button id="reset">처음</button><div id="keys"></div>
 <label>프레임 / 위상 <input id="phase" type="range" min="0" max="119" value="0"></label>
 <label><input id="joints" type="checkbox"> 관절점과 부모 연결 표시</label>
+<label><input id="equipment" type="checkbox" checked> 활·화살통 표시</label>
 <label><input id="cape" type="checkbox" checked> 망토 표시 (등판 검사 시 해제)</label>
-<label>파츠 면 <select id="surface"><option value="auto">포즈별 앞면 / 뒷면 교대</option><option value="front">앞면 고정 비교</option><option value="rear">뒷면 고정 비교</option></select></label>
+<label>파츠 면 <select id="surface"><option value="auto">3구도 · 앞 / 측면 / 뒤</option><option value="legacy">기존 2구도 비교</option><option value="side">몸통·골반 측면 고정</option><option value="front">앞면 고정 비교</option><option value="rear">뒷면 고정 비교</option></select></label>
 <label>재생 속도 <select id="speed"><option value=".5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option></select></label>
-<pre id="status"></pre><p class="note">검증 시안: 앞·뒷면 전환 때 몸통 윤곽이 튑니다. 중간 면 파츠가 없어 최종 애니메이션 품질로 판정하지 않습니다.</p>
+<pre id="status"></pre><p class="note">검증 시안: 몸통·골반에 중간 측면을 추가했습니다. 면 교체와 관절 윤곽의 튐은 아직 남아 있습니다.</p>
 <p>1: 가까운 다리 앞 / 팔 뒤<br>2: 가까운 다리 지지 / 먼 다리 통과<br>3: 가까운 다리 뒤 / 팔 앞<br>4: 반대쪽 지지 / 가까운 다리 통과</p>
 <a href="comparison_sheet.png" style="color:#82cdf3">4프레임 비교 시트</a> · <a href="walk_loop.gif" style="color:#82cdf3">반복 GIF</a>
 </aside></section></main><script src="preview_data.js"></script><script src="preview.js"></script></html>
